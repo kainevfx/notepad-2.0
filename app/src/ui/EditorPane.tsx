@@ -9,6 +9,7 @@ import { settings } from '../state/settings';
 import { platform } from '../platform';
 import { renderMarkdown } from '../markdown/pipeline';
 import { createEditorState } from '../editor/setup';
+import { renderMermaid } from '../markdown/mermaid';
 import { VisualEditor } from './VisualEditor';
 
 function Banner() {
@@ -47,31 +48,6 @@ function joinPath(dir: string, rel: string): string {
     else if (p !== '.') out.push(p);
   }
   return out.join(sep);
-}
-
-let mermaidMod: Promise<typeof import('mermaid')> | null = null;
-let mermaidSeq = 0;
-
-async function renderMermaid(root: HTMLElement, dark: boolean) {
-  const blocks = Array.from(root.querySelectorAll('pre > code.language-mermaid')) as HTMLElement[];
-  if (!blocks.length) return;
-  mermaidMod ??= import('mermaid');
-  const mermaid = (await mermaidMod).default;
-  mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: dark ? 'dark' : 'default', fontFamily: 'Segoe UI, sans-serif' });
-  for (const code of blocks) {
-    const pre = code.parentElement!;
-    try {
-      const { svg } = await mermaid.render(`mmd-${++mermaidSeq}`, code.textContent ?? '');
-      const fig = document.createElement('div');
-      fig.className = 'mermaid-figure';
-      fig.innerHTML = svg;
-      fig.dataset.line = pre.dataset.line ?? '';
-      pre.replaceWith(fig);
-    } catch (e) {
-      pre.classList.add('mermaid-error');
-      pre.title = String(e);
-    }
-  }
 }
 
 export function Preview({ syncRef }: { syncRef: { current: ((line: number, frac: number) => void) | null } }) {

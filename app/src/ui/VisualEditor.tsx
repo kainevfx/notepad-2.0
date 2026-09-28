@@ -69,6 +69,7 @@ export function VisualEditor() {
     const ed = edRef.current;
     if (!d || !ed) return;
     const text = textOf(d.id);
+    if (ed.isEditable === d.readonly) ed.setEditable(!d.readonly, false);
     if (docId.current === d.id && !sync.needsReload(text)) return;
     clearTimeout(timer.current); // any pending edit belonged to the previous tab and was flushed on switch
     loadIntoEditor(ed, text, !d.readonly);

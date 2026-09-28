@@ -70,3 +70,28 @@ describe('older aligned tags', () => {
   it('an <h2 align> line converts back to a Markdown heading when left-aligned', () =>
     expect(run('<h2 align="center">T</h2>', 5, 5, (v) => C.setAlign(v, 'left')).text).toBe('## T'));
 });
+
+describe('read-only documents', () => {
+  function runRO(doc: string, fn: (v: any) => boolean) {
+    let state = EditorState.create({ doc, selection: EditorSelection.single(0, doc.length), extensions: EditorState.readOnly.of(true) });
+    const v: any = { get state() { return state; }, dispatch: (tr: any) => { state = state.update(tr).state; } };
+    const ok = fn(v);
+    return { ok, text: state.doc.toString() };
+  }
+  it('formatting commands refuse to change a read-only file', () => {
+    for (const fn of [
+      (v: any) => C.toggleWrap(v, '**', '**', 'bold'),
+      (v: any) => C.setBlockType(v, 'h1'),
+      (v: any) => C.toggleList(v, 'bullet'),
+      (v: any) => C.indentLines(v, 1),
+      (v: any) => C.setAlign(v, 'center'),
+      (v: any) => C.insertTable(v, 1, 1),
+      (v: any) => C.insertRule(v),
+      (v: any) => C.insertLink(v),
+    ]) {
+      const r = runRO('hi', fn);
+      expect(r.text).toBe('hi');
+      expect(r.ok).toBe(false);
+    }
+  });
+});

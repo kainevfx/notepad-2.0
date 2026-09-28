@@ -4,7 +4,8 @@
 .visual-editor .ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: var(--text-3); float: left; height: 0; pointer-events: none; }
 .visual-editor .locked-block { position: relative; margin: 8px 0 16px; padding: 10px 12px 8px; border: 1px dashed var(--stroke-strong); border-radius: 8px; background: var(--bg-status); cursor: default; }
 .visual-editor .locked-block::before { content: attr(data-label); position: absolute; top: -9px; left: 10px; padding: 0 6px; font: 11px var(--ui-font); color: var(--text-3); background: var(--bg-editor); }
-.visual-editor .locked-block pre { margin: 0; padding: 0; border: 0; background: none; white-space: pre-wrap; font-size: 0.88em; }
+.visual-editor .locked-render > :first-child { margin-top: 0; }
+.visual-editor .locked-render > :last-child { margin-bottom: 0; }
 .visual-editor .locked-inline { font-family: Consolas, 'Cascadia Mono', monospace; font-size: 0.88em; padding: 0 3px; border-radius: 4px; background: var(--bg-hover); color: var(--text-2); }
 .visual-editor ul[data-type='taskList'] { list-style: none; padding-left: 0.3em; }
 .visual-editor ul[data-type='taskList'] li { display: flex; align-items: flex-start; gap: 6px; }

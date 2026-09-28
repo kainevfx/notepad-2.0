@@ -60,13 +60,25 @@ export function parseStyle(s: string): Record<string, string> {
   return a;
 }
 
+const OWN_SPAN = /^<span style="([^"]*)">([\s\S]*?)<\/span>/;
+const OWN_PROPS = new Set(['color', 'font-size', 'font-weight']);
+
+/** A <span style="…"> the toolbar wrote: only colour / size / weight, not nested. Others stay raw. */
+export function ownSpan(src: string): RegExpExecArray | null {
+  const m = OWN_SPAN.exec(src);
+  if (!m || m[2].includes('<span')) return null;
+  const decls = m[1].split(';').map((d) => d.trim()).filter(Boolean);
+  if (!decls.length || !decls.every((d) => OWN_PROPS.has(d.slice(0, d.indexOf(':')).trim().toLowerCase()))) return null;
+  return m;
+}
+
 export const HtmlTextStyle = TextStyle.extend({
   markdownTokenizer: {
     name: 'textStyle',
     level: 'inline',
     start: (src: string) => src.indexOf('<span style='),
     tokenize: (src: string, _tokens: unknown, lexer: any) => {
-      const m = /^<span style="([^"]*)">([\s\S]*?)<\/span>/.exec(src);
+      const m = ownSpan(src);
       return m ? { type: 'textStyle', raw: m[0], style: m[1], tokens: lexer.inlineTokens(m[2]) } : undefined;
     },
   },

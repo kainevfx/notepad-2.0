@@ -6,6 +6,7 @@ import { EditorSelection, type EditorState, type Line } from '@codemirror/state'
 type V = { state: EditorState; dispatch: (tr: any) => void };
 
 export function toggleWrap(view: V, open: string, close: string, placeholder: string): boolean {
+  if (view.state.readOnly) return false;
   const { state } = view;
   view.dispatch(
     state.changeByRange((r) => {
@@ -47,6 +48,7 @@ function selectedLines(state: EditorState): Line[] {
 const BLOCK_PREFIX = /^(#{1,6}\s+|>\s?)/;
 
 export function setBlockType(view: V, kind: 'body' | 'h1' | 'h2' | 'h3' | 'quote' | 'code'): boolean {
+  if (view.state.readOnly) return false;
   const { state } = view;
   const lines = selectedLines(state);
   if (kind === 'code') {
@@ -68,6 +70,7 @@ export function setBlockType(view: V, kind: 'body' | 'h1' | 'h2' | 'h3' | 'quote
 const LIST_RE = /^(\s*)([-*+]\s\[[ xX]\]\s|[-*+]\s|\d+[.)]\s)/;
 
 export function toggleList(view: V, kind: 'bullet' | 'number' | 'check'): boolean {
+  if (view.state.readOnly) return false;
   const { state } = view;
   const lines = selectedLines(state);
   const want = (i: number) => (kind === 'bullet' ? '- ' : kind === 'check' ? '- [ ] ' : `${i + 1}. `);
@@ -92,6 +95,7 @@ export function toggleList(view: V, kind: 'bullet' | 'number' | 'check'): boolea
 }
 
 export function indentLines(view: V, dir: 1 | -1): boolean {
+  if (view.state.readOnly) return false;
   const { state } = view;
   view.dispatch({
     changes: selectedLines(state).map((l) => {
@@ -116,6 +120,7 @@ const DIV_CLOSE = /^<\/div>\s*$/;
  * <div align="center">, blank line, the Markdown, blank line, </div>. Left removes the wrapper.
  */
 export function setAlign(view: V, align: 'left' | 'center' | 'right' | 'justify'): boolean {
+  if (view.state.readOnly) return false;
   const { state } = view;
   const doc = state.doc;
   const cur = doc.lineAt(state.selection.main.head).number;
@@ -166,6 +171,7 @@ export function setAlign(view: V, align: 'left' | 'center' | 'right' | 'justify'
 }
 
 export function insertTable(view: V, rows: number, cols: number): boolean {
+  if (view.state.readOnly) return false;
   const head = '| ' + Array.from({ length: cols }, (_, i) => `Column ${i + 1}`).join(' | ') + ' |';
   const sep = '| ' + Array(cols).fill('---').join(' | ') + ' |';
   const row = '| ' + Array(cols).fill('').join(' | ') + ' |';
@@ -178,12 +184,14 @@ export function insertTable(view: V, rows: number, cols: number): boolean {
 }
 
 export function insertRule(view: V): boolean {
+  if (view.state.readOnly) return false;
   const pos = view.state.selection.main.head;
   view.dispatch({ changes: { from: pos, insert: '\n\n---\n\n' } });
   return true;
 }
 
 export function insertLink(view: V): boolean {
+  if (view.state.readOnly) return false;
   view.dispatch(
     view.state.changeByRange((r) => {
       const text = view.state.sliceDoc(r.from, r.to) || 'link text';

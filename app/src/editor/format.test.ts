@@ -22,3 +22,14 @@ describe('format targets', () => {
     expect(targetFor(doc({ language: 'markdown', mdView: 'split' }))).toBe(sourceTarget);
   });
 });
+
+describe('read-only tabs', () => {
+  it('no formatting is offered on a read-only tab, only word wrap', () => {
+    for (const d of [doc({ readonly: true }), doc({ readonly: true, language: 'markdown', mdView: 'edit' }), doc({ readonly: true, language: 'markdown', mdView: 'visual' })]) {
+      const t = targetFor(d);
+      expect(t.can('bold')).toBe(false);
+      expect(t.can('indent')).toBe(false);
+      expect(t.can('wrap')).toBe(true);
+    }
+  });
+});

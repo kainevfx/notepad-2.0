@@ -167,7 +167,17 @@ export const visualTarget: FormatTarget = {
   },
 };
 
+/** Read-only tabs: nothing that changes the text, only the word-wrap view setting. */
+export const readonlyTarget: FormatTarget = {
+  can: (c) => c === 'wrap',
+  isActive: (c) => c === 'wrap' && settings.value.wordWrap,
+  run: (c) => {
+    if (c === 'wrap') toggleWrapSetting();
+  },
+};
+
 export function targetFor(d: DocMeta | null): FormatTarget {
+  if (d?.readonly) return readonlyTarget;
   if (!d || d.language !== 'markdown') return plainTarget;
   return d.mdView === 'visual' ? visualTarget : sourceTarget;
 }

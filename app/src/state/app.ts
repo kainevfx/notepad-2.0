@@ -495,6 +495,7 @@ export async function saveAll() {
 
 /** Returns false if the user cancelled. */
 export async function closeDoc(id: string, opts: { skipPrompt?: boolean } = {}): Promise<boolean> {
+  visualApi.flush();
   const d = docs.value[id];
   if (!d) return true;
   if (d.kind === 'file' && d.dirty && !opts.skipPrompt) {
@@ -606,6 +607,7 @@ export async function checkExternalChanges() {
 }
 
 export async function reloadDoc(id: string, silent = false) {
+  visualApi.flush();
   const d = docs.value[id];
   if (!d?.path) return;
   const f = await platform.readFile(d.path);
@@ -794,6 +796,7 @@ export function ensureQuickGroup() {
 // ---------------------------------------------------------------- quick notes (from the bubble window)
 
 export function onQuickNoteUpdated(p: { id: string; text: string; from: string; created?: number }) {
+  visualApi.flush();
   if (p.from === platform.windowLabel) return;
   const d = docs.value[p.id];
   const now = Date.now();
