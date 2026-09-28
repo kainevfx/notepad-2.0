@@ -14,8 +14,19 @@ export function MenuList({ items, onDone, style }: { items: MenuItem[]; onDone: 
     if (!el) return;
     const r = el.getBoundingClientRect();
     const next = { ...(style ?? {}) };
-    if (r.right > window.innerWidth - 4) next.left = `${Math.max(4, window.innerWidth - r.width - 4)}px`;
-    if (r.bottom > window.innerHeight - 4) next.top = `${Math.max(4, window.innerHeight - r.height - 4)}px`;
+    if (style) {
+      // Top-level menu: fixed position, so clamp to the window directly.
+      if (r.right > window.innerWidth - 4) next.left = `${Math.max(4, window.innerWidth - r.width - 4)}px`;
+      if (r.bottom > window.innerHeight - 4) next.top = `${Math.max(4, window.innerHeight - r.height - 4)}px`;
+    } else {
+      // Submenu: positioned relative to its parent item, so shift by the overflow instead.
+      const up = r.bottom - (window.innerHeight - 4);
+      if (up > 0) next.top = `${-Math.min(up, r.top - 4)}px`;
+      if (r.right > window.innerWidth - 4) {
+        const item = el.parentElement?.parentElement; // .submenu-host > parent .menu-item
+        next.left = `${-(r.width + (item?.offsetWidth ?? 0) + 4)}px`; // open to the left instead
+      }
+    }
     setPos(next);
   }, [items]);
 
