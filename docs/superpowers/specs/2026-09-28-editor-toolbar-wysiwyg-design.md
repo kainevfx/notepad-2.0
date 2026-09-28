@@ -123,7 +123,7 @@ Existing shortcuts keep working: Ctrl+B, Ctrl+I, Ctrl+K. Added: Ctrl+U underline
 | Font colour | `<span style="color:#RRGGBB">text</span>` |
 | Font size | `<span style="font-size:18px">text</span>` |
 | Font weight (non-bold) | `<span style="font-weight:300">text</span>` |
-| Alignment (centre/right/justify) | `<p align="center">…</p>` (headings: `<h2 align="center">`) |
+| Alignment (centre/right/justify) | `<div align="center">` + blank line + the Markdown block + blank line + `</div>` (GitHub's pattern, so bold/links inside still render). Older `<p align>` / `<hN align>` lines still load. |
 
 Colour, size and weight on the same text merge into one `<span style="…">`. Left alignment writes nothing.
 

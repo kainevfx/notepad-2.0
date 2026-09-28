@@ -31,7 +31,11 @@ describe('visual markdown round-trip', () => {
   it('underline as <u>', () => same('a <u>b</u> c'));
   it('colour span', () => same('a <span style="color:#ff0000">red</span> b'));
   it('size + weight merge into one span', () => same('<span style="font-size:18px;font-weight:300">x</span>'));
-  it('centred paragraph and right heading', () => same('<p align="center">mid</p>\n\n<h2 align="right">R</h2>'));
+  it('centred paragraph and right heading', () => same('<div align="center">\n\nmid **bold**\n\n</div>\n\n<div align="right">\n\n## R\n\n</div>'));
+  it('older <p align> blocks still load', () => {
+    const json = JSON.stringify(load('<p align="center">old</p>').getJSON());
+    expect(json).toContain('"textAlign":"center"');
+  });
   it('front matter is locked and verbatim', () => same('---\ntitle: X\ntags: [a, b]\n---\n\n# Doc'));
   it('block and inline maths verbatim', () => same('$$\n\\int_0^1 x\\,dx\n$$\n\nInline $a^2$ here.'));
   it('dollar amounts stay plain text', () => {
@@ -80,7 +84,7 @@ describe('editing formatting in visual', () => {
   it('centring a paragraph writes align', () => {
     const e = load('hello');
     e.commands.setTextAlign('center');
-    expect(editorToMarkdown(e).trim()).toBe('<p align="center">hello</p>');
+    expect(editorToMarkdown(e).trim()).toBe('<div align="center">\n\nhello\n\n</div>');
   });
 });
 
@@ -117,5 +121,14 @@ describe('only real edits count as edits', () => {
     loadIntoEditor(ed, 'x', true);
     ed.commands.insertContent('y');
     expect(edits).toBe(1);
+  });
+});
+
+describe('aligned blocks are editable, not locked', () => {
+  it('a centred div becomes a centred paragraph with its inline formatting', () => {
+    const json = JSON.stringify(load('<div align="center">\n\nmid **bold**\n\n</div>').getJSON());
+    expect(json).toContain('"textAlign":"center"');
+    expect(json).toContain('"type":"bold"');
+    expect(json).not.toContain('lockedBlock');
   });
 });

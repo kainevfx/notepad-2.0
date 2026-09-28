@@ -1,5 +1,5 @@
 // The TipTap setup behind the Visual (WYSIWYG) Markdown view.
-import { Editor, type AnyExtension } from '@tiptap/core';
+import { Editor, Extension, type AnyExtension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from '@tiptap/markdown';
 import { TaskList, TaskItem } from '@tiptap/extension-list';
@@ -8,6 +8,22 @@ import { Placeholder } from '@tiptap/extensions';
 import { markExtensions } from './marks';
 import { alignExtensions } from './align';
 import { lockedExtensions } from './locked';
+
+/** Indent/outdent list items with Ctrl+] / Ctrl+[, and Ctrl+K opens the toolbar's link dialog. */
+const ExtraKeys = Extension.create({
+  name: 'np2Keys',
+  addKeyboardShortcuts() {
+    const e = () => this.editor.commands;
+    return {
+      'Mod-]': () => e().sinkListItem('listItem') || e().sinkListItem('taskItem'),
+      'Mod-[': () => e().liftListItem('listItem') || e().liftListItem('taskItem'),
+      'Mod-k': () => {
+        window.dispatchEvent(new Event('np2-link'));
+        return true;
+      },
+    };
+  },
+});
 
 export function visualExtensions(opts: { placeholder?: string } = {}): AnyExtension[] {
   return [
@@ -28,6 +44,7 @@ export function visualExtensions(opts: { placeholder?: string } = {}): AnyExtens
     TableRow,
     TableHeader,
     TableCell,
+    ExtraKeys,
     Placeholder.configure({ placeholder: opts.placeholder ?? 'Start typing…' }),
     Markdown.configure({ indentation: { style: 'space', size: 2 }, markedOptions: { gfm: true, breaks: false } }),
   ];

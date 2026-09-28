@@ -48,12 +48,13 @@ describe('md-commands', () => {
     expect(run('\ta', 0, 0, (v) => C.indentLines(v, -1)).text).toBe('a');
   });
   it('colour wraps a span', () => expect(run('hi', 0, 2, (v) => C.wrapSpanStyle(v, 'color', '#ff0000')).text).toBe('<span style="color:#ff0000">hi</span>'));
-  it('align centre wraps the paragraph', () => expect(run('hi', 0, 0, (v) => C.setAlign(v, 'center')).text).toBe('<p align="center">hi</p>'));
-  it('align a heading keeps its level', () => expect(run('## T', 0, 0, (v) => C.setAlign(v, 'right')).text).toBe('<h2 align="right">T</h2>'));
-  it('align left unwraps', () => {
-    expect(run('<p align="center">hi</p>', 20, 20, (v) => C.setAlign(v, 'left')).text).toBe('hi');
-    expect(run('<h2 align="right">T</h2>', 5, 5, (v) => C.setAlign(v, 'left')).text).toBe('## T');
-  });
+  it('align centre wraps the block in a div', () =>
+    expect(run('hi **b**', 0, 0, (v) => C.setAlign(v, 'center')).text).toBe('<div align="center">\n\nhi **b**\n\n</div>'));
+  it('align a heading keeps it as Markdown', () =>
+    expect(run('## T', 0, 0, (v) => C.setAlign(v, 'right')).text).toBe('<div align="right">\n\n## T\n\n</div>'));
+  it('changing alignment inside an aligned block rewrites the div', () =>
+    expect(run('<div align="center">\n\nhi\n\n</div>', 23, 23, (v) => C.setAlign(v, 'right')).text).toBe('<div align="right">\n\nhi\n\n</div>'));
+  it('align left unwraps', () => expect(run('<div align="center">\n\nhi\n\n</div>', 23, 23, (v) => C.setAlign(v, 'left')).text).toBe('hi'));
   it('table 2x2', () => expect(run('', 0, 0, (v) => C.insertTable(v, 2, 2)).text).toBe('| Column 1 | Column 2 |\n| --- | --- |\n|  |  |\n|  |  |\n'));
   it('table after text starts on a new block', () => expect(run('x', 1, 1, (v) => C.insertTable(v, 1, 1)).text).toBe('x\n\n| Column 1 |\n| --- |\n|  |\n'));
   it('link selects the URL placeholder', () => {
@@ -61,4 +62,11 @@ describe('md-commands', () => {
     expect(r.text).toBe('[site](https://)');
     expect(r.text.slice(r.sel.from, r.sel.to)).toBe('https://');
   });
+});
+
+describe('older aligned tags', () => {
+  it('a <p align> line converts to the div form', () =>
+    expect(run('<p align="center">hi</p>', 5, 5, (v) => C.setAlign(v, 'right')).text).toBe('<div align="right">\n\nhi\n\n</div>'));
+  it('an <h2 align> line converts back to a Markdown heading when left-aligned', () =>
+    expect(run('<h2 align="center">T</h2>', 5, 5, (v) => C.setAlign(v, 'left')).text).toBe('## T'));
 });

@@ -20,7 +20,7 @@ const blockRules: { kind: BlockKind; re: RegExp; first?: boolean }[] = [
 ];
 
 // Tags the Visual view edits itself (see marks.ts / align.ts); every other tag stays raw.
-const OWN_TAG = /^<\/?(?:u>|span style=|(?:p|h[1-6]) align=")/;
+const OWN_TAG = /^<\/?(?:u>|span style=|(?:div|p|h[1-6]) align=")/;
 const VOID_TAGS = new Set(['br', 'hr', 'img', 'input', 'wbr', 'source', 'col', 'area', 'embed', 'meta', 'link', 'track', 'param', 'base']);
 
 /** A block that starts with raw HTML: through the matching close tag's line, else up to a blank line. */

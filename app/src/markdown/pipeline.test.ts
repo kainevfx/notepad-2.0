@@ -97,4 +97,9 @@ describe('inline style allow-list', () => {
     expect(renderMarkdown('<h2 align="right">x</h2>')).toContain('align="right"');
   });
   it('keeps underline', () => expect(renderMarkdown('<u>x</u>')).toContain('<u>x</u>'));
+  it('renders Markdown inside an aligned div', () => {
+    const html = renderMarkdown('<div align="center">\n\nmid **bold**\n\n</div>');
+    expect(html).toContain('align="center"');
+    expect(html).toContain('<strong>bold</strong>');
+  });
 });

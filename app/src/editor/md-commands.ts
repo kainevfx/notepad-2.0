@@ -107,27 +107,61 @@ export function wrapSpanStyle(view: V, prop: 'color' | 'font-size' | 'font-weigh
   return toggleWrap(view, `<span style="${prop}:${value}">`, '</span>', 'text');
 }
 
-const ALIGN_RE = /^<(p|h[1-6]) align="(left|center|right|justify)">([\s\S]*)<\/\1>$/;
+const OLD_ALIGN_RE = /^<(p|h([1-6])) align="(?:left|center|right|justify)">([\s\S]*)<\/\1>$/;
+const DIV_OPEN = /^<div align="(?:left|center|right|justify)">\s*$/;
+const DIV_CLOSE = /^<\/div>\s*$/;
 
+/**
+ * Align the block around the cursor. Aligned blocks are written the way GitHub renders them:
+ * <div align="center">, blank line, the Markdown, blank line, </div>. Left removes the wrapper.
+ */
 export function setAlign(view: V, align: 'left' | 'center' | 'right' | 'justify'): boolean {
   const { state } = view;
-  view.dispatch({
-    changes: selectedLines(state).map((l) => {
-      const m = ALIGN_RE.exec(l.text);
-      let tag = m ? m[1] : 'p';
-      let body = m ? m[3] : l.text;
-      const h = !m && /^(#{1,6})\s+(.*)$/.exec(l.text);
-      if (h) {
-        tag = `h${h[1].length}`;
-        body = h[2];
+  const doc = state.doc;
+  const cur = doc.lineAt(state.selection.main.head).number;
+  const wrap = (md: string) => (align === 'left' ? md : `<div align="${align}">\n\n${md}\n\n</div>`);
+
+  // Already inside an aligned div? Rewrite the whole div.
+  let open = -1;
+  for (let n = cur; n >= 1; n--) {
+    const t = doc.line(n).text;
+    if (DIV_OPEN.test(t)) {
+      open = n;
+      break;
+    }
+    if (DIV_CLOSE.test(t) && n !== cur) break;
+  }
+  if (open > 0) {
+    for (let n = Math.max(cur, open + 1); n <= doc.lines; n++) {
+      if (DIV_OPEN.test(doc.line(n).text) && n !== open) break;
+      if (DIV_CLOSE.test(doc.line(n).text)) {
+        const from = doc.line(open).from;
+        const to = doc.line(n).to;
+        const inner = doc.sliceString(doc.line(open).to, doc.line(n).from).replace(/^\s*\n/, '').replace(/\n\s*$/, '');
+        view.dispatch({ changes: { from, to, insert: wrap(inner) } });
+        return true;
       }
-      if (align === 'left') {
-        const insert = !m ? l.text : tag === 'p' ? body : `${'#'.repeat(Number(tag[1]))} ${body}`;
-        return { from: l.from, to: l.to, insert };
-      }
-      return { from: l.from, to: l.to, insert: `<${tag} align="${align}">${body}</${tag}>` };
-    }),
-  });
+    }
+  }
+
+  // Older single-line <p align> / <hN align>.
+  const line = doc.line(cur);
+  const old = OLD_ALIGN_RE.exec(line.text);
+  if (old) {
+    const md = old[2] ? `${'#'.repeat(Number(old[2]))} ${old[3]}` : old[3];
+    view.dispatch({ changes: { from: line.from, to: line.to, insert: wrap(md) } });
+    return true;
+  }
+
+  // Plain block: the run of non-blank lines around the cursor.
+  if (align === 'left' || !line.text.trim()) return true;
+  let a = cur;
+  let b = cur;
+  while (a > 1 && doc.line(a - 1).text.trim()) a--;
+  while (b < doc.lines && doc.line(b + 1).text.trim()) b++;
+  const from = doc.line(a).from;
+  const to = doc.line(b).to;
+  view.dispatch({ changes: { from, to, insert: wrap(doc.sliceString(from, to)) } });
   return true;
 }
 

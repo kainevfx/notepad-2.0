@@ -1,6 +1,7 @@
 // Visual view <-> CodeMirror. CodeMirror keeps the text; Visual edits are written back into it as
 // the smallest single change, so dirty tracking, autosave, recovery and saving work unchanged.
 import type { Editor } from '@tiptap/core';
+import { signal } from '@preact/signals';
 
 export function minimalChange(a: string, b: string): { from: number; to: number; insert: string } | null {
   if (a === b) return null;
@@ -15,6 +16,9 @@ export function minimalChange(a: string, b: string): { from: number; to: number;
   }
   return { from: s, to: ea, insert: b.slice(s, eb) };
 }
+
+/** Bumps when a Visual editor mounts or unmounts, so the toolbar re-subscribes. */
+export const visualEpoch = signal(0);
 
 /** The live Visual editor, if one is mounted. app.ts routes undo/redo/save through it. */
 export const visualApi: { editor: Editor | null; flush: () => void; undo: () => boolean; redo: () => boolean } = {

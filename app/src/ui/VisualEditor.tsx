@@ -5,7 +5,7 @@ import { useSignalEffect } from '@preact/signals';
 import type { Editor } from '@tiptap/core';
 import { activeDoc, activeId, editTick, getView, textOf, setMdView } from '../state/app';
 import { mountVisualEditor, loadIntoEditor, editorToMarkdown } from '../editor/visual/extensions';
-import { createVisualSync, visualApi } from '../editor/visual/sync';
+import { createVisualSync, visualApi, visualEpoch } from '../editor/visual/sync';
 
 export function VisualEditor() {
   const host = useRef<HTMLDivElement>(null);
@@ -49,6 +49,7 @@ export function VisualEditor() {
     visualApi.flush = flush;
     visualApi.undo = () => ed.commands.undo();
     visualApi.redo = () => ed.commands.redo();
+    visualEpoch.value++;
     return () => {
       flush();
       ed.view.dom.removeEventListener('dblclick', onDbl);
@@ -57,6 +58,7 @@ export function VisualEditor() {
       visualApi.undo = visualApi.redo = () => false;
       edRef.current = null;
       ed.destroy();
+      visualEpoch.value++;
     };
   }, []);
 

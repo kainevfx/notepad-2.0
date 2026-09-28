@@ -5,6 +5,7 @@ import { settingsOpen } from '../state/ui';
 import { platform } from '../platform';
 import { TitleBar } from './TitleBar';
 import { MenuBar } from './MenuBar';
+import { FormatBar } from './FormatBar';
 import { Sidebar, Rail } from './Sidebar';
 import { EditorPane } from './EditorPane';
 import { StatusBar } from './StatusBar';
@@ -32,6 +33,7 @@ export function App() {
     <div class={`app tabs-${mode}${ready.value ? '' : ' loading'}`}>
       <TitleBar />
       <MenuBar />
+      <FormatBar />
       <div class="workspace">
         {mode === 'left' && <Sidebar />}
         {mode === 'rail' && <Rail />}
