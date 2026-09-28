@@ -4,20 +4,22 @@ import type { JSX } from 'preact';
 import type { TreeNode, GroupNode } from '../lib/tree-ops';
 import { tree, docs, activeId, activate, closeDoc, newNote, displayTitle, toggleGroup } from '../state/app';
 import { openContextMenu } from '../state/ui';
-import { IcPlus, IcClose } from './icons';
+import { IcPlus, IcClose, IcNewMd } from './icons';
 import { startDrag, consumeDragClick, dropClass } from './dnd';
 import { noteMenu, groupMenu } from './menus';
-import { groupVars } from './colors';
+import { groupVars, docColorVars } from './colors';
+import { fileBadge } from '../lib/file-badge';
 
 function Tab({ id, group }: { id: string; group: GroupNode | null }) {
   const d = docs.value[id];
   if (!d) return null;
   const active = activeId.value === id;
   const title = displayTitle(d);
+  const b = fileBadge(d);
   return (
     <div
-      class={`tab${active ? ' active' : ''}${group ? ' grouped' : ''}${dropClass(id)}`}
-      style={group ? groupVars(group.color) : undefined}
+      class={`tab${active ? ' active' : ''}${group ? ' grouped' : ''}${d.color ? ' colored' : ''}${dropClass(id)}`}
+      style={{ ...(group ? groupVars(group.color) : {}), ...docColorVars(d.color) }}
       data-drop-id={id}
       data-drop-kind="note"
       data-drop-axis="x"
@@ -27,6 +29,7 @@ function Tab({ id, group }: { id: string; group: GroupNode | null }) {
       onAuxClick={(e) => e.button === 1 && closeDoc(id)}
       onContextMenu={(e) => openContextMenu(e as MouseEvent, noteMenu(id))}
     >
+      <span class={`type-badge type-${b.kind}`}>{b.label}</span>
       <span class="tab-title">{title}</span>
       <button
         class={`tab-close${d.dirty ? ' dirty' : ''}`}
@@ -80,8 +83,11 @@ export function TabStrip() {
   return (
     <div class="tabstrip" onWheel={(e) => ((e.currentTarget as HTMLElement).scrollLeft += (e as WheelEvent).deltaY)}>
       {out}
-      <button class="tab-new" title="New tab (Ctrl+N)" onClick={() => newNote()}>
+      <button class="tab-new" title="New text file (Ctrl+N)" onClick={() => newNote({ language: 'plain' })}>
         <IcPlus />
+      </button>
+      <button class="tab-new" title="New Markdown file (Ctrl+Alt+N)" onClick={() => newNote({ language: 'markdown' })}>
+        <IcNewMd />
       </button>
     </div>
   );

@@ -3,7 +3,7 @@ import { ask } from '../state/ui';
 import * as T from '../lib/tree-ops';
 import {
   docs, tree, closeDoc, closeOthers, newGroupFrom, renameGroup, setGroupColor, collapseAllInside, ungroup, closeGroup,
-  setGroupAutosave, moveNode, moveNodeToRoot, newNote, renameNote, displayTitle, activate, saveDoc, saveDocAs, QUICK_GROUP_ID,
+  setGroupAutosave, moveNode, moveNodeToRoot, newNote, renameNote, displayTitle, activate, saveDoc, saveDocAs, QUICK_GROUP_ID, setDocColor,
 } from '../state/app';
 import { platform } from '../platform';
 import { settings } from '../state/settings';
@@ -29,6 +29,13 @@ export function noteMenu(id: string): MenuItem[] {
     { label: 'Add tab to new group', action: () => newGroupFrom([id]) },
     { label: 'Move to group', submenu: moveToGroupItems(id) },
     ...(inGroup ? [{ label: 'Remove from group', action: () => moveNodeToRoot(id) }] : []),
+    {
+      label: 'Colour',
+      submenu: [
+        { label: 'None', checked: !d.color, action: () => setDocColor(id, null) },
+        ...T.GROUP_COLORS.map((c) => ({ label: c[0].toUpperCase() + c.slice(1), swatch: GROUP_HEX[c], checked: d.color === c, action: () => setDocColor(id, c) })),
+      ],
+    },
     { separator: true },
     ...(d.kind === 'note'
       ? [
@@ -59,13 +66,8 @@ export function groupMenu(id: string): MenuItem[] {
   const system = !!g.system;
   const autosaveLabel = g.autosave === undefined ? `follow setting (${settings.value.autosaveFiles ? 'on' : 'off'})` : g.autosave ? 'on' : 'off';
   return [
-    {
-      label: 'New note in group',
-      action: () => {
-        const n = newNote({ groupId: id });
-        activate(n);
-      },
-    },
+    { label: 'New text file in group', action: () => activate(newNote({ groupId: id, language: 'plain' })) },
+    { label: 'New Markdown file in group', action: () => activate(newNote({ groupId: id, language: 'markdown' })) },
     ...(system
       ? []
       : [

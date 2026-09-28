@@ -38,10 +38,11 @@ export function installShortcuts() {
     }
     if (e.altKey) {
       if (k === 's') return run(saveAll);
+      if (k === 'n') return run(() => newNote({ language: 'markdown' }));
       return;
     }
     switch (k) {
-      case 'n': case 't': return run(() => newNote());
+      case 'n': case 't': return run(() => newNote({ language: 'plain' }));
       case 'o': return run(openWithDialog);
       case 's': return run(() => id && saveDoc(id));
       case 'w': case 'f4': return run(() => id && closeDoc(id));

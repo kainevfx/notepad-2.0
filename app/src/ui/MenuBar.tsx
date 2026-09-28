@@ -22,7 +22,8 @@ function fileMenu(): MenuItem[] {
   const d = activeDoc.value;
   const recent = recentFiles.value;
   return [
-    { label: 'New tab', shortcut: 'Ctrl+N', action: () => newNote() },
+    { label: 'New text file', shortcut: 'Ctrl+N', action: () => newNote({ language: 'plain' }) },
+    { label: 'New Markdown file', shortcut: 'Ctrl+Alt+N', action: () => newNote({ language: 'markdown' }) },
     { label: 'New Quick Note', shortcut: 'Win+Alt+N', action: () => platform.showQuickNote() },
     { label: 'Open', shortcut: 'Ctrl+O', action: () => openWithDialog() },
     {

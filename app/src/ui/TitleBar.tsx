@@ -29,7 +29,7 @@ export function TitleBar() {
       ) : (
         <div class="tb-title" data-tauri-drag-region>
           {d ? `${d.dirty ? '• ' : ''}${displayTitle(d)} - ` : ''}Notepad 2.0
-          <button class="tb-newtab" title="New tab (Ctrl+N)" onClick={() => newNote()}>
+          <button class="tb-newtab" title="New text file (Ctrl+N)" onClick={() => newNote({ language: 'plain' })}>
             <IcPlus />
           </button>
         </div>

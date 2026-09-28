@@ -17,6 +17,13 @@ export const GROUP_HEX: Record<GroupColor, string> = Object.fromEntries(
   Object.entries(GROUP_PALETTE).map(([k, v]) => [k, v[1]]),
 ) as Record<GroupColor, string>;
 
+/** Per-tab colour stripe variables (empty when the tab has no colour). */
+export function docColorVars(color?: GroupColor): Record<string, string> {
+  if (!color) return {};
+  const [light, dark] = GROUP_PALETTE[color];
+  return { '--f-light': light, '--f-dark': dark };
+}
+
 export function groupVars(color: GroupColor): Record<string, string> {
   const [light, dark] = GROUP_PALETTE[color];
   return { '--g-light': light, '--g-dark': dark };

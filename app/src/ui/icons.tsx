@@ -45,6 +45,30 @@ export const IcPin = (p: P) => S(<path d="M9.5 2.5l4 4-2 1-2.5 2.5.5 2.5-1 1-2.5
 export const IcCheck = (p: P) => S(<path d="M3.5 8.5l3 3 6-7" />, p);
 export const IcSave = (p: P) => S(<><path d="M3 2.5h8l2.5 2.5v8.5H3z" /><path d="M5.5 2.5v3h4.5v-3M5 13.5v-4h6v4" /></>, p);
 
+// New-file and formatting toolbar icons.
+export const IcNewText = (p: P) => S(<><path d="M4.5 2h5l3 3v8.5a.5.5 0 0 1-.5.5H4.5a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5z" /><path d="M9.5 2v3h3M8 7.5v4M6 9.5h4" /></>, p);
+export const IcNewMd = (p: P) => S(<><path d="M4.5 2h5l3 3v8.5a.5.5 0 0 1-.5.5H4.5a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5z" /><path d="M9.5 2v3h3M5.8 11.5v-4l1.3 1.6 1.3-1.6v4M10.5 7.5v4M9.5 10.5l1 1 1-1" /></>, p);
+export const IcBold = (p: P) => S(<path d="M5 3h3.8a2.5 2.5 0 0 1 0 5H5zM5 8h4.3a2.5 2.5 0 0 1 0 5H5z" stroke-width="1.7" />, p);
+export const IcItalic = (p: P) => S(<path d="M7 3h5M4 13h5M9.5 3l-3 10" stroke-width="1.4" />, p);
+export const IcUnderline = (p: P) => S(<path d="M4.5 2.5v5a3.5 3.5 0 0 0 7 0v-5M3.5 14h9" stroke-width="1.3" />, p);
+export const IcStrike = (p: P) => S(<path d="M2.5 8h11M11 4.5C10.5 3.3 9.4 2.8 8 2.8 6.2 2.8 5 3.8 5 5.2c0 1 .6 1.6 1.5 2M5 11.3c.5 1.2 1.7 1.9 3.2 1.9 1.9 0 3.2-1 3.2-2.5 0-.6-.2-1.1-.6-1.5" stroke-width="1.2" />, p);
+export const IcCode = (p: P) => S(<path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5" stroke-width="1.3" />, p);
+export const IcColor = (p: P) => S(<><path d="M4 11 8 2l4 9M5.5 7.8h5" stroke-width="1.3" /><path d="M2.5 13.8h11" stroke="var(--fb-color, #d93025)" stroke-width="2.4" /></>, p);
+export const IcAlignLeft = (p: P) => S(<path d="M3 4h10M3 7h6M3 10h10M3 13h6" />, p);
+export const IcAlignCenter = (p: P) => S(<path d="M3 4h10M5 7h6M3 10h10M5 13h6" />, p);
+export const IcAlignRight = (p: P) => S(<path d="M3 4h10M7 7h6M3 10h10M7 13h6" />, p);
+export const IcAlignJustify = (p: P) => S(<path d="M3 4h10M3 7h10M3 10h10M3 13h10" />, p);
+export const IcListBullet = (p: P) => S(<><circle cx="3.5" cy="4.5" r=".9" fill="currentColor" /><circle cx="3.5" cy="8" r=".9" fill="currentColor" /><circle cx="3.5" cy="11.5" r=".9" fill="currentColor" /><path d="M6.5 4.5h7M6.5 8h7M6.5 11.5h7" /></>, p);
+export const IcListNumber = (p: P) => S(<><path d="M2.5 3.3h1v2.9M2.3 6.2h2.2M2.3 9.5h2.2l-2.2 2.6h2.2" stroke-width=".9" /><path d="M6.5 4.5h7M6.5 8h7M6.5 11.5h7" /></>, p);
+export const IcListCheck = (p: P) => S(<><rect x="2" y="3" width="3" height="3" rx=".5" /><path d="M2.5 10.5l1 1 1.8-2" /><path d="M7 4.5h6.5M7 10.5h6.5" /></>, p);
+export const IcIndent = (p: P) => S(<path d="M3 3.5h10M7 6.5h6M7 9.5h6M3 12.5h10M3 6.2 5 8 3 9.8" />, p);
+export const IcOutdent = (p: P) => S(<path d="M3 3.5h10M7 6.5h6M7 9.5h6M3 12.5h10M5 6.2 3 8l2 1.8" />, p);
+export const IcLink = (p: P) => S(<path d="M6.8 9.2a2.6 2.6 0 0 0 3.7 0l2.2-2.2a2.6 2.6 0 0 0-3.7-3.7l-.8.8M9.2 6.8a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.8-.8" />, p);
+export const IcTable = (p: P) => S(<><rect x="2" y="3" width="12" height="10" rx="1" /><path d="M2 6.3h12M2 9.6h12M6 3v10M10 3v10" /></>, p);
+export const IcRule = (p: P) => S(<path d="M2 8h12M4 4.5h8M4 11.5h8" />, p);
+export const IcWrap = (p: P) => S(<path d="M2.5 4h11M2.5 8h9a2 2 0 0 1 0 4H8.5M10 10.5 8.5 12l1.5 1.5M2.5 12h3.5" />, p);
+export const IcConvert = (p: P) => S(<path d="M3 5.5h9l-2.5-2.5M13 10.5H4l2.5 2.5" />, p);
+
 /** App icon: a notepad page with a folded corner and a "2" badge. Our own artwork. */
 export const AppIcon = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">

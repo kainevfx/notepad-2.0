@@ -4,11 +4,11 @@ import type { TreeNode, GroupNode } from '../lib/tree-ops';
 import { tree, docs, activeId, activate, closeDoc, newNote, displayTitle, toggleGroup, newGroupFrom } from '../state/app';
 import { settings, updateSettings } from '../state/settings';
 import { openContextMenu, railPeek, closedNotesOpen } from '../state/ui';
-import { IcChevronDown, IcChevronUp, IcChevronLeft, IcChevronRight, IcClose, IcPlus, IcFolderPlus, IcSearch, IcDoc, IcMarkdown } from './icons';
+import { IcChevronDown, IcChevronUp, IcChevronLeft, IcChevronRight, IcClose, IcFolderPlus, IcSearch, IcNewText, IcNewMd } from './icons';
 import { startDrag, consumeDragClick, dropClass, drag } from './dnd';
 import { noteMenu, groupMenu } from './menus';
-import { groupVars } from './colors';
-import { isMarkdownPath } from '../markdown/pipeline';
+import { groupVars, docColorVars } from './colors';
+import { fileBadge } from '../lib/file-badge';
 
 function matches(id: string, q: string): boolean {
   const d = docs.value[id];
@@ -27,11 +27,11 @@ function NoteRow({ id, depth }: { id: string; depth: number }) {
   const d = docs.value[id];
   if (!d) return null;
   const title = displayTitle(d);
-  const md = d.language === 'markdown' || isMarkdownPath(d.path);
+  const b = fileBadge(d);
   return (
     <div
-      class={`side-note${activeId.value === id ? ' active' : ''}${dropClass(id)}`}
-      style={{ '--depth': depth } as any}
+      class={`side-note${activeId.value === id ? ' active' : ''}${d.color ? ' colored' : ''}${dropClass(id)}`}
+      style={{ '--depth': depth, ...docColorVars(d.color) } as any}
       data-drop-id={id}
       data-drop-kind="note"
       title={d.path ?? title}
@@ -40,9 +40,8 @@ function NoteRow({ id, depth }: { id: string; depth: number }) {
       onAuxClick={(e) => e.button === 1 && closeDoc(id)}
       onContextMenu={(e) => openContextMenu(e as MouseEvent, noteMenu(id))}
     >
-      <span class="side-note-icon">{md ? <IcMarkdown /> : <IcDoc />}</span>
+      <span class={`type-badge type-${b.kind}`}>{b.label}</span>
       <span class="side-note-title">{title}</span>
-      {d.path && <span class="ext-badge">{(d.path.split('.').pop() ?? '').toLowerCase().slice(0, 4)}</span>}
       <button
         class={`side-close${d.dirty ? ' dirty' : ''}`}
         title="Close"
@@ -114,21 +113,31 @@ export function Sidebar() {
   };
 
   return (
-    <aside class="sidebar" style={{ width: s.sidebarWidth + 'px' }}>
+    <aside class="sidebar" style={{ width: s.sidebarWidth + 'px' }} data-narrow={s.sidebarWidth < 250 ? '' : undefined}>
       <div class="side-tools">
-        <div class="side-search">
-          <IcSearch size={14} />
-          <input placeholder="Search tabs" value={q} onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
+        <div class="side-search-row">
+          <div class="side-search">
+            <IcSearch size={14} />
+            <input placeholder="Search tabs" value={q} onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
+          </div>
+          <button class="icon-btn side-collapse" title="Collapse sidebar to a rail" onClick={() => updateSettings({ tabsMode: 'rail' })}>
+            <IcChevronLeft />
+          </button>
         </div>
-        <button class="icon-btn" title="New note (Ctrl+N)" onClick={() => newNote()}>
-          <IcPlus />
-        </button>
-        <button class="icon-btn" title="New group (Ctrl+Shift+G)" onClick={() => newGroupFrom([], null)}>
-          <IcFolderPlus />
-        </button>
-        <button class="icon-btn" title="Collapse sidebar to a rail" onClick={() => updateSettings({ tabsMode: 'rail' })}>
-          <IcChevronLeft />
-        </button>
+        <div class="side-actions">
+          <button class="side-action" title="New text file (Ctrl+N)" onClick={() => newNote({ language: 'plain' })}>
+            <IcNewText />
+            <span>Text file</span>
+          </button>
+          <button class="side-action" title="New Markdown file (Ctrl+Alt+N)" onClick={() => newNote({ language: 'markdown' })}>
+            <IcNewMd />
+            <span>Markdown</span>
+          </button>
+          <button class="side-action" title="New group (Ctrl+Shift+G)" onClick={() => newGroupFrom([], null)}>
+            <IcFolderPlus />
+            <span>Group</span>
+          </button>
+        </div>
       </div>
       <div class="side-scroll">
         {tree.value.filter((n) => anyMatch(n, q)).map((n) =>
