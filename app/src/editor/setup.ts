@@ -1,4 +1,4 @@
-import { EditorState, Compartment, Extension, EditorSelection, Prec } from '@codemirror/state';
+import { EditorState, Compartment, Extension, Prec } from '@codemirror/state';
 import {
   EditorView, keymap, lineNumbers, drawSelection, dropCursor, highlightSpecialChars, rectangularSelection,
   crosshairCursor, ViewUpdate, highlightActiveLineGutter,
@@ -10,6 +10,7 @@ import { languages } from '@codemirror/language-data';
 import { HighlightStyle, syntaxHighlighting, indentUnit } from '@codemirror/language';
 import { tags as t } from '@lezer/highlight';
 import type { Settings, PaperMode } from '../state/settings';
+import { toggleWrap, insertLink, toggleList, setBlockType, indentLines } from './md-commands';
 
 export const cNumbers = new Compartment();
 export const cWrap = new Compartment();
@@ -43,50 +44,25 @@ const mdHighlight = HighlightStyle.define([
   { tag: [t.typeName, t.className], color: 'var(--syn-type)' },
 ]);
 
-function wrapWith(marker: string, placeholder: string) {
-  return (view: EditorView) => {
-    view.dispatch(
-      view.state.changeByRange((range) => {
-        const text = view.state.sliceDoc(range.from, range.to);
-        const before = view.state.sliceDoc(range.from - marker.length, range.from);
-        const after = view.state.sliceDoc(range.to, range.to + marker.length);
-        if (before === marker && after === marker) {
-          return {
-            changes: [
-              { from: range.from - marker.length, to: range.from, insert: '' },
-              { from: range.to, to: range.to + marker.length, insert: '' },
-            ],
-            range: EditorSelection.range(range.from - marker.length, range.to - marker.length),
-          };
-        }
-        const body = text || placeholder;
-        return {
-          changes: { from: range.from, to: range.to, insert: marker + body + marker },
-          range: EditorSelection.range(range.from + marker.length, range.from + marker.length + body.length),
-        };
-      }),
-    );
-    return true;
-  };
-}
-
-function insertLink(view: EditorView) {
-  view.dispatch(
-    view.state.changeByRange((range) => {
-      const text = view.state.sliceDoc(range.from, range.to) || 'link text';
-      const insert = `[${text}](https://)`;
-      const urlStart = range.from + text.length + 3;
-      return { changes: { from: range.from, to: range.to, insert }, range: EditorSelection.range(urlStart, urlStart + 8) };
-    }),
-  );
-  return true;
-}
-
 export const markdownEditingKeymap = keymap.of([
-  { key: 'Mod-b', run: wrapWith('**', 'bold') },
-  { key: 'Mod-i', run: wrapWith('*', 'italic') },
+  { key: 'Mod-b', run: (v) => toggleWrap(v, '**', '**', 'bold') },
+  { key: 'Mod-i', run: (v) => toggleWrap(v, '*', '*', 'italic') },
+  { key: 'Mod-u', run: (v) => toggleWrap(v, '<u>', '</u>', 'text') },
+  { key: 'Mod-Shift-x', run: (v) => toggleWrap(v, '~~', '~~', 'text') },
   { key: 'Mod-k', run: insertLink },
+  { key: 'Mod-Shift-7', run: (v) => toggleList(v, 'number') },
+  { key: 'Mod-Shift-8', run: (v) => toggleList(v, 'bullet') },
+  { key: 'Mod-Alt-0', run: (v) => setBlockType(v, 'body') },
+  { key: 'Mod-Alt-1', run: (v) => setBlockType(v, 'h1') },
+  { key: 'Mod-Alt-2', run: (v) => setBlockType(v, 'h2') },
+  { key: 'Mod-Alt-3', run: (v) => setBlockType(v, 'h3') },
   ...markdownKeymap,
+]);
+
+/** Indent / outdent work in every tab, plain text included. */
+const indentKeymap = keymap.of([
+  { key: 'Mod-]', run: (v) => indentLines(v, 1) },
+  { key: 'Mod-[', run: (v) => indentLines(v, -1) },
 ]);
 
 export function languageExt(isMarkdown: boolean): Extension {
@@ -147,6 +123,7 @@ export function createEditorState(text: string, isMarkdown: boolean, readOnly: b
       indentUnit.of('\t'),
       EditorState.tabSize.of(8), // Notepad's tab width
       search({ top: true }),
+      indentKeymap,
       keymap.of([
         { key: 'Tab', run: insertTab, shift: indentLess },
         ...filteredSearchKeymap,
