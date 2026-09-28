@@ -4,6 +4,7 @@ import { activeDoc, setEol, setEncoding, setLanguage, cmd, tree } from '../state
 import { EOL_LABEL, encodingLabel, type Encoding, type Eol } from '../lib/encoding';
 import { effectiveAutosave } from '../lib/tree-ops';
 import { IcMarkdown, IcDoc } from './icons';
+import { ScaleSlider } from './ScaleSlider';
 
 export function StatusBar() {
   const s = settings.value;
@@ -62,7 +63,10 @@ export function StatusBar() {
         {d?.language === 'markdown' ? <IcMarkdown size={14} /> : <IcDoc size={14} />}
         {d?.language === 'markdown' ? 'Markdown' : 'Plain text'}
       </button>
-      <button class="sb-item sb-zoom" onClick={(e) => zoomMenu(e as MouseEvent)}>
+      <span class="sb-item sb-scale">
+        <ScaleSlider compact />
+      </span>
+      <button class="sb-item sb-zoom" title="Text zoom" onClick={(e) => zoomMenu(e as MouseEvent)}>
         {s.zoom}%
       </button>
       <button class="sb-item sb-eol" onClick={(e) => eolMenu(e as MouseEvent)} title="Line ending">

@@ -2,6 +2,7 @@ import { useSignalEffect } from '@preact/signals';
 import { settings, isDark, systemDark } from '../state/settings';
 import { ready, activeDoc, updateWindowTitle } from '../state/app';
 import { settingsOpen } from '../state/ui';
+import { platform } from '../platform';
 import { TitleBar } from './TitleBar';
 import { MenuBar } from './MenuBar';
 import { Sidebar, Rail } from './Sidebar';
@@ -17,6 +18,9 @@ export function App() {
     const dark = isDark();
     document.documentElement.classList.toggle('dark', dark);
     document.documentElement.classList.toggle('light', !dark);
+  });
+  useSignalEffect(() => {
+    platform.setUiScale(settings.value.uiScale / 100).catch(() => {});
   });
   useSignalEffect(() => {
     activeDoc.value;

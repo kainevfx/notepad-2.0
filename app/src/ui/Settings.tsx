@@ -4,6 +4,7 @@ import { settings, updateSettings, FONT_CHOICES, type Settings as S } from '../s
 import { settingsOpen, alertMsg, showToast } from '../state/ui';
 import { platform, FILE_TYPES, type IntegrationState } from '../platform';
 import { IcChevronLeft } from './icons';
+import { ScaleSlider } from './ScaleSlider';
 
 function Toggle({ on, onChange, disabled }: { on: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
@@ -184,6 +185,9 @@ export function Settings() {
 
         <h2>Appearance</h2>
         <div class="card">
+          <Row title="Interface size" desc="Makes the whole app more compact or roomier. Text zoom (Ctrl +/-) is separate.">
+            <ScaleSlider />
+          </Row>
           <Row title="App theme">
             <Select k="theme" options={[['light', 'Light'], ['dark', 'Dark'], ['system', 'Use system setting']]} />
           </Row>

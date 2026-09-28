@@ -172,6 +172,9 @@ export function createMockPlatform(label: string): Platform {
     },
     async revealInExplorer() {},
     assetUrl: (path) => path,
+    async setUiScale(f) {
+      (document.documentElement.style as any).zoom = String(f);
+    },
 
     async integrationState() {
       return { ...integration, defaults: { ...integration.defaults } };
