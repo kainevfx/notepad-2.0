@@ -3,7 +3,16 @@ import { platform } from '../platform';
 
 export type PaperMode = 'none' | 'lines' | 'grid' | 'numbers';
 export type TabsMode = 'top' | 'left' | 'rail';
-export type MdView = 'edit' | 'split' | 'preview';
+export type MdView = 'visual' | 'edit' | 'split';
+
+export function migrateMdView(v: string | undefined): MdView {
+  if (v === 'edit' || v === 'split' || v === 'visual') return v;
+  return 'visual'; // 'preview' (removed) and anything unknown
+}
+
+export function clampScale(n: number): number {
+  return Math.max(75, Math.min(150, Math.round(n / 5) * 5));
+}
 
 export interface Settings {
   theme: 'system' | 'light' | 'dark';
@@ -14,6 +23,8 @@ export interface Settings {
   wordWrap: boolean;
   statusBar: boolean;
   zoom: number; // percent
+  /** Whole-interface scale, percent (75-150). Separate from text zoom. */
+  uiScale: number;
   spellcheck: boolean;
 
   tabsMode: TabsMode;
@@ -53,6 +64,7 @@ export const DEFAULT_SETTINGS: Settings = {
   wordWrap: true,
   statusBar: true,
   zoom: 100,
+  uiScale: 100,
   spellcheck: false,
 
   tabsMode: 'top',
@@ -63,7 +75,7 @@ export const DEFAULT_SETTINGS: Settings = {
   paperMargin: false,
   paperPerTab: false,
 
-  mdDefaultView: 'split',
+  mdDefaultView: 'visual',
   mdForTxt: false,
   blockRemoteImages: false,
 
@@ -89,7 +101,10 @@ export function updateSettings(patch: Partial<Settings>) {
 export async function loadSettings() {
   try {
     const raw = await platform.storeRead('settings.json');
-    if (raw) settings.value = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    if (raw) {
+      const merged: Settings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+      settings.value = { ...merged, mdDefaultView: migrateMdView(merged.mdDefaultView), uiScale: clampScale(merged.uiScale) };
+    }
   } catch {
     /* corrupt settings fall back to defaults */
   }

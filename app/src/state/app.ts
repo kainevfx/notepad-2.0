@@ -20,7 +20,7 @@ export { noteTitle };
 import * as T from '../lib/tree-ops';
 import type { TreeNode, GroupNode, GroupColor, DropPosition } from '../lib/tree-ops';
 import { isMarkdownPath } from '../markdown/pipeline';
-import { settings, updateSettings, loadSettings, applyRemoteSettings, type MdView, type PaperMode, type Settings } from './settings';
+import { settings, updateSettings, loadSettings, applyRemoteSettings, migrateMdView, type MdView, type PaperMode, type Settings } from './settings';
 import { createEditorState, reconfigureEffects, setUpdateHandler, type ViewConfig } from '../editor/setup';
 import { ask, alertMsg, cursorInfo, showToast, settingsOpen } from './ui';
 
@@ -47,6 +47,8 @@ export interface DocMeta {
   cursor?: number;
   scrollTop?: number;
   banner?: Banner | null;
+  /** Tab colour (same palette as groups). */
+  color?: GroupColor;
 }
 
 export interface ClosedNote {
@@ -221,14 +223,15 @@ function placeNewNode(id: string, near: string | null) {
   }
 }
 
-export function newNote(opts: { text?: string; groupId?: string | null; activate?: boolean } = {}): string {
+export function newNote(opts: { text?: string; groupId?: string | null; activate?: boolean; language?: 'plain' | 'markdown' } = {}): string {
   const now = Date.now();
+  const language = opts.language ?? (settings.value.mdForTxt ? 'markdown' : 'plain');
   const id = uid('note');
   const text = opts.text ?? '';
   addDoc(
     {
       id, kind: 'note', path: null, title: noteTitle(text), encoding: 'utf-8', bom: false, eol: 'crlf',
-      language: settings.value.mdForTxt ? 'markdown' : 'plain', mdView: 'edit', dirty: false, mtime: 0,
+      language, mdView: language === 'markdown' ? 'visual' : 'edit', dirty: false, mtime: 0,
       readonly: false, created: now, modified: now,
     },
     text,
@@ -445,7 +448,9 @@ export async function saveDocAs(id: string): Promise<boolean> {
   const d = docs.value[id];
   if (!d) return false;
   const md = d.language === 'markdown';
-  const suggested = d.path ? basename(d.path) : `${displayTitle(d).replace(/[\\/:*?"<>|…]/g, '').slice(0, 60) || 'Untitled'}.${md ? 'md' : 'txt'}`;
+  const suggested = d.path
+    ? md && !isMarkdownPath(d.path) ? basename(d.path).replace(/(\.[^.]*)?$/, '.md') : basename(d.path)
+    : `${displayTitle(d).replace(/[\\/:*?"<>|…]/g, '').slice(0, 60) || 'Untitled'}.${md ? 'md' : 'txt'}`;
   const path = await platform.saveDialog(suggested, md);
   if (!path) return false;
   const text = textOf(id);
@@ -652,6 +657,25 @@ export function setLanguage(id: string, language: 'plain' | 'markdown') {
   scheduleSession();
 }
 
+export function setDocColor(id: string, color: GroupColor | null) {
+  patchDoc(id, { color: color ?? undefined });
+  scheduleSession();
+}
+
+export async function convertToMarkdown(id: string) {
+  const d = docs.value[id];
+  if (!d) return;
+  setLanguage(id, 'markdown');
+  if (d.kind === 'file' && d.path && !isMarkdownPath(d.path)) {
+    const r = await ask({
+      title: 'Convert to Markdown',
+      body: 'Also save a Markdown (.md) copy of this file? The original stays as it is.',
+      buttons: [{ label: 'Save as .md…', value: 'save', primary: true }, { label: 'Not now', value: 'no' }],
+    });
+    if (r.value === 'save') await saveDocAs(id);
+  }
+}
+
 export function setMdView(id: string, mdView: MdView) {
   const d = docs.value[id];
   if (!d) return;
@@ -664,8 +688,8 @@ export function setMdView(id: string, mdView: MdView) {
 export function cycleMdView() {
   const d = activeDoc.value;
   if (!d) return;
-  const order: MdView[] = ['edit', 'split', 'preview'];
-  if (d.language !== 'markdown') return setMdView(d.id, 'split');
+  const order: MdView[] = ['visual', 'edit', 'split'];
+  if (d.language !== 'markdown') return setMdView(d.id, 'visual');
   setMdView(d.id, order[(order.indexOf(d.mdView) + 1) % 3]);
 }
 
@@ -882,7 +906,7 @@ export function printText(text: string, title: string, rendered: boolean) {
   const root = document.createElement('div');
   root.id = 'print-root';
   if (rendered) {
-    const src = document.querySelector('.md-preview .markdown-body');
+    const src = document.querySelector('.md-preview .markdown-body, .visual-editor .ProseMirror');
     root.innerHTML = src ? src.innerHTML : '';
     root.className = 'markdown-body';
   } else {
@@ -947,7 +971,8 @@ async function restoreSession(): Promise<boolean> {
   closedNotes.value = s.closedNotes ?? [];
   recentFiles.value = s.recentFiles ?? [];
   const keep = new Set<string>();
-  for (const meta of s.docs ?? []) {
+  for (const stored of s.docs ?? []) {
+    const meta: DocMeta = { ...stored, mdView: migrateMdView(stored.mdView) };
     try {
       if (meta.kind === 'note') {
         const text = await platform.storeRead(`notes/${meta.id}.md`);

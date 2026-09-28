@@ -224,7 +224,7 @@ export function Settings() {
         <h2>Markdown</h2>
         <div class="card">
           <Row title="Opening a .md file shows">
-            <Select k="mdDefaultView" options={[['edit', 'Edit'], ['split', 'Edit and preview side by side'], ['preview', 'Preview']]} />
+            <Select k="mdDefaultView" options={[['visual', 'Visual (WYSIWYG)'], ['edit', 'Source'], ['split', 'Source and preview side by side']]} />
           </Row>
           <Row title="Treat new notes and .txt files as Markdown">{bool('mdForTxt')}</Row>
           <Row title="Block remote images in previews">{bool('blockRemoteImages')}</Row>

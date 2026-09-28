@@ -4,7 +4,7 @@ import { settingsOpen, paperPopoverOpen, closedNotesOpen } from '../state/ui';
 import { settings, updateSettings } from '../state/settings';
 import {
   activeDoc, activeId, newNote, openWithDialog, saveDoc, saveDocAs, saveAll, closeDoc, cmd, recentFiles, openFiles, hideToTray,
-  quitApp, setMdView, setLanguage, effectivePaper, refreshView, newGroupFrom, closedNotes, setPaper,
+  quitApp, setMdView, setLanguage, cycleMdView, effectivePaper, refreshView, newGroupFrom, closedNotes, setPaper,
 } from '../state/app';
 import { platform } from '../platform';
 import { MenuList } from './MenuList';
@@ -113,9 +113,10 @@ function viewMenu(): MenuItem[] {
     {
       label: 'Markdown',
       submenu: [
-        { label: 'Edit', checked: d?.language === 'markdown' && d.mdView === 'edit', action: () => d && setMdView(d.id, 'edit') },
-        { label: 'Split preview', shortcut: 'Ctrl+Shift+V', checked: d?.language === 'markdown' && d.mdView === 'split', action: () => d && setMdView(d.id, 'split') },
-        { label: 'Preview only', checked: d?.language === 'markdown' && d.mdView === 'preview', action: () => d && setMdView(d.id, 'preview') },
+        { label: 'Visual', checked: d?.language === 'markdown' && d.mdView === 'visual', action: () => d && setMdView(d.id, 'visual') },
+        { label: 'Source', checked: d?.language === 'markdown' && d.mdView === 'edit', action: () => d && setMdView(d.id, 'edit') },
+        { label: 'Source and preview', checked: d?.language === 'markdown' && d.mdView === 'split', action: () => d && setMdView(d.id, 'split') },
+        { label: 'Cycle views', shortcut: 'Ctrl+Shift+V', action: () => cycleMdView() },
         { separator: true },
         { label: 'Treat this tab as plain text', checked: d?.language === 'plain', action: () => d && setLanguage(d.id, d.language === 'plain' ? 'markdown' : 'plain') },
       ],
@@ -175,14 +176,14 @@ export function MenuBar() {
       <div class="menubar-spacer" />
       {d && d.language === 'markdown' && (
         <div class="seg" role="group" aria-label="Markdown view">
-          <button class={d.mdView === 'edit' ? 'on' : ''} title="Edit" onClick={() => setMdView(d.id, 'edit')}>
-            <IcPencil /> <span>Edit</span>
+          <button class={d.mdView === 'visual' ? 'on' : ''} title="Visual editing" onClick={() => setMdView(d.id, 'visual')}>
+            <IcEye /> <span>Visual</span>
           </button>
-          <button class={d.mdView === 'split' ? 'on' : ''} title="Split preview (Ctrl+Shift+V)" onClick={() => setMdView(d.id, 'split')}>
+          <button class={d.mdView === 'edit' ? 'on' : ''} title="Markdown source" onClick={() => setMdView(d.id, 'edit')}>
+            <IcPencil /> <span>Source</span>
+          </button>
+          <button class={d.mdView === 'split' ? 'on' : ''} title="Source and preview side by side (Ctrl+Shift+V cycles)" onClick={() => setMdView(d.id, 'split')}>
             <IcSplit /> <span>Split</span>
-          </button>
-          <button class={d.mdView === 'preview' ? 'on' : ''} title="Preview only" onClick={() => setMdView(d.id, 'preview')}>
-            <IcEye /> <span>Preview</span>
           </button>
         </div>
       )}
