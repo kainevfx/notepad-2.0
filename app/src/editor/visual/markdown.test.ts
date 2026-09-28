@@ -98,3 +98,24 @@ describe('kitchen sink survives an unrelated edit', () => {
     expect(editorToMarkdown(e).trim()).toBe(md.replace('Para one.', 'Para one. Edited').trim());
   });
 });
+
+import { mountVisualEditor, loadIntoEditor } from './extensions';
+
+describe('only real edits count as edits', () => {
+  it('loading text and toggling editable never reports an edit', () => {
+    let edits = 0;
+    const el = document.createElement('div');
+    ed = mountVisualEditor(el, () => edits++);
+    loadIntoEditor(ed, '* a\n\n__b__', true);
+    loadIntoEditor(ed, '# other', false);
+    loadIntoEditor(ed, '# other', true);
+    expect(edits).toBe(0);
+  });
+  it('typing reports an edit', () => {
+    let edits = 0;
+    ed = mountVisualEditor(document.createElement('div'), () => edits++);
+    loadIntoEditor(ed, 'x', true);
+    ed.commands.insertContent('y');
+    expect(edits).toBe(1);
+  });
+});

@@ -1,5 +1,5 @@
 // The TipTap setup behind the Visual (WYSIWYG) Markdown view.
-import type { AnyExtension, Editor } from '@tiptap/core';
+import { Editor, type AnyExtension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from '@tiptap/markdown';
 import { TaskList, TaskItem } from '@tiptap/extension-list';
@@ -39,4 +39,25 @@ export function parseMarkdownToEditor(editor: Editor, md: string) {
 
 export function editorToMarkdown(editor: Editor): string {
   return (editor as any).getMarkdown();
+}
+
+/**
+ * Create the Visual editor. `onDocEdited` fires only for transactions that change the document,
+ * never for loading text or toggling read-only (TipTap emits "update" for those too).
+ */
+export function mountVisualEditor(element: HTMLElement, onDocEdited: () => void): Editor {
+  return new Editor({
+    element,
+    extensions: visualExtensions(),
+    editorProps: { attributes: { class: 'markdown-body', spellcheck: 'false' } },
+    onUpdate: ({ transaction }) => {
+      if (transaction.docChanged) onDocEdited();
+    },
+  });
+}
+
+/** Show `md` in the editor without it counting as an edit. */
+export function loadIntoEditor(editor: Editor, md: string, editable: boolean) {
+  editor.setEditable(editable, false);
+  parseMarkdownToEditor(editor, md);
 }

@@ -9,6 +9,7 @@ import { settings } from '../state/settings';
 import { platform } from '../platform';
 import { renderMarkdown } from '../markdown/pipeline';
 import { createEditorState } from '../editor/setup';
+import { VisualEditor } from './VisualEditor';
 
 function Banner() {
   const d = activeDoc.value;
@@ -83,7 +84,7 @@ export function Preview({ syncRef }: { syncRef: { current: ((line: number, frac:
     editTick.value;
     const doc = activeDoc.value;
     const s = settings.value;
-    if (!doc || doc.language !== 'markdown' || doc.mdView === 'edit') return;
+    if (!doc || doc.language !== 'markdown' || doc.mdView !== 'split') return;
     const id = doc.id;
     const path = doc.path;
     const t = setTimeout(() => {
@@ -209,9 +210,14 @@ export function EditorPane() {
     <section class={`editor-pane view-${view}`}>
       <Banner />
       <div class="editor-split">
-        <div class="editor-host" ref={host} style={view === 'split' ? { flex: `0 0 ${split * 100}%` } : undefined} />
+        <div
+          class="editor-host"
+          ref={host}
+          style={view === 'split' ? { flex: `0 0 ${split * 100}%` } : view === 'visual' ? { display: 'none' } : undefined}
+        />
         {view === 'split' && <div class="split-divider" onPointerDown={(e) => onDivider(e as PointerEvent)} />}
-        {view !== 'edit' && <Preview syncRef={syncRef} />}
+        {view === 'split' && <Preview syncRef={syncRef} />}
+        {view === 'visual' && <VisualEditor />}
       </div>
     </section>
   );

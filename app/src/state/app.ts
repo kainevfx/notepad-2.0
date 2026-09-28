@@ -23,6 +23,13 @@ import { isMarkdownPath } from '../markdown/pipeline';
 import { settings, updateSettings, loadSettings, applyRemoteSettings, migrateMdView, type MdView, type PaperMode, type Settings } from './settings';
 import { createEditorState, reconfigureEffects, setUpdateHandler, type ViewConfig } from '../editor/setup';
 import { ask, alertMsg, cursorInfo, showToast, settingsOpen } from './ui';
+import { visualApi } from '../editor/visual/sync';
+
+/** True when the active tab is showing the Visual (WYSIWYG) editor. */
+export function inVisual(): boolean {
+  const d = activeDoc.value;
+  return !!d && d.language === 'markdown' && d.mdView === 'visual' && !!visualApi.editor;
+}
 
 export type Banner = { kind: 'external' | 'restored' | 'missing' | 'error' | 'mixed-eol' | 'readonly'; text: string };
 
@@ -133,6 +140,7 @@ export function getView() {
 }
 
 function stashActive() {
+  visualApi.flush();
   const id = activeId.value;
   if (view && id && docs.value[id]) {
     states.set(id, view.state);
@@ -386,6 +394,7 @@ function stashActiveMetaOnly() {
 
 /** Write everything pending right now (before hide / quit). */
 export async function flushAll() {
+  visualApi.flush();
   const jobs: Promise<unknown>[] = [];
   for (const [id, t] of noteTimers) {
     clearTimeout(t);
@@ -404,6 +413,7 @@ export async function flushAll() {
 // ---------------------------------------------------------------- saving
 
 export async function saveDoc(id: string, opts: { silent?: boolean } = {}): Promise<boolean> {
+  visualApi.flush();
   const d = docs.value[id];
   if (!d) return false;
   if (d.kind === 'note' || !d.path || d.readonly) return saveDocAs(id);
@@ -445,6 +455,7 @@ export async function saveDoc(id: string, opts: { silent?: boolean } = {}): Prom
 }
 
 export async function saveDocAs(id: string): Promise<boolean> {
+  visualApi.flush();
   const d = docs.value[id];
   if (!d) return false;
   const md = d.language === 'markdown';
@@ -818,15 +829,24 @@ export function withView(fn: (v: EditorView) => void) {
   if (view) fn(view);
 }
 
+/** Find / Replace work on the source: switch a Visual tab to Source first, then run. */
+function leaveVisual(then: () => void): boolean {
+  if (!inVisual()) return false;
+  visualApi.flush();
+  setMdView(activeId.value!, 'edit');
+  queueMicrotask(then);
+  return true;
+}
+
 export const cmd = {
-  undo: () => withView((v) => undo(v)),
-  redo: () => withView((v) => redo(v)),
+  undo: () => (inVisual() ? visualApi.undo() : withView((v) => undo(v))),
+  redo: () => (inVisual() ? visualApi.redo() : withView((v) => redo(v))),
   selectAll: () => withView((v) => selectAll(v)),
-  find: () => withView((v) => {
+  find: () => leaveVisual(() => cmd.find()) || withView((v) => {
     openSearchPanel(v);
     setTimeout(() => (v.dom.querySelector('.cm-search input[name=search]') as HTMLInputElement | null)?.select(), 0);
   }),
-  replace: () => withView((v) => {
+  replace: () => leaveVisual(() => cmd.replace()) || withView((v) => {
     openSearchPanel(v);
     setTimeout(() => (v.dom.querySelector('.cm-search input[name=replace]') as HTMLInputElement | null)?.focus(), 0);
   }),

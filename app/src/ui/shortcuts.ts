@@ -58,8 +58,9 @@ export function installShortcuts() {
     }
     if (/^[1-9]$/.test(k)) return run(() => cmd.goToTab(Number(k)));
     // Undo/redo/select all when focus is outside the editor (sidebar, menus).
+    // (The Visual editor handles these itself.)
     const v = getView();
-    if (v && !v.hasFocus) {
+    if (v && !v.hasFocus && !(e.target as HTMLElement | null)?.closest?.('.visual-editor')) {
       if (k === 'z') return run(cmd.undo);
       if (k === 'y') return run(cmd.redo);
       if (k === 'a' && !(e.target instanceof HTMLInputElement)) return run(cmd.selectAll);

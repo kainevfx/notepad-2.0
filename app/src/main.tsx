@@ -2,6 +2,7 @@ import { render } from 'preact';
 import 'katex/dist/katex.min.css';
 import './styles/app.css';
 import './styles/markdown.css';
+import './styles/visual.css';
 import { App } from './ui/App';
 import { init, openFiles } from './state/app';
 import { installShortcuts } from './ui/shortcuts';
