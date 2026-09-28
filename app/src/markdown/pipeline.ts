@@ -75,6 +75,41 @@ function rehypeUrls(opts: RenderOptions) {
   };
 }
 
+// Inline styles written by the formatting toolbar: colour, size and weight on <span> only.
+const STYLE_RULES: Record<string, RegExp> = {
+  color: /^(#[0-9a-f]{3,8}|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*(0|1|0?\.\d+)\s*)?\)|[a-z]{3,20})$/i,
+  'font-size': /^(\d{1,2}(\.\d+)?(px|pt|em|rem)|\d{2,3}%)$/i,
+  'font-weight': /^(100|200|300|400|500|600|700|800|900|normal|bold)$/i,
+};
+
+/** Keep only allow-listed declarations with safe values; null when nothing survives. */
+export function cleanStyle(style: string): string | null {
+  const out: string[] = [];
+  for (const decl of style.split(';')) {
+    const i = decl.indexOf(':');
+    if (i < 0) continue;
+    const prop = decl.slice(0, i).trim().toLowerCase();
+    const val = decl.slice(i + 1).trim();
+    const re = STYLE_RULES[prop];
+    if (!re || !re.test(val) || /expression|url\(/i.test(val)) continue;
+    if (prop === 'font-size' && /px$/i.test(val) && parseFloat(val) > 96) continue;
+    out.push(`${prop}:${val}`);
+  }
+  return out.length ? out.join(';') : null;
+}
+
+function rehypeCleanStyles() {
+  return (tree: any) => {
+    visit(tree, 'element', (node: any) => {
+      const p = node.properties;
+      if (!p || p.style == null) return;
+      const s = node.tagName === 'span' ? cleanStyle(String(p.style)) : null;
+      if (s) p.style = s;
+      else delete p.style;
+    });
+  };
+}
+
 const schema = {
   ...defaultSchema,
   // Keep GitHub's id prefixing for headings/footnotes but allow our extra attributes.
@@ -84,6 +119,7 @@ const schema = {
     code: [...(defaultSchema.attributes?.code ?? []), ['className', /^language-./, 'math-inline', 'math-display']],
     img: [...(defaultSchema.attributes?.img ?? []), 'loading', 'width', 'height', 'align'],
     input: [...(defaultSchema.attributes?.input ?? [])],
+    span: [...(defaultSchema.attributes?.span ?? []), 'style'],
   },
   tagNames: [...(defaultSchema.tagNames ?? []), 'mark', 'u', 'abbr', 'figure', 'figcaption', 'center'],
 };
@@ -99,6 +135,7 @@ function buildProcessor(opts: RenderOptions) {
     .use(rehypeRaw)
     .use(rehypeSourceLines)
     .use(rehypeSanitize, schema as any)
+    .use(rehypeCleanStyles)
     .use(rehypeSlug)
     .use(rehypeUrls(opts))
     .use(rehypeKatex, { throwOnError: false, strict: 'ignore' } as any)

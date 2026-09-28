@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderMarkdown } from './pipeline';
+import { renderMarkdown, cleanStyle } from './pipeline';
 
 describe('markdown pipeline', () => {
   it('renders bold inside a heading (the mockup bug)', () => {
@@ -72,4 +72,29 @@ describe('markdown pipeline', () => {
     expect(html).toContain('<blockquote');
     expect(html).toContain('<br>');
   });
+});
+
+describe('inline style allow-list', () => {
+  it('keeps colour, size and weight on span', () => {
+    const html = renderMarkdown('a <span style="color:#ff0000; font-size:18px; font-weight:300">b</span>');
+    expect(html).toContain('style="color:#ff0000;font-size:18px;font-weight:300"');
+  });
+  it('drops dangerous properties', () => {
+    expect(cleanStyle('position:fixed;top:0;color:red')).toBe('color:red');
+    expect(cleanStyle('background:url(http://x)')).toBeNull();
+    expect(cleanStyle('color:expression(alert(1))')).toBeNull();
+    expect(cleanStyle('font-size:9999px')).toBeNull();
+    expect(cleanStyle('font-size:200px')).toBeNull();
+  });
+  it('strips a disallowed style from a span entirely', () => {
+    expect(renderMarkdown('<span style="position:fixed;inset:0">x</span>')).not.toContain('style=');
+  });
+  it('does not allow style on other tags', () => {
+    expect(renderMarkdown('<div style="color:red">x</div>')).not.toContain('style=');
+  });
+  it('keeps align on paragraphs and headings', () => {
+    expect(renderMarkdown('<p align="center">x</p>')).toContain('align="center"');
+    expect(renderMarkdown('<h2 align="right">x</h2>')).toContain('align="right"');
+  });
+  it('keeps underline', () => expect(renderMarkdown('<u>x</u>')).toContain('<u>x</u>'));
 });
