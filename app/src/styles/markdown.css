@@ -4,7 +4,7 @@
 .md-preview::-webkit-scrollbar-thumb { background: var(--stroke-strong); border-radius: 6px; border: 3px solid var(--bg-editor); }
 .view-preview .md-preview .markdown-body { max-width: 900px; margin: 0 auto; }
 
-.markdown-body { padding: 20px 32px 80px; font-family: var(--ui-font); font-size: 15px; line-height: 1.6; color: var(--text); word-wrap: break-word; }
+.markdown-body { padding: calc(12px + var(--page-margin, 16px)) calc(16px + var(--page-margin, 16px)) 80px; font-family: var(--ui-font); font-size: 15px; line-height: 1.6; color: var(--text); word-wrap: break-word; }
 .markdown-body > :first-child { margin-top: 0 !important; }
 .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6 { margin: 1.4em 0 0.6em; font-weight: 600; line-height: 1.25; }
 .markdown-body h1 { font-size: 2em; padding-bottom: 0.3em; border-bottom: 1px solid var(--stroke-strong); }

@@ -10,6 +10,7 @@ import { languages } from '@codemirror/language-data';
 import { HighlightStyle, syntaxHighlighting, indentUnit } from '@codemirror/language';
 import { tags as t } from '@lezer/highlight';
 import type { Settings, PaperMode } from '../state/settings';
+import { codePaper } from './code-paper';
 import { toggleWrap, insertLink, toggleList, setBlockType, indentLines } from './md-commands';
 
 export const cNumbers = new Compartment();
@@ -98,7 +99,9 @@ export function attrsExt({ paper, settings: s }: ViewConfig): Extension {
 }
 
 export function numbersExt(cfg: ViewConfig): Extension {
-  const show = cfg.paper === 'numbers' || (cfg.settings.paperNumbers && cfg.paper !== 'none');
+  // "Code" paper (stored as 'numbers'): numbers on every line of the page, even below the text.
+  if (cfg.paper === 'numbers') return [codePaper(), highlightActiveLineGutter()];
+  const show = cfg.settings.paperNumbers && cfg.paper !== 'none';
   return show ? [lineNumbers(), highlightActiveLineGutter()] : [];
 }
 

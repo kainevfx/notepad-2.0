@@ -3,11 +3,12 @@ import { paperPopoverOpen } from '../state/ui';
 import { settings, updateSettings, type PaperMode } from '../state/settings';
 import { activeDoc, effectivePaper, setPaper, refreshView } from '../state/app';
 import { IcGrid, IcLines, IcNumbers, IcNone } from './icons';
+import { MarginControl } from './MarginControl';
 
 const MODES: { mode: PaperMode; label: string; Icon: typeof IcGrid }[] = [
   { mode: 'grid', label: 'Grid', Icon: IcGrid },
   { mode: 'lines', label: 'Lines', Icon: IcLines },
-  { mode: 'numbers', label: 'Numbers', Icon: IcNumbers },
+  { mode: 'numbers', label: 'Code', Icon: IcNumbers },
   { mode: 'none', label: 'None', Icon: IcNone },
 ];
 
@@ -40,6 +41,9 @@ export function PaperPopover() {
             <span>{label}</span>
           </button>
         ))}
+      </div>
+      <div class="paper-margin-row">
+        <MarginControl />
       </div>
       <label class="paper-opt">
         <input

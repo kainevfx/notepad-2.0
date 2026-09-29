@@ -183,7 +183,7 @@ export function EditorPane() {
   };
 
   return (
-    <section class={`editor-pane view-${view}`}>
+    <section class={`editor-pane view-${view}`} style={{ '--page-margin': `${settings.value.pageMargin}px` } as any}>
       <Banner />
       <div class="editor-split">
         <div

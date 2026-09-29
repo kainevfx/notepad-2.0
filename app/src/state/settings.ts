@@ -11,6 +11,12 @@ export function migrateMdView(v: string | undefined): MdView {
   return 'visual'; // 'preview' (removed) and anything unknown
 }
 
+/** Page margin in px: whole numbers 0-200 (24 when not a number). */
+export function clampMargin(n: number): number {
+  if (!Number.isFinite(n)) return 24;
+  return Math.max(0, Math.min(200, Math.round(n)));
+}
+
 export function clampScale(n: number): number {
   return Math.max(75, Math.min(150, Math.round(n / 5) * 5));
 }
@@ -40,6 +46,8 @@ export interface Settings {
   paperMargin: boolean;
   /** Store the paper choice per tab instead of globally. */
   paperPerTab: boolean;
+  /** Space around the text, px (all papers and views). */
+  pageMargin: number;
 
   mdDefaultView: MdView;
   mdForTxt: boolean;
@@ -78,6 +86,7 @@ export const DEFAULT_SETTINGS: Settings = {
   paperNumbers: false,
   paperMargin: false,
   paperPerTab: false,
+  pageMargin: 24,
 
   mdDefaultView: 'visual',
   mdForTxt: false,

@@ -5,6 +5,7 @@ import { settingsOpen, alertMsg, showToast } from '../state/ui';
 import { platform, FILE_TYPES, type IntegrationState } from '../platform';
 import { IcChevronLeft } from './icons';
 import { ScaleSlider } from './ScaleSlider';
+import { MarginControl } from './MarginControl';
 
 function Toggle({ on, onChange, disabled }: { on: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
@@ -218,7 +219,10 @@ export function Settings() {
         <h2>Paper</h2>
         <div class="card">
           <Row title="Default paper">
-            <Select k="paper" options={[['none', 'None'], ['lines', 'Lines'], ['grid', 'Grid'], ['numbers', 'Numbers']]} />
+            <Select k="paper" options={[['none', 'None'], ['lines', 'Lines'], ['grid', 'Grid'], ['numbers', 'Code']]} />
+          </Row>
+          <Row title="Page margin" desc="Space between the text and the edges of the page, in every view.">
+            <MarginControl />
           </Row>
           <Row title="Also show line numbers on Grid and Lines">{bool('paperNumbers')}</Row>
           <Row title="Red margin rule on Lines">{bool('paperMargin')}</Row>

@@ -105,8 +105,10 @@ function viewMenu(): MenuItem[] {
       submenu: [
         { label: 'Grid', checked: paper === 'grid', action: setP('grid') },
         { label: 'Lines', checked: paper === 'lines', action: setP('lines') },
-        { label: 'Numbers', checked: paper === 'numbers', action: setP('numbers') },
+        { label: 'Code', checked: paper === 'numbers', action: setP('numbers') },
         { label: 'None', checked: paper === 'none', action: setP('none') },
+        { separator: true },
+        { label: 'Page margin…', action: () => setTimeout(() => (paperPopoverOpen.value = true), 0) },
         { separator: true },
         { label: 'Also show line numbers', checked: s.paperNumbers, action: () => { updateSettings({ paperNumbers: !s.paperNumbers }); refreshView(); } },
       ],
@@ -191,7 +193,7 @@ export function MenuBar() {
       <div class="paper-anchor">
         <button
           class={`icon-btn${paperPopoverOpen.value ? ' pressed' : ''}`}
-          title="Paper: Grid, Lines, Numbers, None"
+          title="Paper: Grid, Lines, Code, None, and page margin"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={() => (paperPopoverOpen.value = !paperPopoverOpen.value)}
         >

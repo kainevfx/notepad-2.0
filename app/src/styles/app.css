@@ -42,6 +42,7 @@ html.light, :root {
   --syn-fn: #795e26;
   --syn-type: #267f99;
   --paper-rule: rgba(52, 112, 204, 0.2);
+  --paper-rule-faint: rgba(52, 112, 204, 0.08);
   --paper-rule-major: rgba(52, 112, 204, 0.34);
   --paper-margin: rgba(220, 60, 60, 0.5);
   --gutter: #6e7681;
@@ -83,6 +84,7 @@ html.dark {
   --syn-fn: #dcdcaa;
   --syn-type: #4ec9b0;
   --paper-rule: rgba(255, 255, 255, 0.075);
+  --paper-rule-faint: rgba(255, 255, 255, 0.035);
   --paper-rule-major: rgba(255, 255, 255, 0.14);
   --paper-margin: rgba(255, 110, 110, 0.4);
   --gutter: #858585;
@@ -430,6 +432,7 @@ html.dark .rail-item { border-left-color: var(--g-dark); }
   line-height: var(--lh);
   user-select: text;
 }
+.cm-editor .cm-scroller { padding: var(--page-margin, 0px) var(--page-margin, 0px) 0; box-sizing: border-box; }
 .cm-editor .cm-content { padding: 6px 0 40px; caret-color: var(--caret); }
 .cm-editor .cm-line { padding: 0 8px 0 10px; }
 .cm-editor .cm-cursor { border-left: 1.5px solid var(--caret); }
@@ -447,7 +450,7 @@ html.dark .rail-item { border-left-color: var(--g-dark); }
 .cm-editor.paper-lines .cm-scroller {
   background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--lh) - 1px), var(--paper-rule) calc(var(--lh) - 1px), var(--paper-rule) var(--lh));
   background-attachment: local;
-  background-position: 0 6px;
+  background-position: 0 calc(var(--page-margin, 0px) + 6px);
 }
 .cm-editor.paper-lines.paper-margin .cm-content { box-shadow: inset 2px 0 0 var(--paper-margin); padding-left: 6px; }
 .cm-editor.paper-grid .cm-scroller {
@@ -457,7 +460,7 @@ html.dark .rail-item { border-left-color: var(--g-dark); }
     repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--lh) - 1px), var(--paper-rule) calc(var(--lh) - 1px), var(--paper-rule) var(--lh)),
     repeating-linear-gradient(to right, transparent 0, transparent calc(var(--lh) - 1px), var(--paper-rule) calc(var(--lh) - 1px), var(--paper-rule) var(--lh));
   background-attachment: local;
-  background-position: 0 6px;
+  background-position: 0 calc(var(--page-margin, 0px) + 6px);
 }
 .cm-editor.paper-lines .cm-gutters, .cm-editor.paper-grid .cm-gutters { background: transparent; }
 
@@ -580,3 +583,21 @@ button.sb-item:hover { background: var(--bg-hover); }
 .qn-foot .qn-status { flex: 1; }
 
 @keyframes qn-slide { from { transform: translateY(24px); opacity: 0; } }
+
+/* Code paper: faint rule under every line, numbers continue below the text */
+.cm-editor.paper-numbers .cm-scroller {
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--lh) - 1px), var(--paper-rule-faint) calc(var(--lh) - 1px), var(--paper-rule-faint) var(--lh));
+  background-attachment: local;
+  background-position: 0 calc(var(--page-margin, 0px) + 6px);
+}
+.cm-editor.paper-numbers .cm-gutters { background: transparent; }
+.cm-code-numbers .cm-gutterElement { padding: 0 10px 0 14px; min-width: 42px; text-align: right; }
+.cm-code-filler-num { height: var(--lh); color: var(--gutter); opacity: 0.6; }
+.cm-code-filler { pointer-events: none; }
+
+/* page margin control */
+.margin-control { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); }
+.margin-control input[type='range'] { width: 130px; accent-color: var(--accent); }
+.margin-num { width: 56px; height: 24px; padding: 0 4px; border: 1px solid var(--stroke); border-radius: 4px; background: var(--bg-input); color: var(--text); font-size: 12px; }
+.margin-unit { color: var(--text-3); }
+.paper-margin-row { padding: 8px 6px 2px; border-top: 1px solid var(--stroke); margin-top: 8px; }
