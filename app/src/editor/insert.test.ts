@@ -28,3 +28,25 @@ describe('isAbsolutePath', () => {
     expect(isAbsolutePath('https://x/y.png')).toBe(false);
   });
 });
+
+import { resolveImageUrl } from './insert';
+
+describe('review fixes: image paths', () => {
+  it('only characters that break a link are escaped', () =>
+    expect(imageMarkdown('C:\\d\\a.md', 'C:\\d\\a&b, #1 (x).png')).toBe('![a&b, #1 (x)](a&b,%20%231%20%28x%29.png)'));
+  it('an unbalanced ) cannot end the link early', () => expect(imageMarkdown('C:\\d\\a.md', 'C:\\d\\a).png')).toBe('![a)](a%29.png)'));
+
+  const asset = (p: string) => `asset://${p}`;
+  it('relative paths resolve against the document folder and decode fully', () =>
+    expect(resolveImageUrl('C:\\d', 'a&b,%20%231%20%28x%29.png', asset)).toBe('asset://C:\\d\\a&b, #1 (x).png'));
+  it('parent folders resolve', () => expect(resolveImageUrl('C:\\d\\sub', '../img.png', asset)).toBe('asset://C:\\d\\img.png'));
+  it('absolute drive paths load directly, even in unsaved notes', () => {
+    expect(resolveImageUrl(null, 'C:/p/my%20pic.jpg', asset)).toBe('asset://C:\\p\\my pic.jpg');
+    expect(resolveImageUrl('C:\\d', 'D:/p/x.png', asset)).toBe('asset://D:\\p\\x.png');
+  });
+  it('web and data URLs are left alone; broken escapes do not throw', () => {
+    expect(resolveImageUrl('C:\\d', 'https://x/y.png', asset)).toBe('https://x/y.png');
+    expect(resolveImageUrl('C:\\d', 'data:image/png;base64,AA', asset)).toBe('data:image/png;base64,AA');
+    expect(resolveImageUrl('C:\\d', 'bad%zz.png', asset)).toBe('asset://C:\\d\\bad%zz.png');
+  });
+});

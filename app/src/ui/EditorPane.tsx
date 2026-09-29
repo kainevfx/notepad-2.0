@@ -10,6 +10,7 @@ import { platform } from '../platform';
 import { renderMarkdown } from '../markdown/pipeline';
 import { createEditorState } from '../editor/setup';
 import { renderMermaid } from '../markdown/mermaid';
+import { resolveImageUrl } from '../editor/insert';
 import { VisualEditor } from './VisualEditor';
 
 function Banner() {
@@ -68,7 +69,8 @@ export function Preview({ syncRef }: { syncRef: { current: ((line: number, frac:
       setHtml(
         renderMarkdown(textOf(id), {
           blockRemoteImages: s.blockRemoteImages,
-          resolveUrl: base ? (u) => (u ? platform.assetUrl(joinPath(base, decodeURI(u))) : base) : undefined,
+          // Relative images load from the document's folder, drive paths directly (also in unsaved notes).
+          resolveUrl: (u) => (u ? resolveImageUrl(base, u, platform.assetUrl) : base ?? ''),
         }),
       );
     }, 120);

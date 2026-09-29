@@ -56,16 +56,34 @@ function rehypeSourceLines() {
   };
 }
 
+/**
+ * Images at a Windows drive path (C:/...) would lose their src in the sanitiser (it reads "C:" as
+ * a URL scheme), so turn them into loadable asset URLs first.
+ */
+function rehypeDriveImages(opts: RenderOptions) {
+  return () => (tree: any) => {
+    if (!opts.resolveUrl) return;
+    visit(tree, 'element', (node: any) => {
+      const src = node.tagName === 'img' ? node.properties?.src : null;
+      if (typeof src === 'string' && /^[a-zA-Z]:[\\/]/.test(decodeURIComponent(src.replace(/%(?![0-9a-f]{2})/gi, '%25')))) {
+        node.properties.src = opts.resolveUrl!(src);
+      }
+    });
+  };
+}
+
+const isLocalAsset = (u: string) => /^https?:\/\/asset\.localhost\//i.test(u);
+
 function rehypeUrls(opts: RenderOptions) {
   return () => (tree: any) => {
     visit(tree, 'element', (node: any) => {
       const p = node.properties || {};
       if (node.tagName === 'img' && typeof p.src === 'string') {
-        const remote = /^https?:/i.test(p.src);
+        const remote = /^https?:/i.test(p.src) && !isLocalAsset(p.src);
         if (remote && opts.blockRemoteImages) {
           p.alt = `[remote image blocked] ${p.alt ?? ''}`;
           p.src = '';
-        } else if (!remote && !p.src.startsWith('data:') && opts.resolveUrl) p.src = opts.resolveUrl(p.src);
+        } else if (!remote && !isLocalAsset(p.src) && !p.src.startsWith('data:') && opts.resolveUrl) p.src = opts.resolveUrl(p.src);
         p.loading = 'lazy';
       }
       if (node.tagName === 'a' && typeof p.href === 'string') {
@@ -153,6 +171,7 @@ function buildProcessor(opts: RenderOptions) {
     .use(remarkRehype, { allowDangerousHtml: true })
     .use(rehypeRaw)
     .use(rehypeSourceLines)
+    .use(rehypeDriveImages(opts))
     .use(rehypeSanitize, schema as any)
     .use(rehypeCleanStyles)
     .use(rehypeSlug)

@@ -116,3 +116,58 @@ describe('tables: HTML tables load back as editable tables', () => {
     expect(out(e)).toBe(foreign);
   });
 });
+
+describe('review fixes: header rows and merged cells', () => {
+  it('a table without a header row is written as HTML and reopens the same', () => {
+    const e = open('| A   | B   |\n| --- | --- |\n| 1   | 2   |');
+    const p = posOf(e, 'tableHeader');
+    e.commands.setTextSelection(p + 2);
+    e.commands.toggleHeaderRow();
+    const saved = out(e);
+    expect(saved).toContain('<table>');
+    expect(saved).not.toContain('<th');
+    ed!.destroy();
+    expect(out(open(saved))).toBe(saved);
+    expect(JSON.stringify(ed!.getJSON())).not.toContain('tableHeader');
+  });
+
+  it('merged cells keep every column width through save and reopen', () => {
+    const html = [
+      '<table>',
+      '<colgroup><col style="width:100px"><col style="width:200px"><col style="width:300px"></colgroup>',
+      '<tr><td rowspan="2">',
+      '',
+      'A',
+      '',
+      '</td><td>',
+      '',
+      'B',
+      '',
+      '</td><td>',
+      '',
+      'C',
+      '',
+      '</td></tr>',
+      '<tr><td>',
+      '',
+      'D',
+      '',
+      '</td><td>',
+      '',
+      'E',
+      '',
+      '</td></tr>',
+      '<tr><td colspan="2">',
+      '',
+      'F',
+      '',
+      '</td><td>',
+      '',
+      'G',
+      '',
+      '</td></tr>',
+      '</table>',
+    ].join('\n');
+    expect(out(open(html))).toBe(html);
+  });
+});

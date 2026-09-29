@@ -21,10 +21,36 @@ import { Table, TableRow, TableHeader, TableCell, renderTableToMarkdown } from '
 
 // ---------------------------------------------------------------- writing
 
+/**
+ * The starting grid column of every cell, allowing for cells merged across rows (rowspan) and
+ * columns (colspan). Shared by the writer and the reader so column widths never shift.
+ */
+export function cellColumns(rows: { colspan: number; rowspan: number }[][]): number[][] {
+  const carry: number[] = []; // per column: how many more rows are covered from above
+  return rows.map((cells) => {
+    const starts: number[] = [];
+    let col = 0;
+    for (const c of cells) {
+      while ((carry[col] ?? 0) > 0) col++;
+      starts.push(col);
+      for (let k = 0; k < c.colspan; k++) carry[col + k] = c.rowspan;
+      col += c.colspan;
+    }
+    for (let i = 0; i < carry.length; i++) if (carry[i] > 0) carry[i]--;
+    return starts;
+  });
+}
+
+const spans = (cell: any) => ({ colspan: cell.attrs?.colspan ?? 1, rowspan: cell.attrs?.rowspan ?? 1 });
+
 function isSimple(table: any): boolean {
-  for (const row of table.content ?? []) {
+  const rows = table.content ?? [];
+  // Markdown tables always have exactly one header row, the first one.
+  if (!rows.length || !(rows[0].content ?? []).every((c: any) => c.type === 'tableHeader')) return false;
+  for (const [ri, row] of rows.entries()) {
     if (row.attrs?.rowHeight) return false;
     for (const cell of row.content ?? []) {
+      if (ri > 0 && cell.type === 'tableHeader') return false;
       if (cell.attrs?.colwidth?.some((w: number) => w)) return false;
       if ((cell.attrs?.colspan ?? 1) > 1 || (cell.attrs?.rowspan ?? 1) > 1) return false;
       const blocks = cell.content ?? [];
@@ -37,16 +63,20 @@ function isSimple(table: any): boolean {
 
 function renderHtmlTable(table: any, h: any): string {
   const rows = table.content ?? [];
+  const starts = cellColumns(rows.map((r: any) => (r.content ?? []).map(spans)));
   const widths: (number | null)[] = [];
-  for (const row of rows) {
-    let col = 0;
-    for (const cell of row.content ?? []) {
-      const w = cell.attrs?.colwidth?.[0];
-      if (w && widths[col] == null) widths[col] = w;
-      col += cell.attrs?.colspan ?? 1;
-    }
-  }
-  const cols = Math.max(0, ...rows.map((r: any) => (r.content ?? []).reduce((a: number, c: any) => a + (c.attrs?.colspan ?? 1), 0)));
+  let cols = 0;
+  rows.forEach((row: any, ri: number) => {
+    (row.content ?? []).forEach((cell: any, ci: number) => {
+      const { colspan } = spans(cell);
+      const at = starts[ri][ci];
+      cols = Math.max(cols, at + colspan);
+      for (let k = 0; k < colspan; k++) {
+        const w = cell.attrs?.colwidth?.[k];
+        if (w && widths[at + k] == null) widths[at + k] = w;
+      }
+    });
+  });
   const lines = ['<table>'];
   if (widths.some((w) => w)) {
     lines.push(`<colgroup>${Array.from({ length: cols }, (_, i) => (widths[i] ? `<col style="width:${widths[i]}px">` : '<col>')).join('')}</colgroup>`);
@@ -125,19 +155,17 @@ const HtmlTableMarkdown = Extension.create({
     },
   },
   parseMarkdown: (token: any, h: any) => {
-    const rows = token.rows.map((r: any) =>
+    const starts = cellColumns(token.rows.map((r: any) => r.cells));
+    const rows = token.rows.map((r: any, ri: number) =>
       h.createNode(
         'tableRow',
         { rowHeight: r.height },
-        (() => {
-          let col = 0;
-          return r.cells.map((c: any) => {
-            const w = token.widths[col];
-            col += c.colspan;
-            const content = h.parseChildren(c.tokens);
-            return h.createNode(c.header ? 'tableHeader' : 'tableCell', { colspan: c.colspan, rowspan: c.rowspan, colwidth: w ? [w] : null }, content.length ? content : [h.createNode('paragraph', undefined, [])]);
-          });
-        })(),
+        r.cells.map((c: any, ci: number) => {
+          const w = token.widths.slice(starts[ri][ci], starts[ri][ci] + c.colspan);
+          const colwidth = w.some((x: number | null) => x) ? Array.from({ length: c.colspan }, (_, k) => w[k] ?? 0) : null;
+          const content = h.parseChildren(c.tokens);
+          return h.createNode(c.header ? 'tableHeader' : 'tableCell', { colspan: c.colspan, rowspan: c.rowspan, colwidth }, content.length ? content : [h.createNode('paragraph', undefined, [])]);
+        }),
       ),
     );
     return h.createNode('table', undefined, rows);

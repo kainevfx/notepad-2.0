@@ -117,3 +117,10 @@ describe('table sizes in the preview', () => {
     expect(renderMarkdown('<table><tr><td style="background:url(x)">a</td></tr></table>')).not.toContain('style=');
   });
 });
+
+describe('review fixes: images with drive paths', () => {
+  it('a drive-letter image is resolved before sanitising, so it keeps its src', () => {
+    const html = renderMarkdown('![a](C:/p/a.png)', { resolveUrl: (u) => `http://asset.localhost/${encodeURIComponent(u)}` });
+    expect(html).toContain('src="http://asset.localhost/');
+  });
+});
