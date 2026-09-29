@@ -213,6 +213,14 @@ pub fn last_window(app: AppHandle) -> String {
     ws(&app).last()
 }
 
+/// The most recently used window other than the caller (where a closing window's files go).
+#[tauri::command]
+pub fn last_other_window(app: AppHandle, window: tauri::WebviewWindow) -> Option<String> {
+    let order = ws(&app).file.lock().unwrap().order.clone();
+    let open: Vec<String> = app.webview_windows().keys().filter(|l| is_main_label(l) && l.as_str() != window.label()).cloned().collect();
+    order.iter().find(|l| open.contains(l)).cloned().or_else(|| open.first().cloned())
+}
+
 #[tauri::command]
 pub fn window_count(app: AppHandle) -> usize {
     count(&app)

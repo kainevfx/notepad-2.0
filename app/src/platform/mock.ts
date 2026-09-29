@@ -95,6 +95,30 @@ export function createMockPlatform(label: string): Platform {
       if (!f) return { exists: false, mtime: 0, size: 0, readonly: false };
       return { exists: true, mtime: f.mtime, size: atob(f.b64).length, readonly: !!f.readonly };
     },
+    // The browser build is a single window.
+    async emitTo() {},
+    async openWindow() {
+      return null;
+    },
+    async windowAt() {
+      return null;
+    },
+    async lastOtherWindow() {
+      return null;
+    },
+    async lastWindow() {
+      return 'main';
+    },
+    async windowCount() {
+      return 1;
+    },
+    async focusWindow() {},
+    async registerOpenFiles() {},
+    async windowWithFile() {
+      return null;
+    },
+    async closeWindow() {},
+    async startVoiceTyping() {},
     async openImageDialog() {
       const w = window as any;
       const next = w.__np2NextImage ?? null;

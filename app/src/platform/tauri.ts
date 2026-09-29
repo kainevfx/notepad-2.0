@@ -1,5 +1,5 @@
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
-import { emit, listen } from '@tauri-apps/api/event';
+import { emit, emitTo, listen } from '@tauri-apps/api/event';
 import { getCurrentWindow, Window, primaryMonitor, LogicalPosition, LogicalSize } from '@tauri-apps/api/window';
 import { open as openDlg, save as saveDlg } from '@tauri-apps/plugin-dialog';
 import type { FileRead, FileStat, IntegrationState, LaunchArgs, Platform, Unlisten } from './types';
@@ -110,6 +110,17 @@ export function createTauriPlatform(): Platform {
     quit: () => invoke('quit_app'),
 
     emit: (event, payload) => emit(event, payload),
+    emitTo: (label, event, payload) => emitTo(label, event, payload),
+    openWindow: (x, y, transfer) => invoke<string>('open_window', { x, y, transfer: transfer ?? null }),
+    windowAt: (x, y) => invoke<string | null>('window_at', { x, y }),
+    lastOtherWindow: () => invoke<string | null>('last_other_window'),
+    lastWindow: () => invoke<string>('last_window'),
+    windowCount: () => invoke<number>('window_count'),
+    focusWindow: (label) => invoke<void>('focus_window', { label }),
+    registerOpenFiles: (paths) => invoke<void>('register_open_files', { paths }),
+    windowWithFile: (path) => invoke<string | null>('window_with_file', { path }),
+    closeWindow: () => invoke<void>('close_window'),
+    startVoiceTyping: () => invoke<void>('start_voice_typing'),
     listen: (event, cb) => listen(event, (e) => cb(e.payload as any)) as Promise<Unlisten>,
 
     openExternal: (url) => invoke('open_url', { url }),

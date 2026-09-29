@@ -334,6 +334,7 @@ pub fn run() {
             windows::open_window,
             windows::window_at,
             windows::last_window,
+            windows::last_other_window,
             windows::window_count,
             windows::focus_window,
             windows::register_open_files,

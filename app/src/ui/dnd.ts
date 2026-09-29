@@ -4,6 +4,7 @@
 import { signal } from '@preact/signals';
 import { canMove, type DropPosition } from '../lib/tree-ops';
 import { tree, moveNode, moveNodeToRoot } from '../state/app';
+import { platform } from '../platform';
 
 export const drag = signal<{ id: string; label: string; x: number; y: number } | null>(null);
 export const dropTarget = signal<{ id: string; pos: DropPosition | 'root' } | null>(null);
@@ -47,13 +48,22 @@ export function startDrag(e: PointerEvent, id: string, label: string) {
   const sx = e.clientX;
   const sy = e.clientY;
   let active = false;
+  // Keep receiving pointer events when the pointer leaves the window, so a drop outside it
+  // can tear the item off into a new window (or move it to another Notepad 2.0 window).
+  try {
+    (e.currentTarget as Element | null)?.setPointerCapture?.(e.pointerId);
+  } catch {
+    /* capture is best-effort */
+  }
+  let outside = false;
   const move = (ev: PointerEvent) => {
+    outside = ev.clientX < 0 || ev.clientY < 0 || ev.clientX > window.innerWidth || ev.clientY > window.innerHeight;
     if (!active && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 5) return;
     active = true;
     drag.value = { id, label, x: ev.clientX, y: ev.clientY };
     dropTarget.value = hitTest(ev.clientX, ev.clientY, id);
   };
-  const up = () => {
+  const up = (ev?: PointerEvent) => {
     window.removeEventListener('pointermove', move);
     window.removeEventListener('pointerup', up);
     window.removeEventListener('keydown', esc);
@@ -61,7 +71,10 @@ export function startDrag(e: PointerEvent, id: string, label: string) {
       suppressClick = true;
       setTimeout(() => (suppressClick = false), 0);
       const t = dropTarget.value;
-      if (t) t.pos === 'root' ? moveNodeToRoot(id) : moveNode(id, t.id, t.pos);
+      if (outside && ev && platform.kind === 'tauri') {
+        // Loaded lazily: state/windows imports state/app.
+        void import('../state/windows').then((m) => m.sendItems([id], ev.screenX, ev.screenY));
+      } else if (t) t.pos === 'root' ? moveNodeToRoot(id) : moveNode(id, t.id, t.pos);
     }
     drag.value = null;
     dropTarget.value = null;
@@ -74,7 +87,7 @@ export function startDrag(e: PointerEvent, id: string, label: string) {
     }
   };
   window.addEventListener('pointermove', move);
-  window.addEventListener('pointerup', up);
+  window.addEventListener('pointerup', up as (ev: PointerEvent) => void);
   window.addEventListener('keydown', esc);
 }
 

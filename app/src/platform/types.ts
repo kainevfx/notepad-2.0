@@ -80,6 +80,22 @@ export interface Platform {
 
   // Cross-window events
   emit(event: string, payload?: unknown): Promise<void>;
+  /** Send an event to one window. */
+  emitTo(label: string, event: string, payload?: unknown): Promise<void>;
+
+  // Several main windows
+  openWindow(x: number, y: number, transfer?: string): Promise<string | null>;
+  windowAt(x: number, y: number): Promise<string | null>;
+  lastOtherWindow(): Promise<string | null>;
+  lastWindow(): Promise<string>;
+  windowCount(): Promise<number>;
+  focusWindow(label: string): Promise<void>;
+  registerOpenFiles(paths: string[]): Promise<void>;
+  windowWithFile(path: string): Promise<string | null>;
+  /** Close this window for good (after its items moved to another window). */
+  closeWindow(): Promise<void>;
+  /** Start Windows voice typing (Win+H) in the focused window. */
+  startVoiceTyping(): Promise<void>;
   listen<T>(event: string, cb: (payload: T) => void): Promise<Unlisten>;
 
   // Shell
