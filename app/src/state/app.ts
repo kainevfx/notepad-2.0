@@ -7,7 +7,7 @@
 //   file, autosave on         -> global setting or per-group override, atomic write after the delay
 // Opening a file never writes it.
 
-import { signal, computed, batch } from '@preact/signals';
+import { signal, computed, batch, effect } from '@preact/signals';
 import type { EditorState } from '@codemirror/state';
 import type { EditorView, ViewUpdate } from '@codemirror/view';
 import { openSearchPanel, closeSearchPanel, searchPanelOpen, findNext, findPrevious } from '@codemirror/search';
@@ -221,15 +221,23 @@ export function displayTitle(d: DocMeta): string {
 
 // ---------------------------------------------------------------- creating / opening
 
+/** A new file goes to the end of the active file's group, or the end of the ungrouped files. */
 function placeNewNode(id: string, near: string | null) {
   const node: TreeNode = { id, kind: 'note' };
-  const loc = near ? T.find(tree.value, near) : null;
-  if (loc && !(loc.parent?.system === 'quick-notes')) {
-    tree.value = T.insert(tree.value, node, loc.parent ? loc.parent.id : null, loc.index + 1);
+  const parent = near ? T.find(tree.value, near)?.parent : null;
+  if (parent && parent.system !== 'quick-notes') {
+    tree.value = T.insert(tree.value, node, parent.id, parent.children.length);
   } else {
-    tree.value = [...tree.value, node];
+    tree.value = [...tree.value, node]; // normalised to the end of the ungrouped section
   }
 }
+
+// Ungrouped files always sit above the groups, whatever changed the tree.
+effect(() => {
+  const t = tree.value;
+  const n = T.normalizeLooseFirst(t);
+  if (n !== t) tree.value = n;
+});
 
 export function newNote(opts: { text?: string; groupId?: string | null; activate?: boolean; language?: 'plain' | 'markdown' } = {}): string {
   const now = Date.now();

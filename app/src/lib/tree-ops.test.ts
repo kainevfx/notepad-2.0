@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import * as T from './tree-ops';
 import {
   TreeNode, GroupNode, move, canMove, createGroup, ungroup, flattenNotes, visibleNotes, find,
   setCollapsedDeep, effectiveAutosave, MAX_GROUP_DEPTH, moveToRoot, update,
@@ -101,5 +102,22 @@ describe('tree-ops', () => {
     createGroup(t, { id: 'Z', name: 'z', color: 'grey', collapsed: false }, ['loose']);
     ungroup(t, 'A');
     expect(JSON.stringify(t)).toBe(snapshot);
+  });
+});
+
+describe('normalizeLooseFirst', () => {
+  const n = (id: string): T.TreeNode => ({ id, kind: 'note' });
+  const g = (id: string, children: T.TreeNode[] = []): T.TreeNode => ({ id, kind: 'group', name: id, color: 'blue', collapsed: false, children });
+  it('moves ungrouped files above groups, keeping each side in order', () => {
+    const out = T.normalizeLooseFirst([g('g1'), n('n1'), g('g2'), n('n2')]);
+    expect(out.map((x) => x.id)).toEqual(['n1', 'n2', 'g1', 'g2']);
+  });
+  it('returns the same array when already in order', () => {
+    const t = [n('n1'), g('g1')];
+    expect(T.normalizeLooseFirst(t)).toBe(t);
+  });
+  it('leaves the order inside groups alone', () => {
+    const out = T.normalizeLooseFirst([g('g1', [g('s'), n('a')])]);
+    expect((out[0] as T.GroupNode).children.map((x) => x.id)).toEqual(['s', 'a']);
   });
 });

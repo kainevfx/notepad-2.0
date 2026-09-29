@@ -270,3 +270,13 @@ export function effectiveAutosave(root: TreeNode[], noteId: string, globalDefaul
 export function prune(root: TreeNode[], keep: (noteId: string) => boolean): TreeNode[] {
   return mapTree(root, (n) => (n.kind === 'note' && !keep(n.id) ? null : n));
 }
+
+/**
+ * Ungrouped files always sit above the groups at the top level. Stable on both sides; returns
+ * the same array when it is already in that order.
+ */
+export function normalizeLooseFirst(root: TreeNode[]): TreeNode[] {
+  const firstGroup = root.findIndex((n) => n.kind === 'group');
+  if (firstGroup < 0 || !root.slice(firstGroup).some((n) => n.kind === 'note')) return root;
+  return [...root.filter((n) => n.kind === 'note'), ...root.filter((n) => n.kind === 'group')];
+}
