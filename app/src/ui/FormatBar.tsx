@@ -19,7 +19,19 @@ const STYLE_OPTIONS: [FormatCommand, string][] = [
   ['codeBlock', 'Code block'],
 ];
 
-type Pop = 'color' | 'table' | null;
+type Pop = 'color' | 'table' | 'align' | 'list' | null;
+
+const ALIGN: { c: FormatCommand; label: string; Icon: (p: { size?: number }) => JSX.Element }[] = [
+  { c: 'alignLeft', label: 'Align left', Icon: I.IcAlignLeft },
+  { c: 'alignCenter', label: 'Centre', Icon: I.IcAlignCenter },
+  { c: 'alignRight', label: 'Align right', Icon: I.IcAlignRight },
+  { c: 'alignJustify', label: 'Justify', Icon: I.IcAlignJustify },
+];
+const LISTS: { c: FormatCommand; label: string; Icon: (p: { size?: number }) => JSX.Element }[] = [
+  { c: 'bullet', label: 'Bulleted list (Ctrl+Shift+8)', Icon: I.IcListBullet },
+  { c: 'number', label: 'Numbered list (Ctrl+Shift+7)', Icon: I.IcListNumber },
+  { c: 'check', label: 'Checklist', Icon: I.IcListCheck },
+];
 
 export function FormatBar() {
   const d = activeDoc.value;
@@ -77,6 +89,31 @@ export function FormatBar() {
       {icon}
     </button>
   );
+
+  /** A button showing the current choice; its pop-up lists every option with its name. */
+  const Menu = ({ kind, title, items, fallback }: { kind: Pop; title: string; items: typeof ALIGN; fallback: (typeof ALIGN)[number] }) => {
+    const cur = items.find((it) => t.isActive(it.c)) ?? fallback;
+    const on = kind === 'list' && items.some((it) => t.isActive(it.c));
+    const enabled = items.some((it) => t.can(it.c));
+    return (
+      <div class="fb-pop-anchor">
+        <button class={`fb-btn fb-drop${pop === kind || on ? ' on' : ''}`} disabled={!enabled} title={title} aria-label={title} aria-haspopup="menu" onMouseDown={keep} onClick={() => setPop(pop === kind ? null : kind)}>
+          <cur.Icon />
+          <I.IcChevronDown size={10} />
+        </button>
+        {pop === kind && (
+          <div class="fb-pop fb-menu" role="menu" onMouseDown={keep}>
+            {items.map((it) => (
+              <button class={`fb-menu-item${t.isActive(it.c) ? ' on' : ''}`} role="menuitem" disabled={!t.can(it.c)} onClick={() => (t.run(it.c), setPop(null))}>
+                <it.Icon />
+                <span>{it.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const blockValue = STYLE_OPTIONS.map(([c]) => c).find((c) => c !== 'body' && t.isActive(c)) ?? 'body';
 
@@ -153,14 +190,8 @@ export function FormatBar() {
       </div>
       <B c="code" icon={<I.IcCode />} label="Inline code" />
       <span class="fb-sep" />
-      <B c="alignLeft" icon={<I.IcAlignLeft />} label="Align left" />
-      <B c="alignCenter" icon={<I.IcAlignCenter />} label="Centre" />
-      <B c="alignRight" icon={<I.IcAlignRight />} label="Align right" />
-      <B c="alignJustify" icon={<I.IcAlignJustify />} label="Justify" />
-      <span class="fb-sep" />
-      <B c="bullet" icon={<I.IcListBullet />} label="Bulleted list (Ctrl+Shift+8)" />
-      <B c="number" icon={<I.IcListNumber />} label="Numbered list (Ctrl+Shift+7)" />
-      <B c="check" icon={<I.IcListCheck />} label="Checklist" />
+      <Menu kind="align" title="Paragraph alignment" items={ALIGN} fallback={ALIGN[0]} />
+      <Menu kind="list" title="Lists" items={LISTS} fallback={LISTS[0]} />
       <B c="outdent" icon={<I.IcOutdent />} label="Decrease indent (Ctrl+[)" />
       <B c="indent" icon={<I.IcIndent />} label="Increase indent (Ctrl+])" />
       <span class="fb-sep" />

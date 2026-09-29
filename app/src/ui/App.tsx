@@ -5,6 +5,7 @@ import { settingsOpen } from '../state/ui';
 import { TitleBar } from './TitleBar';
 import { MenuBar } from './MenuBar';
 import { FormatBar } from './FormatBar';
+import { TabStrip } from './TabStrip';
 import { Sidebar, Rail } from './Sidebar';
 import { EditorPane } from './EditorPane';
 import { StatusBar } from './StatusBar';
@@ -31,6 +32,7 @@ export function App() {
       <TitleBar />
       <MenuBar />
       <FormatBar />
+      {mode === 'top' && <TabStrip />}
       <div class="workspace">
         {mode === 'left' && <Sidebar />}
         {mode === 'rail' && <Rail />}

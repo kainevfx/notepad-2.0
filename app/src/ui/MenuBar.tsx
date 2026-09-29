@@ -192,24 +192,27 @@ export function MenuBar() {
       )}
       <div class="paper-anchor">
         <button
-          class={`icon-btn${paperPopoverOpen.value ? ' pressed' : ''}`}
+          class={`icon-btn labeled${paperPopoverOpen.value ? ' pressed' : ''}`}
           title="Paper: Grid, Lines, Code, None, and page margin"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={() => (paperPopoverOpen.value = !paperPopoverOpen.value)}
         >
           <PaperIcon />
+          <span>Paper</span>
         </button>
         {paperPopoverOpen.value && <PaperPopover />}
       </div>
       <button
-        class="icon-btn"
+        class="icon-btn labeled"
         title={s.tabsMode === 'top' ? 'Vertical tabs (Ctrl+Shift+,)' : 'Tabs along the top (Ctrl+Shift+,)'}
         onClick={() => cmd.toggleTabsMode()}
       >
         {s.tabsMode === 'top' ? <IcSidebar /> : <IcTabsTop />}
+        <span>{s.tabsMode === 'top' ? 'Tabs: Top' : 'Tabs: Left'}</span>
       </button>
-      <button class={`icon-btn${settingsOpen.value ? ' pressed' : ''}`} title="Settings" onClick={() => (settingsOpen.value = !settingsOpen.value)}>
+      <button class={`icon-btn labeled${settingsOpen.value ? ' pressed' : ''}`} title="Settings" onClick={() => (settingsOpen.value = !settingsOpen.value)}>
         <IcGear />
+        <span>Settings</span>
       </button>
     </div>
   );

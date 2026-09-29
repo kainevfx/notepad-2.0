@@ -53,7 +53,8 @@ export const IcItalic = (p: P) => S(<path d="M7 3h5M4 13h5M9.5 3l-3 10" stroke-w
 export const IcUnderline = (p: P) => S(<path d="M4.5 2.5v5a3.5 3.5 0 0 0 7 0v-5M3.5 14h9" stroke-width="1.3" />, p);
 export const IcStrike = (p: P) => S(<path d="M2.5 8h11M11 4.5C10.5 3.3 9.4 2.8 8 2.8 6.2 2.8 5 3.8 5 5.2c0 1 .6 1.6 1.5 2M5 11.3c.5 1.2 1.7 1.9 3.2 1.9 1.9 0 3.2-1 3.2-2.5 0-.6-.2-1.1-.6-1.5" stroke-width="1.2" />, p);
 export const IcCode = (p: P) => S(<path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5" stroke-width="1.3" />, p);
-export const IcColor = (p: P) => S(<><path d="M4 11 8 2l4 9M5.5 7.8h5" stroke-width="1.3" /><path d="M2.5 13.8h11" stroke="var(--fb-color, #d93025)" stroke-width="2.4" /></>, p);
+/** Font colour: a red letter A. */
+export const IcColor = (p: P) => S(<path d="M3.5 13.5 8 2.5l4.5 11M5.3 9.3h5.4" stroke="var(--fb-color, #d93025)" stroke-width="1.8" />, p);
 export const IcAlignLeft = (p: P) => S(<path d="M3 4h10M3 7h6M3 10h10M3 13h6" />, p);
 export const IcAlignCenter = (p: P) => S(<path d="M3 4h10M5 7h6M3 10h10M5 13h6" />, p);
 export const IcAlignRight = (p: P) => S(<path d="M3 4h10M7 7h6M3 10h10M7 13h6" />, p);

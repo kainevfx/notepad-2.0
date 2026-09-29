@@ -100,6 +100,7 @@ function GroupBlock({ g, depth, q }: { g: GroupNode; depth: number; q: string })
         ) : (
           <span class="side-group-name">{g.name}</span>
         )}
+        <span class="side-group-kind">Group</span>
         {!open && <span class="side-group-count">{count}</span>}
         <span class="side-group-chev">{open ? <IcChevronUp /> : <IcChevronDown />}</span>
       </div>
@@ -130,7 +131,7 @@ export function Sidebar() {
     resizing.current = true;
     const startX = e.clientX;
     const startW = s.sidebarWidth;
-    const move = (ev: PointerEvent) => updateSettings({ sidebarWidth: Math.max(180, Math.min(420, startW + ev.clientX - startX)) });
+    const move = (ev: PointerEvent) => updateSettings({ sidebarWidth: Math.max(120, Math.min(720, startW + ev.clientX - startX)) });
     const up = () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
