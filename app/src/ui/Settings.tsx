@@ -186,7 +186,7 @@ export function Settings() {
 
         <h2>Appearance</h2>
         <div class="card">
-          <Row title="Interface size" desc="Makes the whole app more compact or roomier. Text zoom (Ctrl +/-) is separate.">
+          <Row title="Interface size" desc="Makes the sidebar and the document more compact or roomier. Menus and toolbars stay the same size. Text zoom (Ctrl +/-) is separate.">
             <ScaleSlider />
           </Row>
           <Row title="App theme">

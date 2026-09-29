@@ -2,7 +2,6 @@ import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { emit, listen } from '@tauri-apps/api/event';
 import { getCurrentWindow, Window, primaryMonitor, LogicalPosition, LogicalSize } from '@tauri-apps/api/window';
 import { open as openDlg, save as saveDlg } from '@tauri-apps/plugin-dialog';
-import { getCurrentWebview } from '@tauri-apps/api/webview';
 import type { FileRead, FileStat, IntegrationState, LaunchArgs, Platform, Unlisten } from './types';
 
 const TEXT_FILTERS = [
@@ -112,7 +111,6 @@ export function createTauriPlatform(): Platform {
     openExternal: (url) => invoke('open_url', { url }),
     revealInExplorer: (path) => invoke('reveal_in_explorer', { path }),
     assetUrl: (path) => convertFileSrc(path),
-    setUiScale: (f) => getCurrentWebview().setZoom(f),
 
     integrationState: () => invoke<IntegrationState>('integration_state'),
     registerFileTypes: (exts) => invoke('register_file_types', { exts }),

@@ -2,7 +2,6 @@ import { useSignalEffect } from '@preact/signals';
 import { settings, isDark, systemDark } from '../state/settings';
 import { ready, activeDoc, updateWindowTitle } from '../state/app';
 import { settingsOpen } from '../state/ui';
-import { platform } from '../platform';
 import { TitleBar } from './TitleBar';
 import { MenuBar } from './MenuBar';
 import { FormatBar } from './FormatBar';
@@ -21,16 +20,14 @@ export function App() {
     document.documentElement.classList.toggle('light', !dark);
   });
   useSignalEffect(() => {
-    platform.setUiScale(settings.value.uiScale / 100).catch(() => {});
-  });
-  useSignalEffect(() => {
     activeDoc.value;
     updateWindowTitle();
   });
 
   const mode = settings.value.tabsMode;
   return (
-    <div class={`app tabs-${mode}${ready.value ? '' : ' loading'}`}>
+    // Interface size scales only the sidebar and the document; menus and bars stay put.
+    <div class={`app tabs-${mode}${ready.value ? '' : ' loading'}`} style={{ '--ui-zoom': String(settings.value.uiScale / 100) } as any}>
       <TitleBar />
       <MenuBar />
       <FormatBar />

@@ -84,8 +84,6 @@ export interface Platform {
   openExternal(url: string): Promise<void>;
   revealInExplorer(path: string): Promise<void>;
   assetUrl(path: string): string;
-  /** Scale the whole UI (1 = 100%). Separate from the editor's text zoom. */
-  setUiScale(factor: number): Promise<void>;
 
   // Windows integration (sub-plan 07)
   integrationState(): Promise<IntegrationState>;

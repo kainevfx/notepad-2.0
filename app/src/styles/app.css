@@ -601,3 +601,7 @@ button.sb-item:hover { background: var(--bg-hover); }
 .margin-num { width: 56px; height: 24px; padding: 0 4px; border: 1px solid var(--stroke); border-radius: 4px; background: var(--bg-input); color: var(--text); font-size: 12px; }
 .margin-unit { color: var(--text-3); }
 .paper-margin-row { padding: 8px 6px 2px; border-top: 1px solid var(--stroke); margin-top: 8px; }
+
+/* Interface size: only the sidebar / rail and the document area scale. */
+.sidebar, .rail, .editor-pane { zoom: var(--ui-zoom, 1); }
+.rail .sidebar { zoom: 1; }
