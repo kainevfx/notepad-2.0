@@ -635,3 +635,14 @@ button.sb-item:hover { background: var(--bg-hover); }
 .theme-switch button { min-width: 64px; justify-content: center; }
 .fb-table-tools { width: auto; padding: 0 8px; font-size: 12px; font-weight: 600; }
 .fb-menu-item.danger { color: #d13438; }
+
+/* startup guide */
+.guide { position: fixed; inset: 0; z-index: 3000; }
+.guide-dim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.55); }
+.guide-spot { position: absolute; border-radius: 10px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55), 0 0 0 2px var(--accent); transition: all 0.18s var(--ease); pointer-events: none; }
+.guide-card { position: absolute; width: 340px; padding: 16px 18px 14px; border-radius: 10px; background: var(--bg-card); border: 1px solid var(--stroke-strong); box-shadow: var(--shadow); color: var(--text); }
+.guide-card h3 { margin: 4px 0 6px; font-size: 16px; }
+.guide-card p { margin: 0 0 14px; font-size: 13px; line-height: 1.5; color: var(--text-2); }
+.guide-count { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; }
+.guide-actions { display: flex; align-items: center; gap: 8px; }
+.guide-flex { flex: 1; }

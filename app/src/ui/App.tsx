@@ -1,7 +1,8 @@
 import { useSignalEffect } from '@preact/signals';
 import { settings, isDark, systemDark } from '../state/settings';
 import { ready, activeDoc, updateWindowTitle } from '../state/app';
-import { settingsOpen } from '../state/ui';
+import { settingsOpen, guideOpen } from '../state/ui';
+import { Guide } from './Guide';
 import { TitleBar } from './TitleBar';
 import { MenuBar } from './MenuBar';
 import { FormatBar } from './FormatBar';
@@ -19,6 +20,10 @@ export function App() {
     const dark = isDark();
     document.documentElement.classList.toggle('dark', dark);
     document.documentElement.classList.toggle('light', !dark);
+  });
+  // Offer the startup guide once, on first run.
+  useSignalEffect(() => {
+    if (ready.value && !settings.peek().firstRunDone && !guideOpen.peek()) setTimeout(() => (guideOpen.value = true), 600);
   });
   useSignalEffect(() => {
     activeDoc.value;
@@ -47,6 +52,7 @@ export function App() {
       <ClosedNotesDialog />
       <Toast />
       <DragGhost />
+      {guideOpen.value && <Guide />}
     </div>
   );
 }

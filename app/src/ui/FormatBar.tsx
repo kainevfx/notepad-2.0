@@ -209,7 +209,7 @@ export function FormatBar() {
       <B c="indent" icon={<I.IcIndent />} label="Increase indent (Ctrl+])" />
       <span class="fb-sep" />
       <B c="link" icon={<I.IcLink />} label="Link (Ctrl+K)" />
-      <div class="fb-pop-anchor">
+      <div class="fb-pop-anchor fb-grid-anchor">
         <button class={`fb-btn${pop === 'table' ? ' on' : ''}`} disabled={!t.can('table')} title="Insert table" aria-label="Insert table" onMouseDown={keep} onClick={() => (setPick([0, 0]), setPop(pop === 'table' ? null : 'table'))}>
           <I.IcTable />
         </button>
