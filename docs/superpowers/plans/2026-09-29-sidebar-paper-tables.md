@@ -87,6 +87,15 @@
 **Files:** `src/ui/FormatBar.tsx`, `src/ui/icons.tsx`, `src/ui/MenuBar.tsx`, `src/styles/app.css`.
 - [ ] Centre groups; Alignment + Lists dropdown buttons (current icon + chevron; popup of options); red-A colour icon; top-right labelled buttons. Commit.
 
+### Task 9b: Tabs & layout (added 2026-09-29 from Kaine's screenshot feedback)
+**Files:** `src/ui/App.tsx`, `src/ui/TitleBar.tsx`, `src/ui/TabStrip.tsx`, `src/ui/Sidebar.tsx`, `src/styles/app.css`.
+- [ ] Layout order: title bar → File/Edit/View menu bar → formatting toolbar → top tab strip → document. The tab strip leaves the title bar (the title bar shows the window title when tabs are on top).
+- [ ] Active top tab uses the document background and has no bottom border, so it joins the page; inactive tabs are muted.
+- [ ] Hierarchy in the top tab strip: tabs inside a file group sit slightly lower than the group chip (+3px per nesting level); a subgroup chip is lower than its parent chip.
+- [ ] Hierarchy in the sidebar: each nesting level indents further right (files and subgroups inside a group).
+- [ ] Sidebar resizable 120–720 px by dragging its right edge (was 180–420); width remembered.
+- [ ] Verify in the browser build; commit.
+
 ### Task 10: Insert & Help menus, theme switch
 **Files:** create `src/editor/insert.ts` (+test), `src/ui/MenuBar.tsx`, `src/ui/Settings.tsx`, `src/state/app.ts` (print: split on `\f`), `src/styles/markdown.css` (`.page-break`), `src/platform/*` (`openImageDialog`).
 **Produces:** `insertSnippet(kind: 'pageBreak'|'lineBreak', markdown: boolean): string`; `imageMarkdown(docPath: string|null, imagePath: string): string`.
