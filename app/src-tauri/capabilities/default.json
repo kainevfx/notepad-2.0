@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Main editor window and the Quick Note bubble",
-  "windows": ["main", "quicknote"],
+  "windows": ["main", "main-*", "quicknote"],
   "permissions": [
     "core:default",
     "core:window:allow-minimize",

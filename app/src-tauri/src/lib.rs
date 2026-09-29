@@ -3,6 +3,7 @@
 
 pub mod files;
 pub mod integration;
+pub mod windows;
 
 use serde::Serialize;
 use std::path::PathBuf;
@@ -74,8 +75,18 @@ fn store_list(app: AppHandle, dir: String) -> Result<Vec<String>, String> {
 
 // ------------------------------------------------------------------ commands: windows
 
+/// The Notepad 2.0 window used most recently (launches, the tray and Quick Note go there).
+fn last_main(app: &AppHandle) -> String {
+    let last = app.state::<windows::WinState>().last();
+    if app.get_webview_window(&last).is_some() {
+        last
+    } else {
+        app.webview_windows().keys().find(|l| windows::is_main_label(l)).cloned().unwrap_or_else(|| "main".into())
+    }
+}
+
 fn show_main_window(app: &AppHandle) {
-    if let Some(w) = app.get_webview_window("main") {
+    if let Some(w) = app.get_webview_window(&last_main(app)) {
         let _ = w.show();
         let _ = w.unminimize();
         let _ = w.set_focus();
@@ -109,6 +120,28 @@ fn show_main(app: AppHandle) {
 #[tauri::command]
 fn show_quicknote(app: AppHandle) {
     show_quicknote_window(&app);
+}
+
+/// Start Windows voice typing (the same as pressing Win+H) in the focused window.
+#[tauri::command]
+fn start_voice_typing() -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, VK_LWIN};
+        let key = |vk: u16, up: bool| INPUT {
+            r#type: INPUT_KEYBOARD,
+            Anonymous: INPUT_0 { ki: KEYBDINPUT { wVk: vk, wScan: 0, dwFlags: if up { KEYEVENTF_KEYUP } else { 0 }, time: 0, dwExtraInfo: 0 } },
+        };
+        let h = b'H' as u16;
+        let inputs = [key(VK_LWIN, false), key(h, false), key(h, true), key(VK_LWIN, true)];
+        let sent = unsafe { SendInput(inputs.len() as u32, inputs.as_ptr(), std::mem::size_of::<INPUT>() as i32) };
+        if sent as usize != inputs.len() {
+            return Err("Windows voice typing could not be started.".into());
+        }
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    Err("Voice typing needs Windows.".into())
 }
 
 #[tauri::command]
@@ -204,11 +237,11 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
                 let _ = app.emit_to("quicknote", "quicknote-new", ());
             }
             "settings" => {
-                let _ = app.emit_to("main", "open-settings", ());
+                let _ = app.emit_to(last_main(app).as_str(), "open-settings", ());
             }
-            // The main window flushes unsaved state, then calls quit_app.
+            // The last-used window asks every window to flush unsaved state, then calls quit_app.
             "quit" => {
-                let _ = app.emit_to("main", "quit-requested", ());
+                let _ = app.emit_to(last_main(app).as_str(), "quit-requested", ());
             }
             _ => {}
         })
@@ -239,7 +272,7 @@ pub fn run() {
         // Must be first: a second launch (double-clicked file, IFEO redirect) forwards its
         // argv to the running instance and exits.
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
-            let _ = app.emit_to("main", "second-instance", LaunchArgs { argv, cwd: Some(cwd) });
+            let _ = app.emit_to(last_main(app).as_str(), "second-instance", LaunchArgs { argv, cwd: Some(cwd) });
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(
@@ -255,7 +288,10 @@ pub fn run() {
             let handle = app.handle().clone();
             let root = store_root(&handle);
             let _ = std::fs::create_dir_all(root.join("notes"));
+            app.manage(windows::WinState::load(&root));
             app.manage(AppState { launch: Mutex::new(LaunchArgs { argv, cwd }), store_root: root });
+            // Every window that was open last time comes back where it was.
+            windows::restore(&handle);
             build_tray(&handle)?;
             // Another app may already own Win+Alt+N; the tray still works without it.
             if let Err(e) = handle.global_shortcut().register(quick_hotkey) {
@@ -270,6 +306,12 @@ pub fn run() {
                 if let WindowEvent::CloseRequested { api, .. } = e {
                     api.prevent_close();
                     let _ = w.hide();
+                }
+            } else if windows::is_main_label(w.label()) {
+                match e {
+                    WindowEvent::Focused(true) => windows::record_focus(w.app_handle(), w.label()),
+                    WindowEvent::Moved(_) | WindowEvent::Resized(_) => windows::record_geometry(w.app_handle(), w.label()),
+                    _ => {}
                 }
             }
         })
@@ -288,6 +330,15 @@ pub fn run() {
             open_url,
             reveal_in_explorer,
             rename_file,
+            start_voice_typing,
+            windows::open_window,
+            windows::window_at,
+            windows::last_window,
+            windows::window_count,
+            windows::focus_window,
+            windows::register_open_files,
+            windows::window_with_file,
+            windows::close_window,
             integration_state,
             register_file_types,
             unregister_file_types,
