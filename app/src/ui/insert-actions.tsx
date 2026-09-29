@@ -109,6 +109,7 @@ const SHORTCUTS: [string, string][] = [
   ['Link', 'Ctrl+K'],
   ['Visual → Source → Split', 'Ctrl+Shift+V'],
   ['Text zoom', 'Ctrl + / Ctrl − / Ctrl+0'],
+  ['Interface size', 'Shift + / Shift − (outside the text), Ctrl+Shift + / −'],
   ['Tabs on top / on the left', 'Ctrl+Shift+,'],
   ['New file group from this file', 'Ctrl+Shift+G'],
   ['Quick Note', 'Win+Alt+N'],

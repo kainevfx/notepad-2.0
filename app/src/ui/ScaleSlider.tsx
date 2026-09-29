@@ -4,7 +4,7 @@ import { settings, updateSettings, clampScale } from '../state/settings';
 export function ScaleSlider({ compact = false }: { compact?: boolean }) {
   const v = settings.value.uiScale;
   return (
-    <label class={`scale-slider${compact ? ' compact' : ''}`} title="Interface size (double-click the number to reset)">
+    <label class={`scale-slider${compact ? ' compact' : ''}`} title="Interface size: Shift + / Shift − (or Ctrl+Shift + / −) to nudge, double-click the number to reset">
       {!compact && <span>Interface size</span>}
       <input
         type="range"

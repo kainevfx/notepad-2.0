@@ -4,6 +4,8 @@ import {
 } from '../state/app';
 import { settingsOpen, dialog, paperPopoverOpen } from '../state/ui';
 import { platform } from '../platform';
+import { settings, updateSettings, clampScale } from '../state/settings';
+import { uiScaleStep } from '../lib/scale-keys';
 import { startRename } from './menus';
 
 export function installShortcuts() {
@@ -23,6 +25,10 @@ export function installShortcuts() {
     if (e.key === 'F2' && !mod && id && !(e.target as HTMLElement | null)?.closest?.('input, textarea')) return run(() => startRename(id));
     if (e.key === 'Escape' && settingsOpen.value) return run(() => (settingsOpen.value = false));
     if (e.key === 'Escape' && paperPopoverOpen.value) return run(() => (paperPopoverOpen.value = false));
+    // Interface size: Shift +/- outside the text, Ctrl+Shift +/- anywhere.
+    const inText = !!(e.target as HTMLElement | null)?.closest?.('.cm-content, .ProseMirror, input, textarea, select, [contenteditable="true"]');
+    const step = uiScaleStep(e, inText);
+    if (step) return run(() => updateSettings({ uiScale: clampScale(settings.value.uiScale + step) }));
     if (!mod) return;
 
     if (e.shiftKey && !e.altKey) {
