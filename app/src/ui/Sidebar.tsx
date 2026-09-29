@@ -162,11 +162,11 @@ export function Sidebar() {
           </div>
         </div>
         <div class="side-actions">
-          <button class="side-action" title="New text file (Ctrl+N)" onClick={() => newNote({ language: 'plain' })}>
+          <button class="side-action" title="New text file (Ctrl+N)" onClick={() => newNote({ language: 'plain', groupId: null })}>
             <IcNewText />
             <span>New text file</span>
           </button>
-          <button class="side-action" title="New Markdown file (Ctrl+Alt+N)" onClick={() => newNote({ language: 'markdown' })}>
+          <button class="side-action" title="New Markdown file (Ctrl+Alt+N)" onClick={() => newNote({ language: 'markdown', groupId: null })}>
             <IcNewMd />
             <span>New MD file</span>
           </button>
@@ -199,36 +199,39 @@ export function Sidebar() {
   );
 }
 
-/** Collapsed rail: group names rotated 90 degrees. Click a name to peek, chevron to re-open. */
+/** Collapsed rail: Ungrouped first, then each file group, labels running horizontally. */
 export function Rail() {
   const groups = tree.value.filter((n): n is GroupNode => n.kind === 'group');
   const loose = tree.value.filter((n) => n.kind === 'note').length;
+  const peek = () => (railPeek.value = !railPeek.value);
   return (
     <aside class="rail">
       <button class="icon-btn rail-open" title="Expand sidebar" onClick={() => updateSettings({ tabsMode: 'left' })}>
         <IcChevronRight />
       </button>
       <div class="rail-items">
+        {loose > 0 && (
+          <button class="rail-item rail-loose" title={`Ungrouped (${loose})`} onClick={peek} onContextMenu={(e) => openContextMenu(e as MouseEvent, ungroupedMenu())}>
+            <span class="rail-label">Ungrouped</span>
+            <span class="rail-count">{loose}</span>
+          </button>
+        )}
         {groups.map((g) => (
           <button
             key={g.id}
             class="rail-item"
             style={groupVars(g.color)}
             title={g.name}
-            onClick={() => (railPeek.value = !railPeek.value)}
+            onClick={peek}
             onContextMenu={(e) => openContextMenu(e as MouseEvent, groupMenu(g.id))}
           >
-            <span>{g.name}</span>
+            <span class="rail-label">{g.name}</span>
+            <span class="rail-count">{countNotes(g)}</span>
           </button>
         ))}
-        {loose > 0 && (
-          <button class="rail-item rail-loose" onClick={() => (railPeek.value = !railPeek.value)}>
-            <span>Tabs ({loose})</span>
-          </button>
-        )}
       </div>
       {railPeek.value && (
-        <div class="rail-peek" onMouseLeave={() => !drag.value && (railPeek.value = false)}>
+        <div class="rail-peek" onMouseLeave={() => !drag.value && !renamingId.value && (railPeek.value = false)}>
           <Sidebar />
         </div>
       )}

@@ -27,6 +27,13 @@ describe('file and group order', () => {
     const third = newNote({ activate: false });
     expect((T.find(tree.value, 'G')!.node as T.GroupNode).children.map((n) => n.id)).toEqual([first, second, third]);
   });
+  it('groupId: null always creates an ungrouped file, even when a grouped file is active', () => {
+    commitTree(T.createGroup(tree.value, { id: 'G', name: 'G', color: 'blue', collapsed: false }, [], null));
+    const inG = newNote({ groupId: 'G', activate: false });
+    activeId.value = inG;
+    const loose = newNote({ groupId: null, activate: false });
+    expect(ids()).toEqual([loose, 'G']);
+  });
   it('any tree written with a file below a group is put back in order', () => {
     const a = newNote({ activate: false });
     commitTree([{ id: 'G', kind: 'group', name: 'G', color: 'blue', collapsed: false, children: [] }, { id: a, kind: 'note' }]);

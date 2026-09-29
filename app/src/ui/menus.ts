@@ -71,8 +71,8 @@ export function ungroupedMenu(): MenuItem[] {
   return [
     { label: 'Paste into Ungrouped', action: () => void pasteInto(null), disabled: !docClipboard.value },
     { separator: true },
-    { label: 'New text file', shortcut: 'Ctrl+N', action: () => newNote({ language: 'plain' }) },
-    { label: 'New MD file', shortcut: 'Ctrl+Alt+N', action: () => newNote({ language: 'markdown' }) },
+    { label: 'New text file', action: () => newNote({ language: 'plain', groupId: null }) },
+    { label: 'New MD file', action: () => newNote({ language: 'markdown', groupId: null }) },
     { label: 'New group', shortcut: 'Ctrl+Shift+G', action: () => newGroupFrom([], null) },
   ];
 }

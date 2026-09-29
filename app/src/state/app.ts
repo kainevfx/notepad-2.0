@@ -256,6 +256,8 @@ export function newNote(opts: { text?: string; groupId?: string | null; activate
   if (opts.groupId) {
     const g = T.find(tree.value, opts.groupId);
     tree.value = T.insert(tree.value, { id, kind: 'note' }, opts.groupId, g && g.node.kind === 'group' ? g.node.children.length : 0);
+  } else if (opts.groupId === null) {
+    tree.value = [...tree.value, { id, kind: 'note' }]; // explicitly Ungrouped
   } else placeNewNode(id, activeId.value);
   if (text) persistNote(id);
   if (opts.activate !== false) activate(id);
