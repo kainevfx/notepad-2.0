@@ -45,3 +45,13 @@ describe('relativeTime', () => {
   it('this year', () => expect(relativeTime(new Date(2026, 7, 3, 12, 0).getTime(), now)).toBe('Mon 3 Aug'));
   it('older', () => expect(relativeTime(new Date(2025, 8, 28, 12, 0).getTime(), now)).toBe('28 Sep 2025'));
 });
+
+describe('name sort with copies', () => {
+  it('puts "Note.txt" before its copy "Note (2).txt"', () => {
+    const d: Record<string, SortDoc> = {
+      x: { title: 'Note (2).txt', created: 1, modified: 1, language: 'plain' },
+      y: { title: 'Note.txt', created: 1, modified: 1, language: 'plain' },
+    };
+    expect(sortNodes([n('x'), n('y')], 'name', d).map((t) => t.id)).toEqual(['y', 'x']);
+  });
+});

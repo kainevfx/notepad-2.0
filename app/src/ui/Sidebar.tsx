@@ -8,7 +8,7 @@ import { openContextMenu, railPeek, closedNotesOpen, renamingId } from '../state
 import { InlineRename } from './InlineRename';
 import { IcChevronDown, IcChevronUp, IcChevronLeft, IcChevronRight, IcClose, IcFolderPlus, IcSearch, IcNewText, IcNewMd } from './icons';
 import { startDrag, consumeDragClick, dropClass, drag } from './dnd';
-import { noteMenu, groupMenu } from './menus';
+import { noteMenu, groupMenu, ungroupedMenu } from './menus';
 import { groupVars, docColorVars } from './colors';
 import { fileBadge } from '../lib/file-badge';
 import { sortNodes, relativeTime, SORT_LABELS, type SortMode, type SortDoc } from '../lib/sort';
@@ -176,7 +176,14 @@ export function Sidebar() {
           </button>
         </div>
       </div>
-      <div class="side-scroll">
+      <div
+        class="side-scroll"
+        onContextMenu={(e) => {
+          const t = e.target as HTMLElement;
+          if (t.closest('.side-note, .side-group-head, .side-link')) return;
+          openContextMenu(e as MouseEvent, ungroupedMenu());
+        }}
+      >
         {nodes.filter((n) => anyMatch(n, q)).map((n) =>
           n.kind === 'note' ? <NoteRow key={n.id} id={n.id} depth={0} /> : <GroupBlock key={n.id} g={n} depth={1} q={q} />,
         )}

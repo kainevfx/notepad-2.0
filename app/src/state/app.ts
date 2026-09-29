@@ -24,6 +24,7 @@ import { settings, updateSettings, loadSettings, applyRemoteSettings, migrateMdV
 import { createEditorState, reconfigureEffects, setUpdateHandler, type ViewConfig } from '../editor/setup';
 import { ask, alertMsg, cursorInfo, showToast, settingsOpen } from './ui';
 import { visualApi } from '../editor/visual/sync';
+import { copyName } from '../lib/copy-name';
 
 /** True when the active tab is showing the Visual (WYSIWYG) editor. */
 export function inVisual(): boolean {
@@ -272,7 +273,8 @@ function addRecent(path: string) {
   recentFiles.value = [path, ...recentFiles.value.filter((p) => p.toLowerCase() !== path.toLowerCase())].slice(0, 12);
 }
 
-export async function openFiles(paths: string[], opts: { groupId?: string } = {}) {
+/** Open files as tabs; returns the id of the last one opened (or already open). */
+export async function openFiles(paths: string[], opts: { groupId?: string } = {}): Promise<string | null> {
   let last: string | null = null;
   for (const path of paths) {
     const existing = findOpenFile(path);
@@ -310,6 +312,7 @@ export async function openFiles(paths: string[], opts: { groupId?: string } = {}
   }
   if (last) activate(last);
   scheduleSession();
+  return last;
 }
 
 export async function openWithDialog() {
@@ -794,6 +797,81 @@ export async function renameDoc(id: string, name: string): Promise<boolean> {
   updateWindowTitle();
   scheduleSession();
   return true;
+}
+
+// ---------------------------------------------------------------- duplicate / copy / paste
+
+/** The file last chosen with "Copy" in a context menu (an in-app clipboard). */
+export const docClipboard = signal<string | null>(null);
+
+export function copyDoc(id: string) {
+  if (docs.value[id]) docClipboard.value = id;
+}
+
+/** Move node `id` right after `afterId`, or to the end of a file group (`null` = Ungrouped). */
+function placeCopy(id: string, where: { after: string } | { group: string | null }) {
+  const node: TreeNode = { id, kind: 'note' };
+  const t = T.remove(tree.value, id).tree;
+  if ('after' in where) {
+    const loc = T.find(t, where.after);
+    tree.value = loc ? T.insert(t, node, loc.parent?.id ?? null, loc.index + 1) : [...t, node];
+  } else {
+    tree.value = where.group ? T.insert(t, node, where.group, 9999) : [...t, node];
+  }
+}
+
+/**
+ * Duplicate a tab: right below the original, or at the end of `target` (a file group id, or
+ * null for Ungrouped). Saved files get a new file next to the original named "Name (2).ext",
+ * never over an existing file; notes get a new note titled "Name (2)".
+ */
+export async function duplicateDoc(id: string, target?: { groupId: string | null }): Promise<string | null> {
+  visualApi.flush();
+  const d = docs.value[id];
+  if (!d) return null;
+  const text = textOf(id);
+  let copy: string | null;
+  if (d.kind === 'file' && d.path) {
+    const dir = dirname(d.path);
+    const sep = d.path.includes('\\') ? '\\' : '/';
+    const used = new Set(
+      Object.values(docs.value)
+        .filter((x) => x.path && dirname(x.path).toLowerCase() === dir.toLowerCase())
+        .map((x) => basename(x.path!).toLowerCase()),
+    );
+    let name = basename(d.path);
+    for (;;) {
+      name = copyName(name, (n) => used.has(n.toLowerCase()));
+      const st = await platform.stat(dir + sep + name);
+      if (!st?.exists) break;
+      used.add(name.toLowerCase());
+    }
+    const path = dir + sep + name;
+    try {
+      await platform.writeFile(path, encodeText(text, d.encoding, d.bom, d.eol));
+    } catch (e) {
+      void alertMsg('Duplicate', `Couldn't create ${name}. ${String(e)}`);
+      return null;
+    }
+    copy = await openFiles([path]);
+  } else {
+    const titles = new Set(Object.values(docs.value).map((x) => displayTitle(x).toLowerCase()));
+    copy = newNote({ text, language: d.language, activate: false });
+    renameNote(copy, copyName(displayTitle(d), (n) => titles.has(n.toLowerCase())));
+  }
+  if (!copy) return null;
+  placeCopy(copy, target ? { group: target.groupId } : { after: id });
+  if (d.color) patchDoc(copy, { color: d.color });
+  activate(copy);
+  scheduleSession();
+  return copy;
+}
+
+/** Paste the copied file into a file group (`null` = Ungrouped). */
+export async function pasteInto(groupId: string | null): Promise<string | null> {
+  const id = docClipboard.value;
+  if (!id || !docs.value[id]) return null;
+  return duplicateDoc(id, { groupId });
 }
 
 /** Rename a file group in place (blank names are ignored). */

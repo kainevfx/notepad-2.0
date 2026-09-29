@@ -18,7 +18,12 @@ export interface SortDoc {
   language: 'plain' | 'markdown';
 }
 
-const byName = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true });
+const stem = (s: string) => s.replace(/\.[^.\\/]+$/, '');
+/** Names compare without their extensions first, so "Note.txt" comes before "Note (2).txt". */
+const byName = (a: string, b: string) => {
+  const opts = { sensitivity: 'base', numeric: true } as const;
+  return stem(a).localeCompare(stem(b), undefined, opts) || a.localeCompare(b, undefined, opts);
+};
 
 function noteCompare(mode: SortMode, docs: Record<string, SortDoc>) {
   return (x: TreeNode, y: TreeNode): number => {

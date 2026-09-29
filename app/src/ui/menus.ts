@@ -3,7 +3,7 @@ import { renamingId, railPeek } from '../state/ui';
 import * as T from '../lib/tree-ops';
 import {
   docs, tree, closeDoc, closeOthers, newGroupFrom, setGroupColor, collapseAllInside, ungroup, closeGroup,
-  setGroupAutosave, moveNode, moveNodeToRoot, newNote, activate, saveDoc, saveDocAs, QUICK_GROUP_ID, setDocColor,
+  setGroupAutosave, moveNode, moveNodeToRoot, newNote, activate, saveDoc, saveDocAs, QUICK_GROUP_ID, setDocColor, duplicateDoc, copyDoc, pasteInto, docClipboard,
 } from '../state/app';
 import { platform } from '../platform';
 import { settings } from '../state/settings';
@@ -33,6 +33,13 @@ export function noteMenu(id: string): MenuItem[] {
   const inGroup = !!T.find(tree.value, id)?.parent;
   return [
     { label: 'Rename', shortcut: 'F2', action: () => startRename(id) },
+    { label: 'Duplicate', action: () => void duplicateDoc(id) },
+    { label: 'Copy', action: () => copyDoc(id) },
+    {
+      label: d.path ? 'Open in File Explorer' : 'Open in File Explorer (save it first)',
+      action: () => d.path && platform.revealInExplorer(d.path),
+      disabled: !d.path || platform.kind !== 'tauri',
+    },
     { separator: true },
     { label: 'Add to a new file group', action: () => newGroupFrom([id]) },
     { label: 'Move to file group', submenu: moveToGroupItems(id) },
@@ -52,11 +59,21 @@ export function noteMenu(id: string): MenuItem[] {
       : [
           { label: 'Save', shortcut: 'Ctrl+S', action: () => saveDoc(id), disabled: !d.dirty },
           { label: 'Copy path', action: () => navigator.clipboard.writeText(d.path!) },
-          { label: 'Reveal in File Explorer', action: () => platform.revealInExplorer(d.path!), disabled: platform.kind !== 'tauri' },
         ]),
     { separator: true },
     { label: 'Close tab', shortcut: 'Ctrl+W', action: () => closeDoc(id) },
     { label: 'Close other tabs', action: () => closeOthers(id) },
+  ];
+}
+
+/** Right-click on empty sidebar space: the Ungrouped area. */
+export function ungroupedMenu(): MenuItem[] {
+  return [
+    { label: 'Paste into Ungrouped', action: () => void pasteInto(null), disabled: !docClipboard.value },
+    { separator: true },
+    { label: 'New text file', shortcut: 'Ctrl+N', action: () => newNote({ language: 'plain' }) },
+    { label: 'New MD file', shortcut: 'Ctrl+Alt+N', action: () => newNote({ language: 'markdown' }) },
+    { label: 'New group', shortcut: 'Ctrl+Shift+G', action: () => newGroupFrom([], null) },
   ];
 }
 
@@ -67,7 +84,9 @@ export function groupMenu(id: string): MenuItem[] {
   const system = !!g.system;
   const autosaveLabel = g.autosave === undefined ? `follow setting (${settings.value.autosaveFiles ? 'on' : 'off'})` : g.autosave ? 'on' : 'off';
   return [
-    ...(system ? [] : [{ label: 'Rename', action: () => startRename(id) }, { separator: true }]),
+    ...(system ? [] : [{ label: 'Rename', action: () => startRename(id) }]),
+    { label: 'Paste', action: () => void pasteInto(id), disabled: !docClipboard.value },
+    { separator: true },
     { label: 'New text file here', action: () => activate(newNote({ groupId: id, language: 'plain' })) },
     { label: 'New MD file here', action: () => activate(newNote({ groupId: id, language: 'markdown' })) },
     ...(system
