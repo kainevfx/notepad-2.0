@@ -17,8 +17,8 @@ function moveToGroupItems(nodeId: string): MenuItem[] {
       swatch: GROUP_HEX[group.color],
       action: () => moveNode(nodeId, group.id, 'inside'),
     }));
-  if (T.find(tree.value, nodeId)?.parent) items.push({ separator: true }, { label: 'Out of all groups', action: () => moveNodeToRoot(nodeId) });
-  return items.length ? items : [{ label: 'No groups yet', disabled: true }];
+  if (T.find(tree.value, nodeId)?.parent) items.push({ separator: true }, { label: 'Out of all file groups', action: () => moveNodeToRoot(nodeId) });
+  return items.length ? items : [{ label: 'No file groups yet', disabled: true }];
 }
 
 export function noteMenu(id: string): MenuItem[] {
@@ -26,9 +26,9 @@ export function noteMenu(id: string): MenuItem[] {
   if (!d) return [];
   const inGroup = !!T.find(tree.value, id)?.parent;
   return [
-    { label: 'Add tab to new group', action: () => newGroupFrom([id]) },
-    { label: 'Move to group', submenu: moveToGroupItems(id) },
-    ...(inGroup ? [{ label: 'Remove from group', action: () => moveNodeToRoot(id) }] : []),
+    { label: 'Add to a new file group', action: () => newGroupFrom([id]) },
+    { label: 'Move to file group', submenu: moveToGroupItems(id) },
+    ...(inGroup ? [{ label: 'Remove from file group', action: () => moveNodeToRoot(id) }] : []),
     {
       label: 'Colour',
       submenu: [
@@ -66,15 +66,15 @@ export function groupMenu(id: string): MenuItem[] {
   const system = !!g.system;
   const autosaveLabel = g.autosave === undefined ? `follow setting (${settings.value.autosaveFiles ? 'on' : 'off'})` : g.autosave ? 'on' : 'off';
   return [
-    { label: 'New text file in group', action: () => activate(newNote({ groupId: id, language: 'plain' })) },
-    { label: 'New Markdown file in group', action: () => activate(newNote({ groupId: id, language: 'markdown' })) },
+    { label: 'New text file here', action: () => activate(newNote({ groupId: id, language: 'plain' })) },
+    { label: 'New MD file here', action: () => activate(newNote({ groupId: id, language: 'markdown' })) },
     ...(system
       ? []
       : [
           { label: 'Rename group…', action: () => renameGroup(id) },
           { label: 'Colour', submenu: T.GROUP_COLORS.map((c) => ({ label: c[0].toUpperCase() + c.slice(1), swatch: GROUP_HEX[c], checked: g.color === c, action: () => setGroupColor(id, c) })) },
-          { label: 'New subgroup…', action: () => newGroupFrom([], id), disabled: loc.depth + 2 > T.MAX_GROUP_DEPTH },
-          { label: 'Move group into', submenu: moveToGroupItems(id) },
+          { label: 'New file group inside…', action: () => newGroupFrom([], id), disabled: loc.depth + 2 > T.MAX_GROUP_DEPTH },
+          { label: 'Move into file group', submenu: moveToGroupItems(id) },
         ]),
     { separator: true },
     { label: g.collapsed ? 'Expand' : 'Collapse', action: () => collapseAllInside(id, !g.collapsed) },
@@ -85,12 +85,12 @@ export function groupMenu(id: string): MenuItem[] {
       label: `Autosave opened files: ${autosaveLabel}`,
       submenu: [
         { label: 'Follow the global setting', checked: g.autosave === undefined, action: () => setGroupAutosave(id, undefined) },
-        { label: 'Always autosave files in this group', checked: g.autosave === true, action: () => setGroupAutosave(id, true) },
-        { label: 'Never autosave files in this group', checked: g.autosave === false, action: () => setGroupAutosave(id, false) },
+        { label: 'Always autosave files in this file group', checked: g.autosave === true, action: () => setGroupAutosave(id, true) },
+        { label: 'Never autosave files in this file group', checked: g.autosave === false, action: () => setGroupAutosave(id, false) },
       ],
     },
     { separator: true },
     ...(system ? [] : [{ label: 'Ungroup', action: () => ungroup(id) }]),
-    { label: id === QUICK_GROUP_ID ? 'Close all quick notes' : 'Close group', danger: true, action: () => closeGroup(id) },
+    { label: id === QUICK_GROUP_ID ? 'Close all quick notes' : 'Close file group', danger: true, action: () => closeGroup(id) },
   ];
 }

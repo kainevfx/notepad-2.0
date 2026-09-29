@@ -1,5 +1,6 @@
 // Vertical tabs (screenshots 1 to 3) and the collapsed rail (screenshot 4).
 import { useRef, useState } from 'preact/hooks';
+import { signal } from '@preact/signals';
 import type { TreeNode, GroupNode } from '../lib/tree-ops';
 import { tree, docs, activeId, activate, closeDoc, newNote, displayTitle, toggleGroup, newGroupFrom } from '../state/app';
 import { settings, updateSettings } from '../state/settings';
@@ -9,6 +10,17 @@ import { startDrag, consumeDragClick, dropClass, drag } from './dnd';
 import { noteMenu, groupMenu } from './menus';
 import { groupVars, docColorVars } from './colors';
 import { fileBadge } from '../lib/file-badge';
+import { sortNodes, relativeTime, SORT_LABELS, type SortMode, type SortDoc } from '../lib/sort';
+
+/** Ticks every 30 s so "5 min ago" labels stay current. */
+const clock = signal(Date.now());
+setInterval(() => (clock.value = Date.now()), 30_000);
+
+function sortDocs(): Record<string, SortDoc> {
+  const out: Record<string, SortDoc> = {};
+  for (const [id, d] of Object.entries(docs.value)) out[id] = { title: displayTitle(d), created: d.created, modified: d.modified, language: d.language };
+  return out;
+}
 
 function matches(id: string, q: string): boolean {
   const d = docs.value[id];
@@ -41,7 +53,10 @@ function NoteRow({ id, depth }: { id: string; depth: number }) {
       onContextMenu={(e) => openContextMenu(e as MouseEvent, noteMenu(id))}
     >
       <span class={`type-badge type-${b.kind}`}>{b.label}</span>
-      <span class="side-note-title">{title}</span>
+      <span class="side-note-text">
+        <span class="side-note-title">{title}</span>
+        <span class="side-note-time" title={new Date(d.modified).toLocaleString()}>{relativeTime(d.modified, clock.value)}</span>
+      </span>
       <button
         class={`side-close${d.dirty ? ' dirty' : ''}`}
         title="Close"
@@ -82,7 +97,7 @@ function GroupBlock({ g, depth, q }: { g: GroupNode; depth: number; q: string })
           {g.children.filter((c) => anyMatch(c, q)).map((c) =>
             c.kind === 'note' ? <NoteRow key={c.id} id={c.id} depth={depth} /> : <GroupBlock key={c.id} g={c} depth={depth + 1} q={q} />,
           )}
-          {g.children.length === 0 && <div class="side-empty">Drag notes here</div>}
+          {g.children.length === 0 && <div class="side-empty">Drag files here</div>}
         </div>
       )}
     </div>
@@ -97,6 +112,7 @@ export function Sidebar() {
   const [q, setQ] = useState('');
   const resizing = useRef(false);
   const s = settings.value;
+  const nodes = sortNodes(tree.value, s.sidebarSort, sortDocs());
 
   const onResize = (e: PointerEvent) => {
     e.preventDefault();
@@ -113,38 +129,48 @@ export function Sidebar() {
   };
 
   return (
-    <aside class="sidebar" style={{ width: s.sidebarWidth + 'px' }} data-narrow={s.sidebarWidth < 250 ? '' : undefined}>
+    <aside class="sidebar" style={{ width: s.sidebarWidth + 'px' }}>
       <div class="side-tools">
+        <div class="side-head">
+          <label class="side-sort" title="How files are ordered here. Manual keeps the order you arranged.">
+            <span>Sort</span>
+            <select class="fb-select" value={s.sidebarSort} onChange={(e) => updateSettings({ sidebarSort: (e.target as HTMLSelectElement).value as SortMode })}>
+              {(Object.keys(SORT_LABELS) as SortMode[]).map((m) => (
+                <option value={m}>{SORT_LABELS[m]}</option>
+              ))}
+            </select>
+          </label>
+          <button class="icon-btn side-collapse" title="Collapse sidebar to a rail" onClick={() => updateSettings({ tabsMode: 'rail' })}>
+            <IcChevronLeft />
+          </button>
+        </div>
         <div class="side-search-row">
           <div class="side-search">
             <IcSearch size={14} />
             <input placeholder="Search tabs" value={q} onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
           </div>
-          <button class="icon-btn side-collapse" title="Collapse sidebar to a rail" onClick={() => updateSettings({ tabsMode: 'rail' })}>
-            <IcChevronLeft />
-          </button>
         </div>
         <div class="side-actions">
           <button class="side-action" title="New text file (Ctrl+N)" onClick={() => newNote({ language: 'plain' })}>
             <IcNewText />
-            <span>Text file</span>
+            <span>New text file</span>
           </button>
           <button class="side-action" title="New Markdown file (Ctrl+Alt+N)" onClick={() => newNote({ language: 'markdown' })}>
             <IcNewMd />
-            <span>Markdown</span>
+            <span>New MD file</span>
           </button>
-          <button class="side-action" title="New group (Ctrl+Shift+G)" onClick={() => newGroupFrom([], null)}>
+          <button class="side-action" title="New file group (Ctrl+Shift+G)" onClick={() => newGroupFrom([], null)}>
             <IcFolderPlus />
-            <span>Group</span>
+            <span>New group</span>
           </button>
         </div>
       </div>
       <div class="side-scroll">
-        {tree.value.filter((n) => anyMatch(n, q)).map((n) =>
+        {nodes.filter((n) => anyMatch(n, q)).map((n) =>
           n.kind === 'note' ? <NoteRow key={n.id} id={n.id} depth={0} /> : <GroupBlock key={n.id} g={n} depth={1} q={q} />,
         )}
         <div class={`side-root-drop${drag.value ? ' visible' : ''}${dropClass('__root__')}`} data-drop-id="__root__">
-          {drag.value ? 'Drop here to take it out of its group' : ''}
+          {drag.value ? 'Drop here to take it out of its file group' : ''}
         </div>
         <button class="side-link" onClick={() => (closedNotesOpen.value = true)}>
           Closed notes…

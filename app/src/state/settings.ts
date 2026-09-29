@@ -1,5 +1,6 @@
 import { signal, effect } from '@preact/signals';
 import { platform } from '../platform';
+import type { SortMode } from '../lib/sort';
 
 export type PaperMode = 'none' | 'lines' | 'grid' | 'numbers';
 export type TabsMode = 'top' | 'left' | 'rail';
@@ -29,6 +30,8 @@ export interface Settings {
 
   tabsMode: TabsMode;
   sidebarWidth: number;
+  /** How the sidebar orders files (a view; the manual order is kept). */
+  sidebarSort: SortMode;
 
   paper: PaperMode;
   /** Show line numbers on top of Lines / Grid paper. */
@@ -69,6 +72,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
   tabsMode: 'top',
   sidebarWidth: 260,
+  sidebarSort: 'manual',
 
   paper: 'none',
   paperNumbers: false,

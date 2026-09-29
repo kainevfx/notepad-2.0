@@ -97,7 +97,7 @@ function viewMenu(): MenuItem[] {
         { label: 'Down the left side', checked: s.tabsMode === 'left', action: () => updateSettings({ tabsMode: 'left' }) },
         { label: 'Collapsed rail', checked: s.tabsMode === 'rail', action: () => updateSettings({ tabsMode: 'rail' }) },
         { separator: true },
-        { label: 'New group from this tab', shortcut: 'Ctrl+Shift+G', action: () => activeId.value && newGroupFrom([activeId.value]) },
+        { label: 'New file group from this file', shortcut: 'Ctrl+Shift+G', action: () => activeId.value && newGroupFrom([activeId.value]) },
       ],
     },
     {
