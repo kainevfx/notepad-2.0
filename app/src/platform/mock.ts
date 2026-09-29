@@ -103,6 +103,18 @@ export function createMockPlatform(label: string): Platform {
     async windowAt() {
       return null;
     },
+    async cursorClientPoint() {
+      return null;
+    },
+    async storeClaim(key: string) {
+      const v = localStorage.getItem(STORE_PREFIX + key);
+      if (v === null) return null;
+      localStorage.removeItem(STORE_PREFIX + key);
+      return v;
+    },
+    async launchHidden() {
+      return false;
+    },
     async lastOtherWindow() {
       return null;
     },
@@ -202,6 +214,10 @@ export function createMockPlatform(label: string): Platform {
       channel.postMessage({ event, payload });
     },
     async listen(event, cb) {
+      return on(event, cb);
+    },
+    // A single window: everything addressed to "this window" arrives the same way.
+    async listenHere(event, cb) {
       return on(event, cb);
     },
 

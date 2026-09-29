@@ -65,6 +65,17 @@ fn store_write(app: AppHandle, key: String, text: String) -> Result<(), String> 
     files::store_write(&state(&app).store_root, &key, &text)
 }
 #[tauri::command]
+fn store_claim(app: AppHandle, key: String) -> Result<Option<String>, String> {
+    files::store_claim(&state(&app).store_root, &key)
+}
+
+/// This launch was "start with Windows in the tray" (--hidden): no window shows itself.
+#[tauri::command]
+fn launch_hidden(app: AppHandle) -> bool {
+    state(&app).launch.lock().unwrap().argv.iter().any(|a| a == "--hidden")
+}
+
+#[tauri::command]
 fn store_delete(app: AppHandle, key: String) -> Result<(), String> {
     files::store_delete(&state(&app).store_root, &key)
 }
@@ -124,7 +135,12 @@ fn show_quicknote(app: AppHandle) {
 
 /// Start Windows voice typing (the same as pressing Win+H) in the focused window.
 #[tauri::command]
-fn start_voice_typing() -> Result<(), String> {
+fn start_voice_typing(app: AppHandle) -> Result<(), String> {
+    // Only ever type Win+H into the Quick Note itself.
+    let focused = app.get_webview_window("quicknote").map(|w| w.is_focused().unwrap_or(false)).unwrap_or(false);
+    if !focused {
+        return Err("Click in the Quick Note first.".into());
+    }
     #[cfg(windows)]
     {
         use windows_sys::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, VK_LWIN};
@@ -291,7 +307,8 @@ pub fn run() {
             app.manage(windows::WinState::load(&root));
             app.manage(AppState { launch: Mutex::new(LaunchArgs { argv, cwd }), store_root: root });
             // Every window that was open last time comes back where it was.
-            windows::restore(&handle);
+            let root2 = store_root(&handle);
+            windows::restore(&handle, &root2);
             build_tray(&handle)?;
             // Another app may already own Win+Alt+N; the tray still works without it.
             if let Err(e) = handle.global_shortcut().register(quick_hotkey) {
@@ -331,6 +348,8 @@ pub fn run() {
             reveal_in_explorer,
             rename_file,
             start_voice_typing,
+            store_claim,
+            launch_hidden,
             windows::open_window,
             windows::window_at,
             windows::last_window,

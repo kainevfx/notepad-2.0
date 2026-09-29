@@ -1,6 +1,7 @@
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { emit, emitTo, listen } from '@tauri-apps/api/event';
-import { getCurrentWindow, Window, primaryMonitor, LogicalPosition, LogicalSize } from '@tauri-apps/api/window';
+import { getCurrentWindow, Window, primaryMonitor, LogicalPosition, LogicalSize, cursorPosition } from '@tauri-apps/api/window';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { open as openDlg, save as saveDlg } from '@tauri-apps/plugin-dialog';
 import type { FileRead, FileStat, IntegrationState, LaunchArgs, Platform, Unlisten } from './types';
 
@@ -20,7 +21,7 @@ export function createTauriPlatform(): Platform {
     windowLabel: win.label,
 
     launchArgs: () => invoke<LaunchArgs>('get_launch_args'),
-    onSecondInstance: (cb) => listen<LaunchArgs>('second-instance', (e) => cb(e.payload)),
+    onSecondInstance: (cb) => getCurrentWebviewWindow().listen<LaunchArgs>('second-instance', (e) => cb(e.payload)),
 
     async readFile(path) {
       const [bytes, st] = await Promise.all([
@@ -111,8 +112,14 @@ export function createTauriPlatform(): Platform {
 
     emit: (event, payload) => emit(event, payload),
     emitTo: (label, event, payload) => emitTo(label, event, payload),
-    openWindow: (x, y, transfer) => invoke<string>('open_window', { x, y, transfer: transfer ?? null }),
-    windowAt: (x, y) => invoke<string | null>('window_at', { x, y }),
+    openWindow: (transfer) => invoke<string>('open_window', { transfer: transfer ?? null }),
+    windowAt: () => invoke<string | null>('window_at'),
+    async cursorClientPoint() {
+      const [c, p, s] = await Promise.all([cursorPosition(), win.innerPosition(), win.scaleFactor()]);
+      return { x: (c.x - p.x) / s, y: (c.y - p.y) / s };
+    },
+    storeClaim: (key) => invoke<string | null>('store_claim', { key }),
+    launchHidden: () => invoke<boolean>('launch_hidden'),
     lastOtherWindow: () => invoke<string | null>('last_other_window'),
     lastWindow: () => invoke<string>('last_window'),
     windowCount: () => invoke<number>('window_count'),
@@ -122,6 +129,8 @@ export function createTauriPlatform(): Platform {
     closeWindow: () => invoke<void>('close_window'),
     startVoiceTyping: () => invoke<void>('start_voice_typing'),
     listen: (event, cb) => listen(event, (e) => cb(e.payload as any)) as Promise<Unlisten>,
+    // Only events addressed to this window (listen() would also get every other window's).
+    listenHere: (event, cb) => getCurrentWebviewWindow().listen(event, (e) => cb(e.payload as any)) as Promise<Unlisten>,
 
     openExternal: (url) => invoke('open_url', { url }),
     revealInExplorer: (path) => invoke('reveal_in_explorer', { path }),

@@ -73,7 +73,7 @@ export function startDrag(e: PointerEvent, id: string, label: string) {
       const t = dropTarget.value;
       if (outside && ev && platform.kind === 'tauri') {
         // Loaded lazily: state/windows imports state/app.
-        void import('../state/windows').then((m) => m.sendItems([id], ev.screenX, ev.screenY));
+        void import('../state/windows').then((m) => m.sendItems([id]));
       } else if (t) t.pos === 'root' ? moveNodeToRoot(id) : moveNode(id, t.id, t.pos);
     }
     drag.value = null;

@@ -5,6 +5,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder};
 
@@ -49,6 +50,22 @@ pub fn hit_test(file: &WindowsFile, x: i32, y: i32, exclude: &str) -> Option<Str
         .cloned()
 }
 
+/// Keep a restored window on a monitor that exists (unplugged monitors, minimized positions).
+/// `monitors` are (x, y, width, height) work areas in physical pixels.
+pub fn clamp_to_monitors(r: &WindowRect, monitors: &[(i32, i32, i32, i32)]) -> WindowRect {
+    let visible = monitors.iter().any(|&(mx, my, mw, mh)| {
+        let (px, py) = (r.x + 100, r.y + 20); // a grabbable bit of the title bar
+        px >= mx && py >= my && px < mx + mw && py < my + mh
+    });
+    if visible || monitors.is_empty() {
+        return r.clone();
+    }
+    let (mx, my, mw, mh) = monitors[0];
+    let width = (r.width as i32).clamp(420, (mw - 120).max(420)) as u32;
+    let height = (r.height as i32).clamp(260, (mh - 120).max(260)) as u32;
+    WindowRect { label: r.label.clone(), x: mx + 60, y: my + 60, width, height, maximized: r.maximized }
+}
+
 pub fn is_main_label(label: &str) -> bool {
     label == "main" || label.starts_with("main-")
 }
@@ -63,17 +80,19 @@ pub struct WinState {
     pub file: Mutex<WindowsFile>,
     pub open_files: Mutex<HashMap<String, Vec<String>>>,
     pub path: PathBuf,
+    /// While restoring at startup, windows showing themselves must not reorder "last used".
+    pub restoring: AtomicBool,
 }
 
 impl WinState {
     pub fn load(store_root: &Path) -> Self {
         let path = store_root.join("windows.json");
-        WinState { file: Mutex::new(read_file(&path)), open_files: Mutex::new(HashMap::new()), path }
+        WinState { file: Mutex::new(read_file(&path)), open_files: Mutex::new(HashMap::new()), path, restoring: AtomicBool::new(false) }
     }
     pub fn save(&self) {
         let f = self.file.lock().unwrap().clone();
         if let Ok(json) = serde_json::to_string_pretty(&f) {
-            let _ = std::fs::write(&self.path, json);
+            let _ = crate::files::write_atomic(&self.path, json.as_bytes());
         }
     }
     pub fn last(&self) -> String {
@@ -88,6 +107,10 @@ fn ws(app: &AppHandle) -> tauri::State<'_, WinState> {
 /// Record a window's current position and size.
 pub fn record_geometry(app: &AppHandle, label: &str) {
     let Some(w) = app.get_webview_window(label) else { return };
+    // A minimized window reports an off-screen position; keep the last real one.
+    if w.is_minimized().unwrap_or(false) {
+        return;
+    }
     let (Ok(pos), Ok(size)) = (w.outer_position(), w.outer_size()) else { return };
     let maximized = w.is_maximized().unwrap_or(false);
     let state = ws(app);
@@ -95,6 +118,8 @@ pub fn record_geometry(app: &AppHandle, label: &str) {
         let mut f = state.file.lock().unwrap();
         let rect = WindowRect { label: label.into(), x: pos.x, y: pos.y, width: size.width, height: size.height, maximized };
         match f.windows.iter_mut().find(|r| r.label == label) {
+            // Maximized: remember that, but keep the normal size and place to restore to.
+            Some(r) if maximized => r.maximized = true,
             Some(r) => *r = rect,
             None => f.windows.push(rect),
         }
@@ -107,6 +132,9 @@ pub fn record_geometry(app: &AppHandle, label: &str) {
 
 pub fn record_focus(app: &AppHandle, label: &str) {
     let state = ws(app);
+    if state.restoring.load(Ordering::SeqCst) {
+        return;
+    }
     touch(&mut state.file.lock().unwrap().order, label);
     state.save();
 }
@@ -149,10 +177,33 @@ pub fn create(app: &AppHandle, label: &str, rect: Option<&WindowRect>, transfer:
     Ok(())
 }
 
+fn monitor_areas(app: &AppHandle) -> Vec<(i32, i32, i32, i32)> {
+    app.available_monitors()
+        .map(|ms| ms.iter().map(|m| (m.position().x, m.position().y, m.size().width as i32, m.size().height as i32)).collect())
+        .unwrap_or_default()
+}
+
 /// Put every saved window back where it was ("main" comes from the config, the rest are made).
-pub fn restore(app: &AppHandle) {
-    let saved = ws(app).file.lock().unwrap().clone();
-    for r in &saved.windows {
+/// Windows that have a saved layout (sessions/main-N.json) but were missing from windows.json
+/// are recreated too, so their files never go missing.
+pub fn restore(app: &AppHandle, store_root: &Path) {
+    let state = ws(app);
+    state.restoring.store(true, Ordering::SeqCst);
+    let mut saved = state.file.lock().unwrap().clone();
+    if let Ok(entries) = std::fs::read_dir(store_root.join("sessions")) {
+        for e in entries.flatten() {
+            let name = e.file_name().to_string_lossy().to_string();
+            if let Some(label) = name.strip_suffix(".json") {
+                if is_main_label(label) && !saved.windows.iter().any(|r| r.label == label) {
+                    saved.windows.push(WindowRect { label: label.into(), x: 80, y: 80, width: 1000, height: 680, maximized: false });
+                    saved.order.push(label.into());
+                }
+            }
+        }
+    }
+    *state.file.lock().unwrap() = saved.clone();
+    let monitors = monitor_areas(app);
+    for r in saved.windows.iter().map(|r| clamp_to_monitors(r, &monitors)).collect::<Vec<_>>().iter() {
         if r.label == "main" {
             if let Some(w) = app.get_webview_window("main") {
                 let _ = w.set_size(PhysicalSize::new(r.width, r.height));
@@ -165,16 +216,65 @@ pub fn restore(app: &AppHandle) {
             let _ = create(app, &r.label, Some(r), None);
         }
     }
+    // Once every window has shown itself, bring the last-used one to the front.
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(3500));
+        let state = ws(&handle);
+        state.restoring.store(false, Ordering::SeqCst);
+        let last = state.last();
+        if let Some(w) = handle.get_webview_window(&last) {
+            if w.is_visible().unwrap_or(false) {
+                let _ = w.set_focus();
+            }
+        }
+    });
+}
+
+/// The Notepad 2.0 window under the mouse pointer, if it is really on top there (not covered
+/// by another app's window). Uses the OS cursor position, so mixed-DPI monitors work.
+fn window_under_cursor(app: &AppHandle, exclude: &str) -> Option<String> {
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::Foundation::POINT;
+        use windows_sys::Win32::UI::WindowsAndMessaging::{GetAncestor, GetCursorPos, WindowFromPoint, GA_ROOT};
+        let mut pt = POINT { x: 0, y: 0 };
+        let root = unsafe {
+            if GetCursorPos(&mut pt) == 0 {
+                return None;
+            }
+            GetAncestor(WindowFromPoint(pt), GA_ROOT)
+        } as isize;
+        for (label, w) in app.webview_windows() {
+            if is_main_label(&label) && label != exclude {
+                if let Ok(h) = w.hwnd() {
+                    if h.0 as isize == root {
+                        return Some(label);
+                    }
+                }
+            }
+        }
+        None
+    }
+    #[cfg(not(windows))]
+    {
+        let pos = app.cursor_position().ok()?;
+        let f = ws(app).file.lock().unwrap().clone();
+        hit_test(&f, pos.x as i32, pos.y as i32, exclude)
+    }
 }
 
 // ------------------------------------------------------------------ commands
 
 /// New window at a screen point (the drop point of a dragged item), holding `transfer`.
+// Async: building a webview window from a synchronous command can deadlock on Windows.
 #[tauri::command]
-pub fn open_window(app: AppHandle, window: tauri::WebviewWindow, x: i32, y: i32, transfer: Option<String>) -> Result<String, String> {
+pub async fn open_window(app: AppHandle, window: tauri::WebviewWindow, transfer: Option<String>) -> Result<String, String> {
     let existing: Vec<String> = app.webview_windows().keys().cloned().collect();
     let label = next_label(&existing);
     let size = window.outer_size().map_err(|e| e.to_string())?;
+    let cursor = app.cursor_position().map_err(|e| e.to_string())?;
+    let (x, y) = (cursor.x as i32, cursor.y as i32);
     let rect = WindowRect {
         label: label.clone(),
         x: x - 120,
@@ -190,22 +290,10 @@ pub fn open_window(app: AppHandle, window: tauri::WebviewWindow, x: i32, y: i32,
     Ok(label)
 }
 
-/// Which other Notepad 2.0 window is under a screen point, if any.
+/// Which other Notepad 2.0 window is under the mouse pointer right now, if any.
 #[tauri::command]
-pub fn window_at(app: AppHandle, window: tauri::WebviewWindow, x: i32, y: i32) -> Option<String> {
-    // Refresh positions of visible windows first (they may have moved without events).
-    for label in app.webview_windows().keys().filter(|l| is_main_label(l)).cloned().collect::<Vec<_>>() {
-        record_geometry(&app, &label);
-    }
-    let f = ws(&app).file.lock().unwrap().clone();
-    let visible: Vec<String> = app
-        .webview_windows()
-        .iter()
-        .filter(|(l, w)| is_main_label(l) && w.is_visible().unwrap_or(false) && !w.is_minimized().unwrap_or(false))
-        .map(|(l, _)| l.clone())
-        .collect();
-    let file = WindowsFile { windows: f.windows.into_iter().filter(|r| visible.contains(&r.label)).collect(), order: f.order };
-    hit_test(&file, x, y, window.label())
+pub fn window_at(app: AppHandle, window: tauri::WebviewWindow) -> Option<String> {
+    window_under_cursor(&app, window.label())
 }
 
 #[tauri::command]
@@ -303,6 +391,19 @@ mod tests {
         assert_eq!(hit_test(&f, 100, 100, "x"), Some("main".into()));
         assert_eq!(hit_test(&f, 500, 400, "main-2"), Some("main".into()));
         assert_eq!(hit_test(&f, 5000, 5000, "x"), None);
+    }
+
+    #[test]
+    fn off_screen_windows_are_brought_back() {
+        let monitors = [(0, 0, 1920, 1080)];
+        let on = rect("main", 100, 100, 800, 600);
+        assert_eq!(clamp_to_monitors(&on, &monitors), on);
+        let minimized = rect("main", -32000, -32000, 160, 28);
+        let fixed = clamp_to_monitors(&minimized, &monitors);
+        assert!(fixed.x >= 0 && fixed.y >= 0 && fixed.x < 1920 && fixed.y < 1080);
+        let gone = rect("main-2", 2500, 200, 800, 600); // a monitor that was unplugged
+        let back = clamp_to_monitors(&gone, &monitors);
+        assert!(back.x + 100 <= 1920);
     }
 
     #[test]

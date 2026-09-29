@@ -72,3 +72,12 @@ describe('windows', () => {
     expect(sessionKey('main-2')).toBe('sessions/main-2.json');
   });
 });
+
+describe('importItems: a group the target already has', () => {
+  it('merges into it instead of adding a second group with the same id (e.g. Quick Notes)', () => {
+    const target: TreeNode[] = [g('Q', [n('q1')])];
+    const out = importItems(target, [g('Q', [n('q2')]), n('z')], { groupId: null });
+    expect(ids(out)).toEqual(['z', 'Q']);
+    expect(ids((out[1] as GroupNode).children)).toEqual(['q1', 'q2']);
+  });
+});

@@ -183,10 +183,14 @@ function QuickNote() {
     window.addEventListener('blur', onBlur);
     const endDictation = () => (dictatingUntil.current = 0);
     window.addEventListener('pointerdown', endDictation);
+    // Voice typing hands focus back when it closes; from then on hide-on-blur works again.
+    const onFocusBack = () => setTimeout(endDictation, 1500);
+    window.addEventListener('focus', onFocusBack);
     return () => {
       subs.forEach((p) => p.then((u) => u()));
       window.removeEventListener('blur', onBlur);
       window.removeEventListener('pointerdown', endDictation);
+      window.removeEventListener('focus', onFocusBack);
     };
   }, []);
 

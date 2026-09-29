@@ -98,6 +98,23 @@ pub fn store_read(root: &Path, key: &str) -> Result<Option<String>, String> {
     }
 }
 
+/// Atomically take a store file: rename it away, then read and delete it. Only one caller can
+/// win; the others get None. Used for hand-overs between windows.
+pub fn store_claim(root: &Path, key: &str) -> Result<Option<String>, String> {
+    let p = store_path(root, key)?;
+    let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+    let claimed = p.with_extension(format!("claim-{}-{nanos}", std::process::id()));
+    match fs::rename(&p, &claimed) {
+        Ok(()) => {
+            let text = fs::read_to_string(&claimed).map_err(|e| e.to_string());
+            let _ = fs::remove_file(&claimed);
+            text.map(Some)
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
 pub fn store_delete(root: &Path, key: &str) -> Result<(), String> {
     let p = store_path(root, key)?;
     match fs::remove_file(&p) {
@@ -133,6 +150,17 @@ mod tests {
         let _ = fs::remove_dir_all(&d);
         fs::create_dir_all(&d).unwrap();
         d
+    }
+
+    #[test]
+    fn claim_is_won_once() {
+        let d = tmpdir("claim");
+        store_write(&d, "transfers/t1.json", "payload").unwrap();
+        assert_eq!(store_claim(&d, "transfers/t1.json").unwrap(), Some("payload".to_string()));
+        assert_eq!(store_claim(&d, "transfers/t1.json").unwrap(), None); // second claimer loses
+        assert_eq!(store_read(&d, "transfers/t1.json").unwrap(), None);
+        assert_eq!(store_claim(&d, "transfers/none.json").unwrap(), None);
+        fs::remove_dir_all(d).unwrap();
     }
 
     #[test]
