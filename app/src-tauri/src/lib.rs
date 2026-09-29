@@ -128,6 +128,11 @@ fn open_url(url: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn rename_file(from: String, to: String) -> Result<(), String> {
+    files::rename_no_overwrite(std::path::Path::new(&from), std::path::Path::new(&to))
+}
+
+#[tauri::command]
 fn reveal_in_explorer(path: String) -> Result<(), String> {
     integration::reveal(&path)
 }
@@ -282,6 +287,7 @@ pub fn run() {
             quit_app,
             open_url,
             reveal_in_explorer,
+            rename_file,
             integration_state,
             register_file_types,
             unregister_file_types,

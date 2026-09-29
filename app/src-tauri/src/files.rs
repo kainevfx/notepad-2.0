@@ -56,6 +56,16 @@ pub fn write_atomic(path: &Path, bytes: &[u8]) -> Result<f64, String> {
 }
 
 /// Resolve a store key ("notes/abc.md") under the store root, refusing anything that escapes it.
+/// Rename a file, refusing to replace an existing one (Windows' rename would overwrite it).
+/// A change of letter case only (a.txt -> A.txt) is allowed.
+pub fn rename_no_overwrite(from: &Path, to: &Path) -> Result<(), String> {
+    let case_only = from.to_string_lossy().to_lowercase() == to.to_string_lossy().to_lowercase();
+    if !case_only && to.exists() {
+        return Err(format!("{} already exists", to.display()));
+    }
+    fs::rename(from, to).map_err(|e| e.to_string())
+}
+
 pub fn store_path(root: &Path, key: &str) -> Result<PathBuf, String> {
     let rel = Path::new(key);
     if key.is_empty() || rel.is_absolute() {
@@ -123,6 +133,31 @@ mod tests {
         let _ = fs::remove_dir_all(&d);
         fs::create_dir_all(&d).unwrap();
         d
+    }
+
+    #[test]
+    fn rename_moves_the_file() {
+        let d = tmpdir("ren");
+        let a = d.join("a.txt");
+        let b = d.join("b.txt");
+        fs::write(&a, b"hello").unwrap();
+        rename_no_overwrite(&a, &b).unwrap();
+        assert!(!a.exists());
+        assert_eq!(fs::read(&b).unwrap(), b"hello");
+        fs::remove_dir_all(d).unwrap();
+    }
+
+    #[test]
+    fn rename_never_overwrites() {
+        let d = tmpdir("ren2");
+        let a = d.join("a.txt");
+        let b = d.join("b.txt");
+        fs::write(&a, b"new").unwrap();
+        fs::write(&b, b"keep me").unwrap();
+        assert!(rename_no_overwrite(&a, &b).is_err());
+        assert_eq!(fs::read(&b).unwrap(), b"keep me");
+        assert_eq!(fs::read(&a).unwrap(), b"new");
+        fs::remove_dir_all(d).unwrap();
     }
 
     #[test]

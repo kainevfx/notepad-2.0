@@ -753,6 +753,57 @@ export async function newGroupFrom(noteIds: string[], parentId?: string | null):
   return ok ? id : null;
 }
 
+/** Characters and names Windows does not allow in file names. */
+export function badFileName(name: string): boolean {
+  return !name || /[\\/:*?"<>|]/.test(name) || /[. ]$/.test(name) || /^(con|prn|aux|nul|com\d|lpt\d)(\.|$)/i.test(name);
+}
+
+/**
+ * Rename a tab. Unsaved notes just get a new title; saved files are renamed on disk (never over
+ * an existing file). Returns false when nothing changed.
+ */
+export async function renameDoc(id: string, name: string): Promise<boolean> {
+  const d = docs.value[id];
+  const clean = name.trim();
+  if (!d || !clean) return false;
+  if (d.kind !== 'file' || !d.path) {
+    renameNote(id, clean);
+    return true;
+  }
+  const oldName = basename(d.path);
+  const ext = /\.[^.]+$/.exec(oldName)?.[0] ?? '';
+  const newName = /\.[^.\\/]+$/.test(clean) ? clean : clean + ext;
+  if (badFileName(newName)) {
+    void alertMsg('Rename', `"${newName}" can't be used as a file name.`);
+    return false;
+  }
+  if (newName === oldName) return false;
+  const to = dirname(d.path) + (d.path.includes('\\') ? '\\' : '/') + newName;
+  try {
+    await platform.renameFile(d.path, to);
+  } catch (e) {
+    void alertMsg('Rename', `Couldn't rename to "${newName}". ${/exist/i.test(String(e)) ? 'A file with that name already exists.' : String(e)}`);
+    return false;
+  }
+  const md = isMarkdownPath(to);
+  // Changing the extension between .md and anything else switches how the tab is treated.
+  const typeChanged = md !== isMarkdownPath(d.path);
+  patchDoc(id, { path: to, title: newName, customTitle: undefined, ...(typeChanged ? { language: md ? 'markdown' : 'plain' } : {}) });
+  recentFiles.value = recentFiles.value.map((p) => (p === d.path ? to : p));
+  if (activeId.value === id) refreshView();
+  updateWindowTitle();
+  scheduleSession();
+  return true;
+}
+
+/** Rename a file group in place (blank names are ignored). */
+export function renameGroupTo(id: string, name: string) {
+  const clean = name.trim();
+  const loc = T.find(tree.value, id);
+  if (!clean || !loc || loc.node.kind !== 'group') return;
+  commitTree(T.update(tree.value, id, { name: clean }));
+}
+
 export async function renameGroup(id: string) {
   const loc = T.find(tree.value, id);
   if (!loc || loc.node.kind !== 'group') return;

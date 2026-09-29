@@ -2,9 +2,10 @@
 import { useRef, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
 import type { TreeNode, GroupNode } from '../lib/tree-ops';
-import { tree, docs, activeId, activate, closeDoc, newNote, displayTitle, toggleGroup, newGroupFrom } from '../state/app';
+import { tree, docs, activeId, activate, closeDoc, newNote, displayTitle, toggleGroup, newGroupFrom, renameDoc, renameGroupTo } from '../state/app';
 import { settings, updateSettings } from '../state/settings';
-import { openContextMenu, railPeek, closedNotesOpen } from '../state/ui';
+import { openContextMenu, railPeek, closedNotesOpen, renamingId } from '../state/ui';
+import { InlineRename } from './InlineRename';
 import { IcChevronDown, IcChevronUp, IcChevronLeft, IcChevronRight, IcClose, IcFolderPlus, IcSearch, IcNewText, IcNewMd } from './icons';
 import { startDrag, consumeDragClick, dropClass, drag } from './dnd';
 import { noteMenu, groupMenu } from './menus';
@@ -50,11 +51,16 @@ function NoteRow({ id, depth }: { id: string; depth: number }) {
       onPointerDown={(e) => startDrag(e as PointerEvent, id, title)}
       onClick={() => !consumeDragClick() && activate(id)}
       onAuxClick={(e) => e.button === 1 && closeDoc(id)}
+      onDblClick={() => (renamingId.value = id)}
       onContextMenu={(e) => openContextMenu(e as MouseEvent, noteMenu(id))}
     >
       <span class={`type-badge type-${b.kind}`}>{b.label}</span>
       <span class="side-note-text">
-        <span class="side-note-title">{title}</span>
+        {renamingId.value === id ? (
+          <InlineRename value={title} onCommit={(v) => void renameDoc(id, v)} />
+        ) : (
+          <span class="side-note-title">{title}</span>
+        )}
         <span class="side-note-time" title={new Date(d.modified).toLocaleString()}>{relativeTime(d.modified, clock.value)}</span>
       </span>
       <button
@@ -86,9 +92,14 @@ function GroupBlock({ g, depth, q }: { g: GroupNode; depth: number; q: string })
         onPointerDown={(e) => startDrag(e as PointerEvent, g.id, g.name)}
         onClick={(e) => !consumeDragClick() && toggleGroup(g.id, (e as MouseEvent).altKey)}
         onContextMenu={(e) => openContextMenu(e as MouseEvent, groupMenu(g.id))}
-        title="Click to expand or collapse. Alt+click does all siblings. Right-click for options."
+        onDblClick={() => !g.system && (renamingId.value = g.id)}
+        title="Click to expand or collapse. Double-click to rename. Right-click for options."
       >
-        <span class="side-group-name">{g.name}</span>
+        {renamingId.value === g.id ? (
+          <InlineRename value={g.name} onCommit={(v) => renameGroupTo(g.id, v)} class="on-group" />
+        ) : (
+          <span class="side-group-name">{g.name}</span>
+        )}
         {!open && <span class="side-group-count">{count}</span>}
         <span class="side-group-chev">{open ? <IcChevronUp /> : <IcChevronDown />}</span>
       </div>

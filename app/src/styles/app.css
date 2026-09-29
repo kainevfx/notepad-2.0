@@ -379,6 +379,8 @@ html.dark .side-group-body { border-left-color: var(--g-dark); }
 .side-note-icon { color: var(--text-2); display: grid; place-items: center; }
 .side-note-text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
 .side-note-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inline-rename { width: 100%; min-width: 60px; height: 22px; padding: 0 4px; font: inherit; font-size: 13px; color: var(--text); background: var(--bg-input); border: 1px solid var(--accent); border-radius: 3px; outline: none; }
+.inline-rename.on-group { flex: 1; color: var(--text); }
 .side-note-time { font-size: 11px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .type-badge { flex: 0 0 auto; font: 600 9.5px/1 var(--ui-font); letter-spacing: 0.04em; padding: 3px 4px; border-radius: 4px; }
 .type-txt { background: color-mix(in srgb, var(--text-3) 18%, transparent); color: var(--text-2); }

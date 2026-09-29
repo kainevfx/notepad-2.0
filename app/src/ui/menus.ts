@@ -1,9 +1,9 @@
 import type { MenuItem } from '../state/ui';
-import { ask } from '../state/ui';
+import { renamingId, railPeek } from '../state/ui';
 import * as T from '../lib/tree-ops';
 import {
-  docs, tree, closeDoc, closeOthers, newGroupFrom, renameGroup, setGroupColor, collapseAllInside, ungroup, closeGroup,
-  setGroupAutosave, moveNode, moveNodeToRoot, newNote, renameNote, displayTitle, activate, saveDoc, saveDocAs, QUICK_GROUP_ID, setDocColor,
+  docs, tree, closeDoc, closeOthers, newGroupFrom, setGroupColor, collapseAllInside, ungroup, closeGroup,
+  setGroupAutosave, moveNode, moveNodeToRoot, newNote, activate, saveDoc, saveDocAs, QUICK_GROUP_ID, setDocColor,
 } from '../state/app';
 import { platform } from '../platform';
 import { settings } from '../state/settings';
@@ -21,11 +21,19 @@ function moveToGroupItems(nodeId: string): MenuItem[] {
   return items.length ? items : [{ label: 'No file groups yet', disabled: true }];
 }
 
+/** Show the inline rename field (opening the rail's panel if the sidebar is collapsed). */
+export function startRename(id: string) {
+  if (settings.value.tabsMode === 'rail') railPeek.value = true;
+  renamingId.value = id;
+}
+
 export function noteMenu(id: string): MenuItem[] {
   const d = docs.value[id];
   if (!d) return [];
   const inGroup = !!T.find(tree.value, id)?.parent;
   return [
+    { label: 'Rename', shortcut: 'F2', action: () => startRename(id) },
+    { separator: true },
     { label: 'Add to a new file group', action: () => newGroupFrom([id]) },
     { label: 'Move to file group', submenu: moveToGroupItems(id) },
     ...(inGroup ? [{ label: 'Remove from file group', action: () => moveNodeToRoot(id) }] : []),
@@ -39,13 +47,6 @@ export function noteMenu(id: string): MenuItem[] {
     { separator: true },
     ...(d.kind === 'note'
       ? [
-          {
-            label: 'Rename…',
-            action: async () => {
-              const r = await ask({ title: 'Rename note', buttons: [{ label: 'Rename', value: 'ok', primary: true }, { label: 'Cancel', value: 'cancel' }], input: { value: displayTitle(d), select: true } });
-              if (r.value === 'ok') renameNote(id, r.input ?? '');
-            },
-          },
           { label: 'Save as file…', action: () => saveDocAs(id) },
         ]
       : [
@@ -66,12 +67,12 @@ export function groupMenu(id: string): MenuItem[] {
   const system = !!g.system;
   const autosaveLabel = g.autosave === undefined ? `follow setting (${settings.value.autosaveFiles ? 'on' : 'off'})` : g.autosave ? 'on' : 'off';
   return [
+    ...(system ? [] : [{ label: 'Rename', action: () => startRename(id) }, { separator: true }]),
     { label: 'New text file here', action: () => activate(newNote({ groupId: id, language: 'plain' })) },
     { label: 'New MD file here', action: () => activate(newNote({ groupId: id, language: 'markdown' })) },
     ...(system
       ? []
       : [
-          { label: 'Rename group…', action: () => renameGroup(id) },
           { label: 'Colour', submenu: T.GROUP_COLORS.map((c) => ({ label: c[0].toUpperCase() + c.slice(1), swatch: GROUP_HEX[c], checked: g.color === c, action: () => setGroupColor(id, c) })) },
           { label: 'New file group inside…', action: () => newGroupFrom([], id), disabled: loc.depth + 2 > T.MAX_GROUP_DEPTH },
           { label: 'Move into file group', submenu: moveToGroupItems(id) },

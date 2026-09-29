@@ -59,6 +59,8 @@ export const settingsOpen = signal(false);
 export const paperPopoverOpen = signal(false);
 export const closedNotesOpen = signal(false);
 export const railPeek = signal(false);
+/** The file or file group currently showing an inline rename field. */
+export const renamingId = signal<string | null>(null);
 export const cursorInfo = signal({ line: 1, col: 1, chars: 0, selected: 0 });
 export const toast = signal<string | null>(null);
 

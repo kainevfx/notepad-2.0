@@ -4,6 +4,7 @@ import {
 } from '../state/app';
 import { settingsOpen, dialog, paperPopoverOpen } from '../state/ui';
 import { platform } from '../platform';
+import { startRename } from './menus';
 
 export function installShortcuts() {
   window.addEventListener('keydown', (e) => {
@@ -19,6 +20,7 @@ export function installShortcuts() {
 
     if (e.key === 'F5' && !mod) return run(cmd.timeDate);
     if (e.key === 'F3') return run(() => cmd.findNext(e.shiftKey));
+    if (e.key === 'F2' && !mod && id && !(e.target as HTMLElement | null)?.closest?.('input, textarea')) return run(() => startRename(id));
     if (e.key === 'Escape' && settingsOpen.value) return run(() => (settingsOpen.value = false));
     if (e.key === 'Escape' && paperPopoverOpen.value) return run(() => (paperPopoverOpen.value = false));
     if (!mod) return;

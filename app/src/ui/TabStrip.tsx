@@ -2,8 +2,9 @@
 // collapse its tabs. Tabs and chips are draggable.
 import type { JSX } from 'preact';
 import type { TreeNode, GroupNode } from '../lib/tree-ops';
-import { tree, docs, activeId, activate, closeDoc, newNote, displayTitle, toggleGroup } from '../state/app';
-import { openContextMenu } from '../state/ui';
+import { tree, docs, activeId, activate, closeDoc, newNote, displayTitle, toggleGroup, renameDoc, renameGroupTo } from '../state/app';
+import { openContextMenu, renamingId } from '../state/ui';
+import { InlineRename } from './InlineRename';
 import { IcPlus, IcClose, IcNewMd } from './icons';
 import { startDrag, consumeDragClick, dropClass } from './dnd';
 import { noteMenu, groupMenu } from './menus';
@@ -27,10 +28,11 @@ function Tab({ id, group }: { id: string; group: GroupNode | null }) {
       onPointerDown={(e) => startDrag(e as PointerEvent, id, title)}
       onClick={() => !consumeDragClick() && activate(id)}
       onAuxClick={(e) => e.button === 1 && closeDoc(id)}
+      onDblClick={() => (renamingId.value = id)}
       onContextMenu={(e) => openContextMenu(e as MouseEvent, noteMenu(id))}
     >
       <span class={`type-badge type-${b.kind}`}>{b.label}</span>
-      <span class="tab-title">{title}</span>
+      {renamingId.value === id ? <InlineRename value={title} onCommit={(v) => void renameDoc(id, v)} /> : <span class="tab-title">{title}</span>}
       <button
         class={`tab-close${d.dirty ? ' dirty' : ''}`}
         title="Close tab (Ctrl+W)"
@@ -63,8 +65,9 @@ function render(nodes: TreeNode[], parent: GroupNode | null, out: JSX.Element[])
           onPointerDown={(e) => startDrag(e as PointerEvent, n.id, n.name)}
           onClick={() => !consumeDragClick() && toggleGroup(n.id)}
           onContextMenu={(e) => openContextMenu(e as MouseEvent, groupMenu(n.id))}
+          onDblClick={() => !n.system && (renamingId.value = n.id)}
         >
-          {n.name}
+          {renamingId.value === n.id ? <InlineRename value={n.name} onCommit={(v) => renameGroupTo(n.id, v)} /> : n.name}
           {n.collapsed && <span class="chip-count">{countNotes(n)}</span>}
         </div>,
       );

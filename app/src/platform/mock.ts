@@ -74,6 +74,14 @@ export function createMockPlatform(label: string): Platform {
       if (!f) throw new Error(`The system cannot find the file specified: ${path}`);
       return { bytes: b64decode(f.b64), mtime: f.mtime, readonly: !!f.readonly };
     },
+    async renameFile(from, to) {
+      const fs = loadFs();
+      if (!fs[from]) throw new Error('not found');
+      if (fs[to] && from.toLowerCase() !== to.toLowerCase()) throw new Error(`${to} already exists`);
+      fs[to] = fs[from];
+      delete fs[from];
+      saveFs(fs);
+    },
     async writeFile(path, bytes) {
       const fs = loadFs();
       if (fs[path]?.readonly) throw new Error('Access is denied.');

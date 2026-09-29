@@ -47,6 +47,8 @@ export interface Platform {
   /** Atomic: temp file in the same folder, flush, replace. Returns the new mtime. */
   writeFile(path: string, bytes: Uint8Array): Promise<number>;
   stat(path: string): Promise<FileStat>;
+  /** Rename a file; rejects if the new name already exists. */
+  renameFile(from: string, to: string): Promise<void>;
   openDialog(): Promise<string[]>;
   saveDialog(defaultName: string, markdown: boolean): Promise<string | null>;
 

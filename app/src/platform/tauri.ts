@@ -33,6 +33,7 @@ export function createTauriPlatform(): Platform {
     writeFile: (path, bytes) =>
       invoke<number>('write_file', bytes, { headers: { 'x-path': encodeURIComponent(path) } }),
     stat: (path) => invoke<FileStat>('file_stat', { path }),
+    renameFile: (from, to) => invoke<void>('rename_file', { from, to }),
     async openDialog() {
       const r = await openDlg({ multiple: true, filters: TEXT_FILTERS });
       if (!r) return [];
