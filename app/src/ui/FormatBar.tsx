@@ -19,7 +19,20 @@ const STYLE_OPTIONS: [FormatCommand, string][] = [
   ['codeBlock', 'Code block'],
 ];
 
-type Pop = 'color' | 'table' | 'align' | 'list' | null;
+type Pop = 'color' | 'table' | 'align' | 'list' | 'tableTools' | null;
+
+/** Table tools for the table the cursor is in (Visual view). */
+const TABLE_TOOLS: { label: string; run: (c: any) => any; danger?: boolean }[] = [
+  { label: 'Add row above', run: (c) => c.addRowBefore() },
+  { label: 'Add row below', run: (c) => c.addRowAfter() },
+  { label: 'Add column left', run: (c) => c.addColumnBefore() },
+  { label: 'Add column right', run: (c) => c.addColumnAfter() },
+  { label: 'Delete row', run: (c) => c.deleteRow() },
+  { label: 'Delete column', run: (c) => c.deleteColumn() },
+  { label: 'Header row on / off', run: (c) => c.toggleHeaderRow() },
+  { label: 'Merge or split cells', run: (c) => c.mergeOrSplit() },
+  { label: 'Delete table', run: (c) => c.deleteTable(), danger: true },
+];
 
 const ALIGN: { c: FormatCommand; label: string; Icon: (p: { size?: number }) => JSX.Element }[] = [
   { c: 'alignLeft', label: 'Align left', Icon: I.IcAlignLeft },
@@ -218,6 +231,23 @@ export function FormatBar() {
           </div>
         )}
       </div>
+      {editor && d?.mdView === 'visual' && editor.isActive('table') && (
+        <div class="fb-pop-anchor">
+          <button class={`fb-btn fb-drop fb-table-tools${pop === 'tableTools' ? ' on' : ''}`} title="Table tools" aria-haspopup="menu" onMouseDown={keep} onClick={() => setPop(pop === 'tableTools' ? null : 'tableTools')}>
+            <span>Table</span>
+            <I.IcChevronDown size={10} />
+          </button>
+          {pop === 'tableTools' && (
+            <div class="fb-pop fb-menu" role="menu" onMouseDown={keep}>
+              {TABLE_TOOLS.map((tool) => (
+                <button class={`fb-menu-item${tool.danger ? ' danger' : ''}`} role="menuitem" onClick={() => (tool.run(editor.chain().focus()).run(), setPop(null))}>
+                  <span>{tool.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <B c="rule" icon={<I.IcRule />} label="Horizontal line" />
       <span class="fb-sep" />
       <B c="wrap" icon={<I.IcWrap />} label="Word wrap" />

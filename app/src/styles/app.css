@@ -633,3 +633,5 @@ button.sb-item:hover { background: var(--bg-hover); }
 .shortcut-table { border-collapse: collapse; font-size: 13px; }
 .shortcut-table td { padding: 4px 16px 4px 0; vertical-align: top; }
 .theme-switch button { min-width: 64px; justify-content: center; }
+.fb-table-tools { width: auto; padding: 0 8px; font-size: 12px; font-weight: 600; }
+.fb-menu-item.danger { color: #d13438; }

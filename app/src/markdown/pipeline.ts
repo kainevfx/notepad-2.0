@@ -98,12 +98,27 @@ export function cleanStyle(style: string): string | null {
   return out.length ? out.join(';') : null;
 }
 
+/** Table sizes written by the Visual editor: width / height in px or %. */
+export function cleanSizeStyle(style: string): string | null {
+  const out: string[] = [];
+  for (const decl of style.split(';')) {
+    const i = decl.indexOf(':');
+    if (i < 0) continue;
+    const prop = decl.slice(0, i).trim().toLowerCase();
+    const val = decl.slice(i + 1).trim();
+    if ((prop === 'width' || prop === 'height') && /^\d{1,4}(px|%)$/.test(val)) out.push(`${prop}:${val}`);
+  }
+  return out.length ? out.join(';') : null;
+}
+
+const SIZE_TAGS = new Set(['col', 'tr', 'td', 'th']);
+
 function rehypeCleanStyles() {
   return (tree: any) => {
     visit(tree, 'element', (node: any) => {
       const p = node.properties;
       if (!p || p.style == null) return;
-      const s = node.tagName === 'span' ? cleanStyle(String(p.style)) : null;
+      const s = node.tagName === 'span' ? cleanStyle(String(p.style)) : SIZE_TAGS.has(node.tagName) ? cleanSizeStyle(String(p.style)) : null;
       if (s) p.style = s;
       else delete p.style;
     });
@@ -120,8 +135,12 @@ const schema = {
     img: [...(defaultSchema.attributes?.img ?? []), 'loading', 'width', 'height', 'align'],
     input: [...(defaultSchema.attributes?.input ?? [])],
     span: [...(defaultSchema.attributes?.span ?? []), 'style'],
+    col: [...(defaultSchema.attributes?.col ?? []), 'style', 'span'],
+    tr: [...(defaultSchema.attributes?.tr ?? []), 'style'],
+    td: [...(defaultSchema.attributes?.td ?? []), 'style', 'colSpan', 'rowSpan'],
+    th: [...(defaultSchema.attributes?.th ?? []), 'style', 'colSpan', 'rowSpan'],
   },
-  tagNames: [...(defaultSchema.tagNames ?? []), 'mark', 'u', 'abbr', 'figure', 'figcaption', 'center'],
+  tagNames: [...(defaultSchema.tagNames ?? []), 'mark', 'u', 'abbr', 'figure', 'figcaption', 'center', 'colgroup', 'col'],
 };
 
 function buildProcessor(opts: RenderOptions) {

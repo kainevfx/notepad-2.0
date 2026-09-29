@@ -5,7 +5,7 @@ import CodeBlock from '@tiptap/extension-code-block';
 import { EditorState } from '@tiptap/pm/state';
 import { Markdown } from '@tiptap/markdown';
 import { TaskList, TaskItem } from '@tiptap/extension-list';
-import { Table, TableRow, TableHeader, TableCell, renderTableToMarkdown } from '@tiptap/extension-table';
+import { tableExtensions } from './tables';
 import { Placeholder } from '@tiptap/extensions';
 import { markExtensions } from './marks';
 import { alignExtensions } from './align';
@@ -53,17 +53,7 @@ export function visualExtensions(opts: { placeholder?: string } = {}): AnyExtens
     ...markExtensions,
     TaskList,
     TaskItem.configure({ nested: true }),
-    // The stock renderer pads the table with extra blank lines; the block separator already adds them.
-    // Cell text comes back from the parser with \| unescaped, so escape pipes again when writing.
-    Table.extend({
-      renderMarkdown: (node: any, h: any) => {
-        const cells = { ...h, renderChildren: (n: any, sep?: any) => h.renderChildren(n, sep).replace(/(?<!\\)\|/g, '\\|') };
-        return renderTableToMarkdown(node, cells).replace(/^\n+|\n+$/g, '');
-      },
-    } as any).configure({ resizable: false }),
-    TableRow,
-    TableHeader,
-    TableCell,
+    ...tableExtensions,
     ExtraKeys,
     Placeholder.configure({ placeholder: opts.placeholder ?? 'Start typing…' }),
     Markdown.configure({ indentation: { style: 'space', size: 2 }, markedOptions: { gfm: true, breaks: false } }),

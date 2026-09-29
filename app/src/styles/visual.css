@@ -17,3 +17,13 @@
 .visual-editor td > p, .visual-editor th > p { margin: 0; }
 .visual-editor .selectedCell { background: color-mix(in srgb, var(--accent) 18%, transparent); }
 .visual-editor a { cursor: text; }
+
+/* Tables: resizable columns (drag a column border) and rows (drag a row's bottom border) */
+.visual-editor .tableWrapper { overflow-x: auto; margin: 0 0 16px; }
+.visual-editor table { table-layout: fixed; border-collapse: collapse; margin: 0; }
+.visual-editor td, .visual-editor th { position: relative; box-sizing: border-box; }
+.visual-editor td > :first-child, .visual-editor th > :first-child { margin-top: 0; }
+.visual-editor td > :last-child, .visual-editor th > :last-child { margin-bottom: 0; }
+.visual-editor .column-resize-handle { position: absolute; right: -2px; top: 0; bottom: -2px; width: 4px; background: var(--accent); pointer-events: none; z-index: 2; }
+.visual-editor .ProseMirror.resize-cursor { cursor: col-resize; }
+.visual-editor .ProseMirror.row-resize-cursor, .visual-editor .ProseMirror.row-resizing { cursor: row-resize; }

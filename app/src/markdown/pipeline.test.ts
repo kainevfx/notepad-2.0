@@ -103,3 +103,17 @@ describe('inline style allow-list', () => {
     expect(html).toContain('<strong>bold</strong>');
   });
 });
+
+describe('table sizes in the preview', () => {
+  const html = '<table>\n<colgroup><col style="width:120px"><col></colgroup>\n<tr style="height:40px"><td>\n\n**x**\n\n</td><td>\n\ny\n\n</td></tr>\n</table>';
+  it('keeps column widths and row heights', () => {
+    const out = renderMarkdown(html);
+    expect(out).toContain('<col style="width:120px">');
+    expect(out).toContain('style="height:40px"');
+  });
+  it('renders Markdown inside cells', () => expect(renderMarkdown(html)).toContain('<strong>x</strong>'));
+  it('drops anything else in a table style', () => {
+    expect(renderMarkdown('<table><tr style="position:fixed;height:40px"><td>a</td></tr></table>')).toContain('style="height:40px"');
+    expect(renderMarkdown('<table><tr><td style="background:url(x)">a</td></tr></table>')).not.toContain('style=');
+  });
+});

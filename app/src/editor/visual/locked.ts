@@ -6,6 +6,7 @@ import { renderMarkdown } from '../../markdown/pipeline';
 import { renderMermaid } from '../../markdown/mermaid';
 import { alignedToken } from './align';
 import { ownSpan } from './marks';
+import { ownHtmlTable } from './tables';
 
 type BlockKind = 'frontmatter' | 'math' | 'mermaid' | 'footnote' | 'reference' | 'html';
 export const LOCKED_LABEL: Record<string, string> = {
@@ -49,6 +50,7 @@ function elementEnd(src: string, tag: string, openLen: number): number {
 /** A block that starts with raw HTML: through the matching close tag's line, else up to a blank line. */
 function htmlBlock(src: string, lexer: any): string | null {
   if (alignedToken(src, lexer)) return null; // an aligned block Visual edits itself
+  if (ownHtmlTable(src)) return null; // a table Visual edits itself (tables.ts)
   const comment = /^<!--[\s\S]*?-->[^\n]*(?:\n+|$)/.exec(src);
   if (comment) return comment[0];
   const open = /^<([a-zA-Z][\w-]*)\b[^>]*>/.exec(src);
