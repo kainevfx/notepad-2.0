@@ -95,6 +95,42 @@ export function createMockPlatform(label: string): Platform {
       if (!f) return { exists: false, mtime: 0, size: 0, readonly: false };
       return { exists: true, mtime: f.mtime, size: atob(f.b64).length, readonly: !!f.readonly };
     },
+    // The browser build is a single window.
+    async emitTo() {},
+    async openWindow() {
+      return null;
+    },
+    async windowAt() {
+      return null;
+    },
+    async cursorClientPoint() {
+      return null;
+    },
+    async storeClaim(key: string) {
+      const v = localStorage.getItem(STORE_PREFIX + key);
+      if (v === null) return null;
+      localStorage.removeItem(STORE_PREFIX + key);
+      return v;
+    },
+    async launchHidden() {
+      return false;
+    },
+    async lastOtherWindow() {
+      return null;
+    },
+    async lastWindow() {
+      return 'main';
+    },
+    async windowCount() {
+      return 1;
+    },
+    async focusWindow() {},
+    async registerOpenFiles() {},
+    async windowWithFile() {
+      return null;
+    },
+    async closeWindow() {},
+    async startVoiceTyping() {},
     async openImageDialog() {
       const w = window as any;
       const next = w.__np2NextImage ?? null;
@@ -178,6 +214,10 @@ export function createMockPlatform(label: string): Platform {
       channel.postMessage({ event, payload });
     },
     async listen(event, cb) {
+      return on(event, cb);
+    },
+    // A single window: everything addressed to "this window" arrives the same way.
+    async listenHere(event, cb) {
       return on(event, cb);
     },
 

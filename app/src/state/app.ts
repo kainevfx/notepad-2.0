@@ -25,6 +25,7 @@ import { createEditorState, reconfigureEffects, setUpdateHandler, type ViewConfi
 import { ask, alertMsg, cursorInfo, showToast, settingsOpen } from './ui';
 import { visualApi } from '../editor/visual/sync';
 import { copyName } from '../lib/copy-name';
+import { sessionKey, windowTitle } from '../lib/transfer';
 
 /** True when the active tab is showing the Visual (WYSIWYG) editor. */
 export function inVisual(): boolean {
@@ -213,8 +214,13 @@ export function activate(id: string) {
 export function updateWindowTitle() {
   const d = activeDoc.value;
   const name = d ? displayTitle(d) : 'Untitled';
-  platform.setTitle(`${d?.dirty ? '*' : ''}${name} - Notepad 2.0`).catch(() => {});
+  platform.setTitle(windowTitle(`${d?.dirty ? '*' : ''}${name} - Notepad 2.0`, platform.windowLabel, windowCountRef.value)).catch(() => {});
 }
+
+/** Set by state/windows.ts (kept here as a plain holder to avoid an import cycle). */
+export const windowCountRef = { value: 1 };
+/** Set once this window has merged into another: its session must not be written again. */
+export const windowClosing = { value: false };
 
 export function displayTitle(d: DocMeta): string {
   return d.customTitle || d.title;
@@ -282,6 +288,12 @@ export async function openFiles(paths: string[], opts: { groupId?: string } = {}
     const existing = findOpenFile(path);
     if (existing) {
       last = existing;
+      continue;
+    }
+    const elsewhere = await platform.windowWithFile(path).catch(() => null);
+    if (elsewhere) {
+      await platform.emitTo(elsewhere, 'focus-file', path);
+      await platform.focusWindow(elsewhere);
       continue;
     }
     try {
@@ -376,6 +388,12 @@ async function persistRecovery(id: string) {
 }
 
 let sessionTimer: ReturnType<typeof setTimeout> | undefined;
+/** Write this window's session now (the receiving side of a move does this before replying). */
+export async function saveSessionNow() {
+  clearTimeout(sessionTimer);
+  await saveSession();
+}
+
 export function scheduleSession() {
   if (!ready.value) return;
   clearTimeout(sessionTimer);
@@ -383,6 +401,7 @@ export function scheduleSession() {
 }
 
 async function saveSession() {
+  if (windowClosing.value) return;
   stashActiveMetaOnly();
   const s: SessionFile = {
     version: 1,
@@ -392,7 +411,7 @@ async function saveSession() {
     closedNotes: closedNotes.value,
     recentFiles: recentFiles.value,
   };
-  await platform.storeWrite('session.json', JSON.stringify(s));
+  await platform.storeWrite(sessionKey(platform.windowLabel), JSON.stringify(s));
 }
 
 function stashActiveMetaOnly() {
@@ -1103,13 +1122,61 @@ export async function hideToTray() {
 }
 
 export async function quitApp() {
-  await flushAll();
+  const { flushEveryWindow } = await import('./windows');
+  await flushEveryWindow();
   await platform.quit();
 }
 
 export async function onWindowCloseRequested() {
+  // With other windows open, this window's files move into the last-used one and it closes.
+  const { closeIntoOtherWindow } = await import('./windows');
+  const r = await closeIntoOtherWindow();
+  if (r !== 'alone') return; // merged, or the merge failed and the window stays open
   if (settings.value.closeToTray) await hideToTray();
   else await quitApp();
+}
+
+// ---------------------------------------------------------------- moving items between windows
+
+/** Save and copy out docs for another window (notes are written to the store first). */
+export async function snapshotDocs(ids: string[]): Promise<{ meta: DocMeta; text: string }[]> {
+  visualApi.flush();
+  stashActive();
+  const out: { meta: DocMeta; text: string }[] = [];
+  for (const id of ids) {
+    const d = docs.value[id];
+    if (!d) continue;
+    if (d.kind === 'note') await persistNote(id);
+    out.push({ meta: { ...d, banner: null }, text: textOf(id) });
+  }
+  return out;
+}
+
+/** Add docs handed over by another window (their notes are already in the store). */
+export function importDocs(entries: { meta: DocMeta; text: string }[]) {
+  for (const { meta, text } of entries) {
+    if (docs.value[meta.id]) continue;
+    if (meta.kind === 'file' && meta.path && findOpenFile(meta.path)) continue;
+    addDoc({ ...meta, banner: null }, text);
+    if (meta.dirty) onEdited(meta.id);
+  }
+}
+
+/** Drop docs that moved to another window: no prompts, their note files stay. */
+export function removeDocs(ids: string[]) {
+  const drop = new Set(ids);
+  if (activeId.value && drop.has(activeId.value)) {
+    stashActive();
+    activeId.value = null;
+  }
+  for (const id of ids) {
+    states.delete(id);
+    clearTimeout(noteTimers.get(id));
+    clearTimeout(fileTimers.get(id));
+    noteTimers.delete(id);
+    fileTimers.delete(id);
+  }
+  docs.value = Object.fromEntries(Object.entries(docs.value).filter(([id]) => !drop.has(id)));
 }
 
 export async function handleLaunch(argv: string[], cwd: string | null) {
@@ -1126,7 +1193,7 @@ export async function handleLaunch(argv: string[], cwd: string | null) {
 // ---------------------------------------------------------------- startup
 
 async function restoreSession(): Promise<boolean> {
-  const raw = await platform.storeRead('session.json');
+  const raw = await platform.storeRead(sessionKey(platform.windowLabel));
   if (!raw) return false;
   let s: SessionFile;
   try {
@@ -1194,8 +1261,19 @@ async function restoreSession(): Promise<boolean> {
 
 /** Quick notes written by the bubble while the main window missed the event. */
 async function adoptOrphanNotes() {
+  if (platform.windowLabel !== 'main') return;
   const files = await platform.storeList('notes');
   const known = new Set([...Object.keys(docs.value), ...closedNotes.value.map((c) => c.id)]);
+  // Notes that belong to other windows are not orphans.
+  for (const f of await platform.storeList('sessions').catch(() => [] as string[])) {
+    try {
+      const other = JSON.parse((await platform.storeRead(`sessions/${f}`)) ?? '{}');
+      for (const d of other.docs ?? []) known.add(d.id);
+      for (const c of other.closedNotes ?? []) known.add(c.id);
+    } catch {
+      /* unreadable session: ignore */
+    }
+  }
   for (const f of files) {
     const id = f.replace(/\.md$/, '');
     if (known.has(id)) continue;
@@ -1214,8 +1292,12 @@ export async function init() {
   }
   await adoptOrphanNotes();
   ready.value = true;
+  const { initWindows } = await import('./windows');
+  await initWindows();
 
-  const launch = await platform.launchArgs();
+  const first = platform.windowLabel === 'main';
+  // Only the first window takes command-line files; the others just follow --hidden.
+  const launch = first ? await platform.launchArgs() : { argv: (await platform.launchHidden()) ? ['--hidden'] : [], cwd: null };
   const req = parseLaunchArgs(launch.argv, launch.cwd);
   if (req.files.length) await openFiles(req.files);
   if (!orderedIds.value.length) newNote();
@@ -1234,11 +1316,22 @@ export async function init() {
   platform.onSecondInstance((a) => handleLaunch(a.argv, a.cwd));
   platform.onCloseRequested(() => onWindowCloseRequested());
   platform.onFocus(() => checkExternalChanges());
-  platform.listen<{ id: string; text: string; from: string; created?: number }>('note-updated', onQuickNoteUpdated);
-  platform.listen<string>('open-doc', (id) => {
+  platform.listen<{ id: string; text: string; from: string; created?: number }>('note-updated', async (p) => {
+    // A window that has the note updates it. Only a note from the Quick Note bubble itself can be
+    // new, and then only the last-used window adds it (other windows' edits never create copies).
+    if (docs.value[p.id]) onQuickNoteUpdated(p);
+    else if (p.from === 'quicknote' && (await platform.lastWindow()) === platform.windowLabel) onQuickNoteUpdated(p);
+  });
+  platform.listen<string>('open-doc', async (id) => {
+    // Quick Note's "open in main window": the window that has it, else the last-used window.
     if (docs.value[id]) activate(id);
-    else reopenNote(id);
+    else if ((await platform.lastWindow()) === platform.windowLabel) reopenNote(id);
+    else return;
     platform.show();
+  });
+  platform.listenHere<string>('focus-file', (path) => {
+    const id = findOpenFile(path);
+    if (id) activate(id);
   });
   platform.listen<{ id: string; path: string }>('quicknote-saved-as', async ({ id, path }) => {
     if (docs.value[id]) {
@@ -1251,8 +1344,8 @@ export async function init() {
       scheduleSession();
     }
   });
-  platform.listen('quit-requested', () => quitApp());
-  platform.listen('open-settings', () => {
+  platform.listenHere('quit-requested', () => quitApp());
+  platform.listenHere('open-settings', () => {
     settingsOpen.value = true;
     platform.show();
   });

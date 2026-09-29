@@ -12,7 +12,7 @@ import { settings, loadSettings, updateSettings, isDark, systemDark, applyRemote
 import { noteTitle } from './lib/note-title';
 import { encodeText } from './lib/encoding';
 import { languageExt } from './editor/setup';
-import { AppIcon, IcMore, IcClose } from './ui/icons';
+import { AppIcon, IcMore, IcClose, IcMic } from './ui/icons';
 import { MenuList } from './ui/MenuList';
 import type { MenuItem } from './state/ui';
 
@@ -21,6 +21,8 @@ const newId = () => 'note-' + Date.now().toString(36) + '-' + Math.random().toSt
 function QuickNote() {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
+  /** While Windows voice typing is open it takes focus; don't hide the bubble on that blur. */
+  const dictatingUntil = useRef(0);
   const idRef = useRef<string>('');
   const created = useRef<number>(Date.now());
   const timer = useRef<ReturnType<typeof setTimeout>>();
@@ -175,12 +177,20 @@ function QuickNote() {
     ];
     const onBlur = () => {
       persist();
+      if (Date.now() < dictatingUntil.current) return;
       if (settings.value.quickNoteHideOnBlur && !document.querySelector('.menu')) setTimeout(() => !document.hasFocus() && platform.hideQuickNote(), 150);
     };
     window.addEventListener('blur', onBlur);
+    const endDictation = () => (dictatingUntil.current = 0);
+    window.addEventListener('pointerdown', endDictation);
+    // Voice typing hands focus back when it closes; from then on hide-on-blur works again.
+    const onFocusBack = () => setTimeout(endDictation, 1500);
+    window.addEventListener('focus', onFocusBack);
     return () => {
       subs.forEach((p) => p.then((u) => u()));
       window.removeEventListener('blur', onBlur);
+      window.removeEventListener('pointerdown', endDictation);
+      window.removeEventListener('focus', onFocusBack);
     };
   }, []);
 
@@ -225,6 +235,22 @@ function QuickNote() {
         <span class="qn-name" data-tauri-drag-region>
           Quick Note
         </span>
+        {platform.kind === 'tauri' && (
+          <button
+            class="icon-btn qn-mic"
+            title="Dictate (Windows voice typing, Win+H)"
+            aria-label="Dictate"
+            onPointerDown={(e) => e.preventDefault()}
+            onClick={() => {
+              // Put the cursor in the note, then start Windows voice typing there.
+              view.current?.focus();
+              dictatingUntil.current = Date.now() + 5 * 60_000;
+              setTimeout(() => platform.startVoiceTyping().catch(() => {}), 60);
+            }}
+          >
+            <IcMic />
+          </button>
+        )}
         <button class="icon-btn" title="More" onPointerDown={(e) => e.stopPropagation()} onClick={() => setMenu(!menu)}>
           <IcMore />
         </button>

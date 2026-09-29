@@ -80,7 +80,34 @@ export interface Platform {
 
   // Cross-window events
   emit(event: string, payload?: unknown): Promise<void>;
+  /** Send an event to one window. */
+  emitTo(label: string, event: string, payload?: unknown): Promise<void>;
+
+  // Several main windows
+  /** New window at the mouse pointer, handed a transfer. */
+  openWindow(transfer?: string): Promise<string | null>;
+  /** The other Notepad 2.0 window under the mouse pointer, if any. */
+  windowAt(): Promise<string | null>;
+  /** Where the mouse pointer is in this window (CSS pixels), for placing dropped items. */
+  cursorClientPoint(): Promise<{ x: number; y: number } | null>;
+  /** Atomically take a store file (only one window can win). */
+  storeClaim(key: string): Promise<string | null>;
+  /** This launch starts hidden in the tray (start with Windows). */
+  launchHidden(): Promise<boolean>;
+  lastOtherWindow(): Promise<string | null>;
+  lastWindow(): Promise<string>;
+  windowCount(): Promise<number>;
+  focusWindow(label: string): Promise<void>;
+  registerOpenFiles(paths: string[]): Promise<void>;
+  windowWithFile(path: string): Promise<string | null>;
+  /** Close this window for good (after its items moved to another window). */
+  closeWindow(): Promise<void>;
+  /** Start Windows voice typing (Win+H) in the focused window. */
+  startVoiceTyping(): Promise<void>;
+  /** Events sent to every window. */
   listen<T>(event: string, cb: (payload: T) => void): Promise<Unlisten>;
+  /** Events sent to this window only (emitTo this window's label). */
+  listenHere<T>(event: string, cb: (payload: T) => void): Promise<Unlisten>;
 
   // Shell
   openExternal(url: string): Promise<void>;
