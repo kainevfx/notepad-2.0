@@ -50,6 +50,8 @@ export interface Platform {
   /** Rename a file; rejects if the new name already exists. */
   renameFile(from: string, to: string): Promise<void>;
   openDialog(): Promise<string[]>;
+  /** Pick one image file; null when cancelled. */
+  openImageDialog(): Promise<string | null>;
   saveDialog(defaultName: string, markdown: boolean): Promise<string | null>;
 
   /** App data store (%APPDATA%\Notepad2). Keys are relative paths like "notes/abc.md". */

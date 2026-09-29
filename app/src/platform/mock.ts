@@ -95,6 +95,12 @@ export function createMockPlatform(label: string): Platform {
       if (!f) return { exists: false, mtime: 0, size: 0, readonly: false };
       return { exists: true, mtime: f.mtime, size: atob(f.b64).length, readonly: !!f.readonly };
     },
+    async openImageDialog() {
+      const w = window as any;
+      const next = w.__np2NextImage ?? null;
+      w.__np2NextImage = null;
+      return next ?? prompt('Image path', 'C:\\Users\\Kaine\\Pictures\\photo.png');
+    },
     async openDialog() {
       const w = window as any;
       if (w.__np2NextOpen) {

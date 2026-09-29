@@ -190,7 +190,13 @@ export function Settings() {
             <ScaleSlider />
           </Row>
           <Row title="App theme">
-            <Select k="theme" options={[['light', 'Light'], ['dark', 'Dark'], ['system', 'Use system setting']]} />
+            <div class="seg theme-switch" role="radiogroup" aria-label="App theme">
+              {([['light', 'Light'], ['dark', 'Dark'], ['system', 'System']] as const).map(([v, label]) => (
+                <button role="radio" aria-checked={s.theme === v} class={s.theme === v ? 'on' : ''} onClick={() => updateSettings({ theme: v })}>
+                  {label}
+                </button>
+              ))}
+            </div>
           </Row>
           <Row title="Font" desc={<span style={{ fontFamily: `"${s.fontFamily}"`, fontSize: '13px' }}>The quick brown fox jumps over the lazy dog</span>}>
             <div class="row-controls">

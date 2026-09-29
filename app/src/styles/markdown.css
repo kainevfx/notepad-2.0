@@ -56,3 +56,12 @@
 .hljs-meta { color: var(--text-3); }
 
 #print-root.markdown-body { color: #000; }
+
+/* Insert > Page break: a dashed marker on screen, a new page when printed */
+.markdown-body .page-break { position: relative; height: 0; margin: 28px 0; border-top: 1px dashed var(--stroke-strong); }
+.markdown-body .page-break::after { content: 'Page break'; position: absolute; top: -9px; left: 50%; transform: translateX(-50%); padding: 0 8px; font: 11px var(--ui-font); color: var(--text-3); background: var(--bg-editor); }
+@media print {
+  .page-break { break-after: page; border: 0 !important; margin: 0 !important; }
+  .page-break::after { content: none !important; }
+  .print-page + .print-page { break-before: page; }
+}

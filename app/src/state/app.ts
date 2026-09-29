@@ -1072,9 +1072,13 @@ export function printText(text: string, title: string, rendered: boolean) {
     root.innerHTML = src ? src.innerHTML : '';
     root.className = 'markdown-body';
   } else {
-    const pre = document.createElement('pre');
-    pre.textContent = text;
-    root.appendChild(pre);
+    // A form feed (Insert > Page break) starts a new printed page.
+    for (const page of text.split('\f')) {
+      const pre = document.createElement('pre');
+      pre.className = 'print-page';
+      pre.textContent = page;
+      root.appendChild(pre);
+    }
   }
   root.setAttribute('data-title', title);
   document.body.appendChild(root);

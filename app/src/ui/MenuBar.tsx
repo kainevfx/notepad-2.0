@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { MenuItem } from '../state/ui';
 import { settingsOpen, paperPopoverOpen, closedNotesOpen } from '../state/ui';
-import { settings, updateSettings } from '../state/settings';
+import { settings, updateSettings, isDark } from '../state/settings';
 import {
   activeDoc, activeId, newNote, openWithDialog, saveDoc, saveDocAs, saveAll, closeDoc, cmd, recentFiles, openFiles, hideToTray,
   quitApp, setMdView, setLanguage, cycleMdView, effectivePaper, refreshView, newGroupFrom, closedNotes, setPaper,
@@ -10,8 +10,9 @@ import { platform } from '../platform';
 import { MenuList } from './MenuList';
 import { IcGear, IcPencil, IcSplit, IcEye, IcGrid, IcLines, IcNumbers, IcNone, IcSidebar, IcTabsTop } from './icons';
 import { PaperPopover } from './PaperPopover';
+import { insertMenu, helpMenu } from './insert-actions';
 
-type MenuName = 'File' | 'Edit' | 'View';
+type MenuName = 'File' | 'Edit' | 'Insert' | 'View' | 'Help';
 
 const rectOf = (el: HTMLElement) => {
   const r = el.getBoundingClientRect();
@@ -80,6 +81,7 @@ function viewMenu(): MenuItem[] {
         { label: 'Restore default zoom', shortcut: 'Ctrl+0', action: () => cmd.zoom('reset') },
       ],
     },
+    { label: 'Dark mode', checked: isDark(), action: () => updateSettings({ theme: isDark() ? 'light' : 'dark' }) },
     { label: 'Status bar', checked: s.statusBar, action: () => updateSettings({ statusBar: !s.statusBar }) },
     {
       label: 'Word wrap',
@@ -148,7 +150,8 @@ export function MenuBar() {
     };
   }, [open]);
 
-  const items = open === 'File' ? fileMenu() : open === 'Edit' ? editMenu() : open === 'View' ? viewMenu() : [];
+  const items =
+    open === 'File' ? fileMenu() : open === 'Edit' ? editMenu() : open === 'Insert' ? insertMenu() : open === 'View' ? viewMenu() : open === 'Help' ? helpMenu() : [];
   const btn = (name: MenuName) => (
     <button
       class={`menubar-btn${open === name ? ' open' : ''}`}
@@ -174,7 +177,9 @@ export function MenuBar() {
     <div class="menubar">
       {btn('File')}
       {btn('Edit')}
+      {btn('Insert')}
       {btn('View')}
+      {btn('Help')}
       {open && <MenuList items={items} onDone={() => setOpen(null)} style={{ position: 'fixed', left: `${anchor.left}px`, top: `${anchor.top}px` }} />}
       <div class="menubar-spacer" />
       {d && d.language === 'markdown' && (

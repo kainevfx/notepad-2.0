@@ -629,3 +629,7 @@ button.sb-item:hover { background: var(--bg-hover); }
 /* Interface size: only the sidebar / rail and the document area scale. */
 .sidebar, .rail, .editor-pane { zoom: var(--ui-zoom, 1); }
 .rail .sidebar { zoom: 1; }
+
+.shortcut-table { border-collapse: collapse; font-size: 13px; }
+.shortcut-table td { padding: 4px 16px 4px 0; vertical-align: top; }
+.theme-switch button { min-width: 64px; justify-content: center; }

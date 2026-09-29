@@ -95,7 +95,7 @@ const INLINE_RULES: { kind: string; re: RegExp }[] = [
 
 function renderInto(el: HTMLElement, raw: string) {
   el.innerHTML = renderMarkdown(raw); // sanitised by the preview pipeline
-  if (!el.textContent?.trim() && !el.querySelector('img, svg, hr')) {
+  if (!el.textContent?.trim() && !el.querySelector('img, svg, hr, .page-break')) {
     // Renders to nothing on its own (e.g. a footnote or link definition): show the source.
     const pre = document.createElement('pre');
     pre.className = 'locked-source';
