@@ -18,6 +18,7 @@ type Loader = () => Promise<ComponentType<ViewerProps>>;
 /** Filled in as viewers are added; a kind without one shows its Source only. */
 export const viewerLoaders: Partial<Record<ViewerKind, Loader>> = {
   table: () => import('./viewers/TableViewer').then((m) => m.TableViewer),
+  tree: () => import('./viewers/TreeViewer').then((m) => m.TreeViewer),
 };
 
 const loaded = new Map<ViewerKind, ComponentType<ViewerProps>>();

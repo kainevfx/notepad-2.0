@@ -677,3 +677,18 @@ html.dark .cm-line.log-warn { color: #f0b429; }
 .grid tbody tr:hover td { background: var(--bg-hover); }
 .grid-sort { color: var(--accent-text); }
 .grid-note, .grid-empty { padding: 10px 14px; color: var(--text-3); font-size: 12px; }
+
+/* Tree viewer (JSON / YAML / XML). */
+.tv-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 8px 0 40px; font: 13px/1.5 Consolas, "Cascadia Mono", monospace; }
+.tv-row { display: flex; align-items: baseline; gap: 2px; padding: 0 12px 0 calc(12px + var(--d) * 18px); white-space: pre; }
+.tv-row:hover { background: var(--bg-hover); }
+.tv-chev { width: 16px; flex: 0 0 16px; padding: 0; border: 0; background: none; color: var(--text-3); cursor: pointer; font-size: 11px; }
+.tv-key { color: var(--syn-fn); }
+.tv-colon { color: var(--text-3); }
+.tv-str { color: var(--syn-string); }
+.tv-num { color: var(--syn-number); }
+.tv-count { color: var(--text-3); margin-left: 6px; }
+.tv-el { color: var(--syn-keyword); }
+.tv-attr { color: var(--syn-fn); }
+.tv-text { color: var(--text); }
+.tv-error { margin: 12px; }
