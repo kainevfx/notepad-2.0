@@ -48,25 +48,36 @@ export function parseCsv(text: string, delim: string, maxCells = MAX_GRID_CELLS)
   return { rows, truncated };
 }
 
-/** Delimiters counted outside quotes, per line. */
-function countsPerLine(lines: string[], d: string): number[] {
-  return lines.map((line) => {
-    let n = 0;
-    let q = false;
-    for (const c of line) {
-      if (c === '"') q = !q;
-      else if (c === d && !q) n++;
+/**
+ * Delimiters counted outside quotes, per record, for the first `max` records. The quote state
+ * carries across line breaks, so a quoted cell with a line break stays one record.
+ */
+function countsPerRecord(text: string, d: string, max = 20): number[] {
+  const out: number[] = [];
+  let n = 0;
+  let q = false;
+  let blank = true;
+  for (let i = 0; i < text.length && out.length < max; i++) {
+    const c = text[i];
+    if (c === '"') q = !q;
+    if (!q && (c === '\n' || c === '\r')) {
+      if (!blank) out.push(n);
+      n = 0;
+      blank = true;
+      continue;
     }
-    return n;
-  });
+    if (c.trim()) blank = false;
+    if (!q && c === d) n++;
+  }
+  if (!blank && out.length < max) out.push(n);
+  return out;
 }
 
 export function detectDelimiter(text: string, path: string | null): ',' | ';' | '\t' {
   if (path && /\.tsv$/i.test(path)) return '\t';
-  const lines = text.split(/\r?\n/).filter((l) => l.trim()).slice(0, 20);
   let best: { d: ',' | ';' | '\t'; min: number; spread: number } = { d: ',', min: 0, spread: Infinity };
   for (const d of [',', ';', '\t'] as const) {
-    const c = countsPerLine(lines, d);
+    const c = countsPerRecord(text, d);
     if (!c.length) continue;
     const min = Math.min(...c);
     const spread = Math.max(...c) - min;

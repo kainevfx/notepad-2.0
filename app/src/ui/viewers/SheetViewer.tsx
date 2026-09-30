@@ -31,7 +31,7 @@ export function SheetViewer({ doc }: ViewerProps) {
 
   const sheet = wb?.sheets[Math.min(idx, (wb?.sheets.length ?? 1) - 1)];
   useEffect(() => {
-    sheetExport.current = sheet ? () => ({ name: sheet.name, rows: sheet.rows }) : null;
+    sheetExport.current = sheet ? () => ({ name: sheet.name, rows: sheet.rows, truncated: sheet.truncated }) : null;
     return () => {
       sheetExport.current = null;
     };

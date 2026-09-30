@@ -34,3 +34,14 @@ describe('relativeLink', () => {
     expect(r(relativeLink(t, doc), doc)).toEqual({ kind: 'path', path: t });
   });
 });
+
+describe('network shares', () => {
+  it('file://host/share maps to a UNC path', () => expect(r('file://nas/share/Assets/', doc)).toEqual({ kind: 'path', path: '\\\\nas\\share\\Assets' }));
+  it('a link to a share is written as file://host/share', () =>
+    expect(relativeLink('\\\\nas\\share\\Assets', doc, true)).toBe('file://nas/share/Assets/'));
+  it('that link resolves back to the share', () =>
+    expect(r(relativeLink('\\\\nas\\share\\A b', doc), doc)).toEqual({ kind: 'path', path: '\\\\nas\\share\\A b' }));
+  it('a different server is never made relative', () =>
+    expect(relativeLink('\\\\nas2\\s\\x', '\\\\nas\\share\\docs\\plan.md')).toBe('file://nas2/s/x'));
+  it('the same share is relative', () => expect(relativeLink('\\\\nas\\share\\img\\a.png', '\\\\nas\\share\\docs\\plan.md')).toBe('../img/a.png'));
+});

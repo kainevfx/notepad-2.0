@@ -39,7 +39,14 @@ export function resolveLinkTarget(href: string, docPath: string | null): LinkTar
   if (h.startsWith('#')) return { kind: 'anchor', id: safeDecode(h.slice(1)) };
   if (/^(https?:|mailto:)/i.test(h)) return { kind: 'web', url: h };
   const noFrag = h.replace(/#.*$/, '');
-  if (/^file:/i.test(noFrag)) return { kind: 'path', path: normalize(safeDecode(noFrag.replace(/^file:\/*/i, ''))) };
+  if (/^file:/i.test(noFrag)) {
+    // file:///C:/x is a drive path; file://server/share/x is a network share.
+    const m = /^file:\/\/([^/]*)(\/.*)?$/i.exec(noFrag);
+    const host = m?.[1] ?? '';
+    const rest = safeDecode(m?.[2] ?? noFrag.replace(/^file:\/*/i, '/'));
+    const path = host && host.toLowerCase() !== 'localhost' ? `\\\\${host}${rest}` : rest.replace(/^\/+/, '');
+    return { kind: 'path', path: normalize(path) };
+  }
   const dec = safeDecode(noFrag);
   if (/^[a-zA-Z]:[\\/]/.test(dec) || /^(\\\\|\/\/)/.test(dec)) return { kind: 'path', path: normalize(dec) };
   if (!docPath) return { kind: 'needs-save' };
@@ -49,14 +56,20 @@ export function resolveLinkTarget(href: string, docPath: string | null): LinkTar
 const enc = (seg: string) => encodeURIComponent(seg);
 
 /** The href to write for `target` from a document at `docPath`: relative when on the same drive. */
+/** The drive ("c:") or network share ("\\\\server\\share") a path lives on. */
+const rootOf = (parts: string[]) => (parts[0] === '' ? parts.slice(0, 4).join('\\') : parts[0]).toLowerCase();
+
 export function relativeLink(target: string, docPath: string | null, isFolder = false): string {
   const t = normalize(target);
   const tail = isFolder ? '/' : '';
-  const fileUrl = () => 'file:///' + t.split('\\').map((s, i) => (i === 0 && /^[A-Za-z]:$/.test(s) ? s : enc(s))).join('/') + tail;
+  const to = t.split('\\');
+  const fileUrl = () =>
+    to[0] === ''
+      ? 'file://' + to.slice(2).map(enc).join('/') + tail
+      : 'file:///' + to.map((s, i) => (i === 0 && /^[A-Za-z]:$/.test(s) ? s : enc(s))).join('/') + tail;
   if (!docPath) return fileUrl();
   const from = normalize(dirOf(docPath)).split('\\');
-  const to = t.split('\\');
-  if (from[0].toLowerCase() !== to[0].toLowerCase()) return fileUrl();
+  if (rootOf(from) !== rootOf(to)) return fileUrl();
   let i = 0;
   while (i < from.length && i < to.length && from[i].toLowerCase() === to[i].toLowerCase()) i++;
   return [...from.slice(i).map(() => '..'), ...to.slice(i).map(enc)].join('/') + tail;

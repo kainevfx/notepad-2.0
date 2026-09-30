@@ -1,8 +1,7 @@
 // Which viewer a file opens in, picked from its extension. `text` is the plain / Markdown editor
 // as before; binary kinds hold no text and are shown read-only straight from the file.
 
-/** 'large': a data file too big to preview (never picked by extension; shown as a notice). */
-export type ViewerKind = 'text' | 'table' | 'sheet' | 'tree' | 'code' | 'html' | 'image' | 'pdf' | 'docx' | 'large';
+export type ViewerKind = 'text' | 'table' | 'sheet' | 'tree' | 'code' | 'html' | 'image' | 'pdf' | 'docx';
 
 const BY_EXT: Record<string, ViewerKind> = {
   csv: 'table', tsv: 'table',
@@ -15,7 +14,7 @@ const BY_EXT: Record<string, ViewerKind> = {
   docx: 'docx',
 };
 
-/** Files bigger than this are not previewed (Open in default app instead). */
+/** Bigger than this: spreadsheets, images, PDFs and Word files aren't previewed (Open in default app), and CSV / JSON / HTML open as plain source. */
 export const MAX_PREVIEW_BYTES = 50 * 1024 * 1024;
 
 export function viewKindFor(path: string | null): ViewerKind {
@@ -24,7 +23,7 @@ export function viewKindFor(path: string | null): ViewerKind {
 }
 
 /** Shown straight from the file: read-only, no text buffer, never autosaved. */
-export const isBinaryKind = (k?: ViewerKind) => k === 'sheet' || k === 'image' || k === 'pdf' || k === 'docx' || k === 'large';
+export const isBinaryKind = (k?: ViewerKind) => k === 'sheet' || k === 'image' || k === 'pdf' || k === 'docx';
 
 /** Text files with a formatted View next to their Source. */
 export const hasViewPane = (k?: ViewerKind) => k === 'table' || k === 'tree' || k === 'html';

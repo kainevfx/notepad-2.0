@@ -65,7 +65,7 @@ export function ViewerPane({ doc }: { doc: DocMeta }) {
     if (!isBinaryKind(kind)) setText(textOf(id));
   }, [id]);
 
-  if (kind === 'large' || (isBinaryKind(kind) && (doc.size ?? 0) > MAX_PREVIEW_BYTES))
+  if (isBinaryKind(kind) && (doc.size ?? 0) > MAX_PREVIEW_BYTES)
     return <Notice text="This file is too large to preview." path={doc.path} />;
   if (error) return <Notice text="Couldn't show this file." detail={error} path={doc.path} />;
   if (!Comp) return <div class="viewer-loading">Loading…</div>;

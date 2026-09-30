@@ -8,7 +8,9 @@
  */
 export function assetDirBase(dir: string, assetUrl: (path: string) => string): string {
   const prefix = assetUrl('x').replace(/x$/, '');
+  const unc = /^(\\\\|\/\/)/.test(dir);
   const segs = dir.split(/[\\/]+/).filter(Boolean);
+  if (unc && segs.length) segs[0] = '\\\\' + segs[0]; // keep the server: \\nas\web -> %5C%5Cnas/web/
   return prefix + segs.map(encodeURIComponent).join('/') + '/';
 }
 

@@ -70,6 +70,27 @@ export function xmlTree(text: string, parse?: (s: string) => Document): TreeResu
   }
 }
 
+const isBranch = (n: TNode): n is Extract<TNode, { children: TNode[] }> => 'children' in n;
+
+export function countNodes(n: TNode): number {
+  return 1 + (isBranch(n) ? n.children.reduce((s, c) => s + countNodes(c), 0) : 0);
+}
+
+/** Paths ("" root, "/0", "/0/2"…) of every branch shallower than maxDepth. */
+export function branchPaths(n: TNode, maxDepth: number, path = '', depth = 0, out = new Set<string>()): Set<string> {
+  if (!isBranch(n)) return out;
+  if (depth < maxDepth) out.add(path);
+  n.children.forEach((c, i) => branchPaths(c, maxDepth, `${path}/${i}`, depth + 1, out));
+  return out;
+}
+
+/** Above this many nodes a tree opens with only the root expanded (and Expand all is off). */
+export const BIG_TREE = 2000;
+
+export function defaultOpenPaths(root: TNode): Set<string> {
+  return countNodes(root) > BIG_TREE ? new Set(['']) : branchPaths(root, 2);
+}
+
 export function treeFor(path: string | null, text: string): TreeResult {
   if (path && /\.ya?ml$/i.test(path)) return yamlTree(text);
   if (path && /\.xml$/i.test(path)) return xmlTree(text);

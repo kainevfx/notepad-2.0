@@ -24,5 +24,6 @@ describe('assetDirBase', () => {
   const asset = (p: string) => 'http://asset.localhost/' + encodeURIComponent(p);
   it('a folder as a slash-separated asset URL ending in /', () =>
     expect(assetDirBase('C:\\My Docs\\site', asset)).toBe('http://asset.localhost/C%3A/My%20Docs/site/'));
+  it('a network share keeps its server', () => expect(assetDirBase('\\\\nas\\web', asset)).toBe('http://asset.localhost/%5C%5Cnas/web/'));
   it('a trailing backslash is not doubled', () => expect(assetDirBase('D:\\web\\', asset)).toBe('http://asset.localhost/D%3A/web/'));
 });

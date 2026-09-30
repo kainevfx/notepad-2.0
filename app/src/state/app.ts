@@ -326,18 +326,19 @@ export async function openFiles(paths: string[], opts: { groupId?: string } = {}
       continue;
     }
     try {
-      const viewer = viewKindFor(path);
+      let viewer = viewKindFor(path);
       if (viewer !== 'text') {
         const st = await platform.stat(path);
         if (!st.exists) throw new Error('The system cannot find the file specified.');
-        // Shown straight from the file (and data files too large to preview): no text is read.
-        if (isBinaryKind(viewer) || st.size > MAX_PREVIEW_BYTES) {
+        // Too big to parse into a grid / tree / page: open the text itself, highlighted.
+        if (hasViewPane(viewer) && st.size > MAX_PREVIEW_BYTES) viewer = 'code';
+        // Shown straight from the file (the viewer says when it is too large): no text is read.
+        if (isBinaryKind(viewer)) {
           const id = uid('file');
           addDoc(
             {
               id, kind: 'file', path, title: basename(path), encoding: 'utf-8', bom: false, eol: 'crlf', language: 'plain', mdView: 'visual',
-              dirty: false, mtime: st.mtime, readonly: true, created: Date.now(), modified: st.mtime, size: st.size, banner: null,
-              viewer: isBinaryKind(viewer) ? viewer : 'large',
+              dirty: false, mtime: st.mtime, readonly: true, created: Date.now(), modified: st.mtime, size: st.size, banner: null, viewer,
             },
             '',
           );
@@ -817,13 +818,21 @@ export function cycleMdView() {
 }
 
 /** Set by the sheet viewer: the sheet on screen, for Save sheet as CSV. */
-export const sheetExport: { current: null | (() => { name: string; rows: string[][] }) } = { current: null };
+export const sheetExport: { current: null | (() => { name: string; rows: string[][]; truncated?: boolean }) } = { current: null };
 
 /** Save the spreadsheet sheet on screen as a CSV file (UTF-8 with BOM so Excel reads accents). */
 export async function saveSheetCsv(id: string) {
   const d = docs.value[id];
   const s = sheetExport.current?.();
   if (!d?.path || !s) return;
+  if (s.truncated) {
+    const r = await ask({
+      title: 'Save sheet as CSV',
+      body: 'This sheet has more than 200,000 cells, and only the first 200,000 are shown. Save just those?',
+      buttons: [{ label: 'Save the shown part', value: 'save' }, { label: 'Cancel', value: 'cancel', primary: true }],
+    });
+    if (r.value !== 'save') return;
+  }
   const path = await platform.saveDialog(`${basename(d.path).replace(/\.[^.]+$/, '')} - ${s.name}.csv`, false);
   if (!path) return;
   try {
@@ -965,7 +974,9 @@ export async function duplicateDoc(id: string, target?: { groupId: string | null
     }
     const path = dir + sep + name;
     try {
-      await platform.writeFile(path, encodeText(text, d.encoding, d.bom, d.eol));
+      // Spreadsheets, images, PDFs and Word files hold no text here: copy the file's bytes.
+      const bytes = isBinaryKind(d.viewer) ? (await platform.readFile(d.path)).bytes : encodeText(text, d.encoding, d.bom, d.eol);
+      await platform.writeFile(path, bytes);
     } catch (e) {
       void alertMsg('Duplicate', `Couldn't create ${name}. ${String(e)}`);
       return null;
@@ -1086,8 +1097,25 @@ export function withView(fn: (v: EditorView) => void) {
   if (view) fn(view);
 }
 
-/** Find / Replace work on the source: switch a Visual tab to Source first, then run. */
+/** The tab shows a viewer, not its text (a data file in View, or a spreadsheet / image / PDF / Word). */
+function sourceHidden(): boolean {
+  const d = activeDoc.value;
+  return !!d && (isBinaryKind(d.viewer) || (hasViewPane(d.viewer) && d.mdView === 'visual'));
+}
+
+/**
+ * Find / Replace / Go to work on the source: a Markdown Visual tab switches to Source, a data file
+ * in View to Split (so the view stays in sight); files with no text do nothing. Returns true when
+ * the command was handled here.
+ */
 function leaveVisual(then: () => void): boolean {
+  const d = activeDoc.value;
+  if (d && isBinaryKind(d.viewer)) return true;
+  if (d && hasViewPane(d.viewer) && d.mdView === 'visual') {
+    setMdView(d.id, 'split');
+    queueMicrotask(then);
+    return true;
+  }
   if (!inVisual()) return false;
   visualApi.flush();
   setMdView(activeId.value!, 'edit');
@@ -1096,9 +1124,9 @@ function leaveVisual(then: () => void): boolean {
 }
 
 export const cmd = {
-  undo: () => (inVisual() ? visualApi.undo() : withView((v) => undo(v))),
-  redo: () => (inVisual() ? visualApi.redo() : withView((v) => redo(v))),
-  selectAll: () => withView((v) => selectAll(v)),
+  undo: () => (inVisual() ? visualApi.undo() : !sourceHidden() && withView((v) => undo(v))),
+  redo: () => (inVisual() ? visualApi.redo() : !sourceHidden() && withView((v) => redo(v))),
+  selectAll: () => !sourceHidden() && withView((v) => selectAll(v)),
   find: () => leaveVisual(() => cmd.find()) || withView((v) => {
     openSearchPanel(v);
     setTimeout(() => (v.dom.querySelector('.cm-search input[name=search]') as HTMLInputElement | null)?.select(), 0);
@@ -1112,15 +1140,15 @@ export const cmd = {
     back ? findPrevious(v) : findNext(v);
   }),
   closeFind: () => withView((v) => searchPanelOpen(v.state) && closeSearchPanel(v)),
-  cut: () => withView((v) => {
+  cut: () => !sourceHidden() && withView((v) => {
     v.focus();
     document.execCommand('cut');
   }),
-  copy: () => withView((v) => {
+  copy: () => !sourceHidden() && withView((v) => {
     v.focus();
     document.execCommand('copy');
   }),
-  paste: () => withView(async (v) => {
+  paste: () => !sourceHidden() && withView(async (v) => {
     try {
       const text = await navigator.clipboard.readText();
       v.dispatch(v.state.replaceSelection(text));
@@ -1129,16 +1157,17 @@ export const cmd = {
       document.execCommand('paste');
     }
   }),
-  del: () => withView((v) => {
+  del: () => !sourceHidden() && withView((v) => {
     v.dispatch(v.state.replaceSelection(''));
   }),
-  timeDate: () => withView((v) => {
+  timeDate: () => !sourceHidden() && withView((v) => {
     const now = new Date();
     const s = `${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ${now.toLocaleDateString()}`;
     v.dispatch(v.state.replaceSelection(s));
     v.focus();
   }),
   async goToLine() {
+    if (leaveVisual(() => void cmd.goToLine())) return;
     if (!view) return;
     const total = view.state.doc.lines;
     const r = await ask({ title: 'Go to line', buttons: [{ label: 'Go to', value: 'ok', primary: true }, { label: 'Cancel', value: 'cancel' }], input: { value: String(cursorInfo.value.line), label: 'Line number', type: 'number', select: true } });

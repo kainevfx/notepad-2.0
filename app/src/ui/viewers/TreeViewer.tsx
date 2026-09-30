@@ -2,17 +2,10 @@
 // in Source so it can be fixed.
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ViewerProps } from '../ViewerPane';
-import { treeFor, type TNode } from '../../lib/tree-model';
+import { treeFor, defaultOpenPaths, branchPaths, countNodes, BIG_TREE, type TNode } from '../../lib/tree-model';
 import { setMdView } from '../../state/app';
 
 const isBranch = (n: TNode): n is Extract<TNode, { children: TNode[] }> => 'children' in n;
-
-/** Every branch path in the tree (for Expand all), and those shallower than `depth`. */
-function branchPaths(n: TNode, path: string, depth: number, maxDepth: number, out: Set<string>) {
-  if (!isBranch(n)) return;
-  if (depth < maxDepth) out.add(path);
-  n.children.forEach((c, i) => branchPaths(c, `${path}/${i}`, depth + 1, maxDepth, out));
-}
 
 function Summary({ n }: { n: TNode }) {
   if (n.t === 'obj') return <span class="tv-count">{`{${n.children.length}}`}</span>;
@@ -66,8 +59,7 @@ export function TreeViewer({ doc, text }: ViewerProps) {
 
   useEffect(() => {
     if (!result.ok) return;
-    const s = new Set<string>();
-    branchPaths(result.root, '', 0, 2, s);
+    const s = defaultOpenPaths(result.root);
     setOpen((prev) => (prev.size ? prev : s));
   }, [result]);
 
@@ -93,16 +85,15 @@ export function TreeViewer({ doc, text }: ViewerProps) {
       else next.add(p);
       return next;
     });
-  const all = (on: boolean) => {
-    const s = new Set<string>();
-    if (on) branchPaths(result.root, '', 0, Infinity, s);
-    setOpen(s);
-  };
+  const big = countNodes(result.root) > BIG_TREE;
+  const all = (on: boolean) => setOpen(on ? branchPaths(result.root, Infinity) : new Set());
 
   return (
     <>
       <div class="viewer-toolbar">
-        <button class="btn" onClick={() => all(true)}>Expand all</button>
+        <button class="btn" disabled={big} title={big ? 'Too many items to expand at once' : undefined} onClick={() => all(true)}>
+          Expand all
+        </button>
         <button class="btn" onClick={() => all(false)}>Collapse all</button>
       </div>
       <div class="tv-scroll">

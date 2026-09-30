@@ -32,3 +32,11 @@ describe('toCsv', () => {
     expect(parseCsv(toCsv(rows), ',').rows).toEqual(rows);
   });
 });
+
+describe('detectDelimiter across multi-line quoted cells', () => {
+  it('a semicolon export with a line break inside a quoted cell', () => {
+    const text = 'a;b;c\r\n1;"x\r\ny";3\r\n4;5;6';
+    expect(detectDelimiter(text, 'x.csv')).toBe(';');
+    expect(parseCsv(text, detectDelimiter(text, 'x.csv')).rows).toEqual([['a', 'b', 'c'], ['1', 'x\r\ny', '3'], ['4', '5', '6']]);
+  });
+});

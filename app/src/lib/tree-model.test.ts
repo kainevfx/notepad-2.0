@@ -66,3 +66,19 @@ it('treeFor picks by extension', () => {
   expect(treeFor('x.yml', 'a: 1').ok).toBe(true);
   expect(treeFor('x.json', 'a: 1').ok).toBe(false);
 });
+
+import { defaultOpenPaths, countNodes } from './tree-model';
+describe('big trees open folded', () => {
+  it('counts nodes', () => {
+    const r = jsonTree('{"a":[1,2],"b":{"c":3}}');
+    expect(r.ok && countNodes(r.root)).toBe(6);
+  });
+  it('small files open two levels deep', () => {
+    const r = jsonTree('{"a":{"b":{"c":1}}}');
+    expect(r.ok && [...defaultOpenPaths(r.root)].sort()).toEqual(['', '/0']);
+  });
+  it('a big file opens with only the root expanded', () => {
+    const r = jsonTree(JSON.stringify(Array.from({ length: 3000 }, (_, i) => ({ i }))));
+    expect(r.ok && [...defaultOpenPaths(r.root)]).toEqual(['']);
+  });
+});
