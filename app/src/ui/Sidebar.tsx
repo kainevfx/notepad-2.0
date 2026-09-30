@@ -54,7 +54,6 @@ function NoteRow({ id, depth }: { id: string; depth: number }) {
       onDblClick={() => (renamingId.value = id)}
       onContextMenu={(e) => openContextMenu(e as MouseEvent, noteMenu(id))}
     >
-      <span class={`type-badge type-${b.kind}`}>{b.label}</span>
       <span class="side-note-text">
         {renamingId.value === id ? (
           <InlineRename value={title} onCommit={(v) => void renameDoc(id, v)} />
@@ -63,6 +62,7 @@ function NoteRow({ id, depth }: { id: string; depth: number }) {
         )}
         <span class="side-note-time" title={new Date(d.modified).toLocaleString()}>{relativeTime(d.modified, clock.value)}</span>
       </span>
+      <span class={`type-badge type-${b.kind}`}>{b.label}</span>
       <button
         class={`side-close${d.dirty ? ' dirty' : ''}`}
         title="Close"

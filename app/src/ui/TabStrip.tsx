@@ -32,8 +32,8 @@ function Tab({ id, group, lvl }: { id: string; group: GroupNode | null; lvl: num
       onDblClick={() => (renamingId.value = id)}
       onContextMenu={(e) => openContextMenu(e as MouseEvent, noteMenu(id))}
     >
-      <span class={`type-badge type-${b.kind}`}>{b.label}</span>
       {renamingId.value === id ? <InlineRename value={title} onCommit={(v) => void renameDoc(id, v)} /> : <span class="tab-title">{title}</span>}
+      <span class={`type-badge type-${b.kind}`}>{b.label}</span>
       <button
         class={`tab-close${d.dirty ? ' dirty' : ''}`}
         title="Close tab (Ctrl+W)"

@@ -393,10 +393,12 @@ html.dark .side-group-body { border-left-color: var(--g-dark); }
   align-items: center;
   gap: 8px;
   min-height: 38px;
-  padding: 3px 4px 3px 8px;
+  padding: 3px 4px 3px 10px;
   border-radius: 4px;
   font-size: 13px;
 }
+/* The type badge sits at the end of the title line, so the title starts at the left edge. */
+.side-note > .type-badge { align-self: flex-start; margin-top: 5px; }
 .side-note:hover { background: var(--bg-hover); }
 .side-note.active { background: var(--bg-press); }
 .side-note.active::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 2px; background: var(--accent); }
