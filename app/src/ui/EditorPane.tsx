@@ -217,16 +217,19 @@ export function EditorArea() {
     window.addEventListener('pointerup', up);
   };
 
-  if (!s.on) return <Pane key="a" pane="a" />;
+  // One element tree whether split is on or off, so pane A (its editor, divider, Visual undo)
+  // stays mounted when pane B comes and goes.
   return (
-    <div class="editor-area split-on" ref={box}>
-      <div class="pane-slot" style={{ flex: `0 0 ${s.ratio * 100}%` }}>
+    <div class={`editor-area${s.on ? ' split-on' : ''}`} ref={box}>
+      <div class="pane-slot" style={{ flex: s.on ? `0 0 ${s.ratio * 100}%` : '1 1 auto' }}>
         <Pane key="a" pane="a" />
       </div>
-      <div class="pane-divider" onPointerDown={(e) => onDivider(e as PointerEvent)} />
-      <div class="pane-slot" style={{ flex: '1 1 0' }}>
-        <Pane key="b" pane="b" />
-      </div>
+      {s.on && <div class="pane-divider" onPointerDown={(e) => onDivider(e as PointerEvent)} />}
+      {s.on && (
+        <div class="pane-slot" style={{ flex: '1 1 0' }}>
+          <Pane key="b" pane="b" />
+        </div>
+      )}
     </div>
   );
 }
