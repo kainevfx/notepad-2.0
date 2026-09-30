@@ -1,6 +1,6 @@
 # Notepad 2.0
 
-**A Windows 11 Notepad that grew up.** It looks and behaves like the Notepad you know (same menus, same shortcuts, same instant start), and adds file groups, a real Markdown editor you can type straight into, several windows, paper styles and a Quick Note that is always one keypress away.
+**A Windows 11 Notepad that grew up.** It looks and behaves like the Notepad you know (same menus, same shortcuts, same instant start), and adds file groups, a real Markdown editor you can type straight into, viewers for spreadsheets, CSV, JSON, HTML, PDF, Word and images, several windows, paper styles and a Quick Note that is always one keypress away.
 
 ![Notepad 2.0: file groups in the sidebar and a Markdown document in the Visual editor](docs/screenshots/01-hero-visual-dark.png)
 
@@ -13,6 +13,7 @@
 - [Install](#install)
 - [Quickstart: your first five minutes](#quickstart-your-first-five-minutes)
 - [Features](#features)
+- [Open anything](#open-anything)
 - [Keyboard shortcuts](#keyboard-shortcuts)
 - [Where your notes are kept](#where-your-notes-are-kept)
 - [Build from source](#build-from-source)
@@ -61,7 +62,7 @@ Tabs, File / Edit / View menus, Find and Replace, Go to line, Print, Date/time w
 
 - **Groups** are coloured containers for related files. Groups can sit inside groups. Click a group to fold it away.
 - **Three layouts:** tabs along the top (joined to the page), a resizable **sidebar** on the left, or a slim **rail**.
-- Every tab shows a **TXT** / **MD** badge and when you last edited it. Right-click → **Colour** tints one tab.
+- Every tab shows its type (**TXT**, **MD**, **CSV**, **XLSX**, **PDF**…) at the end of the title, and when you last edited it. Right-click → **Colour** tints one tab.
 - **Sort** the sidebar by Manual, Date modified, Date created, Name A–Z or File type. Sorting is a view: your own order is kept.
 - **Rename in place:** double-click, F2 or right-click → Rename. Saved files are renamed on disk and never over an existing file.
 - **Duplicate, Copy and Paste** files into another group. Copies are named `Name (2).ext`, and nothing is ever overwritten.
@@ -77,6 +78,7 @@ Tabs, File / Edit / View menus, Find and Replace, Go to line, Print, Date/time w
 - Formatting Markdown can't express is saved as the small HTML tags GitHub understands (`<u>`, `<span style="color:…">`, `<div align="center">`), so your files look right on GitHub too.
 - Front matter, maths, Mermaid and other raw HTML appear as locked blocks in Visual. Double-click one to edit it in Source. They are written back unchanged.
 - Press **Ctrl+Shift+V** to cycle between the three views.
+- **Links go where they point.** A link to another file opens it in a tab; a link to a **folder** (`[Assets](../Art%20Refs/)`, `C:\Projects\Show`, `file:///D:/Renders`) opens it in **File Explorer**; web links open in your browser. In the Visual editor, **Ctrl+click** a link to follow it. Insert → Link has **File…** and **Folder…** buttons that write the path relative to your document.
 
 ![Split view: Markdown source on the left, live preview on the right](docs/screenshots/03-split-view.png)
 
@@ -143,10 +145,40 @@ In **Settings → Windows integration**:
 
 - Make Notepad 2.0 the default app for `.txt` and `.md`. Windows then asks you to confirm once.
 - **Replace notepad.exe**, so everything that opens Notepad opens Notepad 2.0. This needs one admin prompt and can be undone.
+- Offer Notepad 2.0 in **Open with** for every type above (it never becomes their default by itself).
 - Add **Edit with Notepad 2.0** to the File Explorer right-click menu.
 - **Start with Windows** quietly in the tray.
 
 Uninstalling removes all of these.
+
+---
+
+## Open anything
+
+Open a file (Ctrl+O, drag it in, or from a link) and Notepad 2.0 picks the right viewer. Text-based files keep a **View / Source / Split** switch like Markdown, so you can read them formatted and still edit the raw text.
+
+| Files | Shown as | Edit the text? |
+|---|---|---|
+| CSV, TSV | A grid with a sticky header row; click a column to sort | Yes (Source) |
+| XLSX, XLS, ODS | A grid per sheet, sheet tabs along the bottom; values as Excel shows them. **File → Save sheet as CSV…** | No (read-only) |
+| JSON, YAML, XML | A collapsible tree with item counts, Expand all / Collapse all. A file with a mistake opens next to its source with the error line | Yes (Source) |
+| TOML, INI, CFG, logs | Highlighted text; in logs ERROR lines are red and WARN amber | Yes |
+| HTML | The page rendered with its own styling. Scripts never run; links work like links in your notes | Yes (Source) |
+| PNG, JPG, GIF, WebP, SVG, BMP, ICO | Fit to the window, 100%, zoom (Ctrl+wheel); size in pixels | No |
+| PDF | Edge's built-in PDF viewer: scroll, zoom, find, print | No |
+| Word (.docx) | Formatted text with headings, lists, tables and images (layout approximate). **Open in Word** is one click away | No |
+
+Read-only files are never autosaved or changed, and they refresh when the file changes on disk. Files over 50 MB show **Open in default app** instead of a preview.
+
+![A CSV file as a sortable grid](docs/screenshots/12-csv-grid.png)
+
+![An Excel workbook with its sheet tabs](docs/screenshots/13-spreadsheet.png)
+
+![A JSON file: source on the left, the tree on the right](docs/screenshots/14-json-tree-split.png)
+
+![An HTML page rendered with its own styles](docs/screenshots/15-html-view.png)
+
+![A Word document shown as formatted text](docs/screenshots/16-word-document.png)
 
 ---
 
@@ -165,6 +197,7 @@ Uninstalling removes all of these.
 | F3 / Shift+F3 | Find next / previous |
 | F5 | Insert date and time |
 | Ctrl+K | Insert link |
+| Ctrl+click | Follow a link in the Visual editor |
 | Ctrl+Shift+V | Cycle Visual → Source → Split |
 | Ctrl+] / Ctrl+[ | Indent / outdent a list item |
 | Ctrl+Plus / Ctrl+Minus / Ctrl+0 | Text zoom in / out / reset |
@@ -193,10 +226,10 @@ npx tauri dev      # run it
 npx tauri build    # installers in app\src-tauri\target\release\bundle\{nsis,msi}
 ```
 
-Tests: `npm run typecheck`, `npm test` (270 tests), and `cargo test --manifest-path src-tauri/Cargo.toml --lib`.
+Tests: `npm run typecheck`, `npm test` (380+ tests), and `cargo test --manifest-path src-tauri/Cargo.toml --lib`.
 
 Screenshots in this README come from the browser build: run `npx vite --port 5188` in `app\`, then `node e2e/readme-shots.mjs`.
 
 For the full technical notes (architecture, file layout, command-line switches), see [app/README.md](app/README.md).
 
-Built with [Tauri 2](https://tauri.app), [Preact](https://preactjs.com), [CodeMirror 6](https://codemirror.net) and [TipTap](https://tiptap.dev).
+Built with [Tauri 2](https://tauri.app), [Preact](https://preactjs.com), [CodeMirror 6](https://codemirror.net), [TipTap](https://tiptap.dev), [calamine](https://github.com/tafia/calamine) (spreadsheets), [mammoth](https://github.com/mwilliamson/mammoth.js) (Word) and [yaml](https://eemeli.org/yaml/).
