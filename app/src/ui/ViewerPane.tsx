@@ -20,6 +20,8 @@ export const viewerLoaders: Partial<Record<ViewerKind, Loader>> = {
   table: () => import('./viewers/TableViewer').then((m) => m.TableViewer),
   tree: () => import('./viewers/TreeViewer').then((m) => m.TreeViewer),
   html: () => import('./viewers/HtmlViewer').then((m) => m.HtmlViewer),
+  image: () => import('./viewers/ImageViewer').then((m) => m.ImageViewer),
+  pdf: () => import('./viewers/PdfViewer').then((m) => m.PdfViewer),
 };
 
 const loaded = new Map<ViewerKind, ComponentType<ViewerProps>>();
