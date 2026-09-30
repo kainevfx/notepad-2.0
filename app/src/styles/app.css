@@ -655,3 +655,13 @@ button.sb-item:hover { background: var(--bg-hover); }
 html.dark .cm-line.log-warn { color: #f0b429; }
 .cm-line.log-info, .cm-line.log-debug { color: var(--text-2); }
 .log-time { color: var(--text-3); }
+
+/* File viewers (ui/ViewerPane.tsx and ui/viewers/). */
+.viewer { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--bg-editor); color: var(--text); overflow: hidden; zoom: var(--ui-zoom, 1); }
+.viewer-loading { flex: 1; display: grid; place-items: center; color: var(--text-3); background: var(--bg-editor); }
+.viewer-notice { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; background: var(--bg-editor); color: var(--text-2); text-align: center; }
+.viewer-notice-text { margin: 0; font-size: 15px; color: var(--text); }
+.viewer-notice-detail { margin: 0; font-size: 12px; max-width: 560px; word-break: break-word; }
+.viewer-toolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-bottom: 1px solid var(--stroke); font-size: 12px; color: var(--text-2); }
+.viewer-toolbar .btn { height: 26px; padding: 0 10px; }
+.viewer-toolbar .viewer-info { margin-left: auto; color: var(--text-3); }

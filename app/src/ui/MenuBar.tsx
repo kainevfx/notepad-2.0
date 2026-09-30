@@ -11,6 +11,7 @@ import { MenuList } from './MenuList';
 import { IcGear, IcPencil, IcSplit, IcEye, IcGrid, IcLines, IcNumbers, IcNone, IcSidebar, IcTabsTop } from './icons';
 import { PaperPopover } from './PaperPopover';
 import { insertMenu, helpMenu } from './insert-actions';
+import { hasViewPane } from '../lib/view-kind';
 
 type MenuName = 'File' | 'Edit' | 'Insert' | 'View' | 'Help';
 
@@ -117,6 +118,7 @@ function viewMenu(): MenuItem[] {
     },
     {
       label: 'Markdown',
+      disabled: !!d?.viewer,
       submenu: [
         { label: 'Visual', checked: d?.language === 'markdown' && d.mdView === 'visual', action: () => d && setMdView(d.id, 'visual') },
         { label: 'Source', checked: d?.language === 'markdown' && d.mdView === 'edit', action: () => d && setMdView(d.id, 'edit') },
@@ -182,12 +184,12 @@ export function MenuBar() {
       {btn('Help')}
       {open && <MenuList items={items} onDone={() => setOpen(null)} style={{ position: 'fixed', left: `${anchor.left}px`, top: `${anchor.top}px` }} />}
       <div class="menubar-spacer" />
-      {d && d.language === 'markdown' && (
-        <div class="seg" role="group" aria-label="Markdown view">
-          <button class={d.mdView === 'visual' ? 'on' : ''} title="Visual editing" onClick={() => setMdView(d.id, 'visual')}>
-            <IcEye /> <span>Visual</span>
+      {d && ((d.language === 'markdown' && !d.viewer) || hasViewPane(d.viewer)) && (
+        <div class="seg" role="group" aria-label={d.viewer ? 'View' : 'Markdown view'}>
+          <button class={d.mdView === 'visual' ? 'on' : ''} title={d.viewer ? 'Formatted view' : 'Visual editing'} onClick={() => setMdView(d.id, 'visual')}>
+            <IcEye /> <span>{d.viewer ? 'View' : 'Visual'}</span>
           </button>
-          <button class={d.mdView === 'edit' ? 'on' : ''} title="Markdown source" onClick={() => setMdView(d.id, 'edit')}>
+          <button class={d.mdView === 'edit' ? 'on' : ''} title={d.viewer ? 'Source text' : 'Markdown source'} onClick={() => setMdView(d.id, 'edit')}>
             <IcPencil /> <span>Source</span>
           </button>
           <button class={d.mdView === 'split' ? 'on' : ''} title="Source and preview side by side (Ctrl+Shift+V cycles)" onClick={() => setMdView(d.id, 'split')}>

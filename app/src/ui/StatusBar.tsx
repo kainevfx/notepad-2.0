@@ -5,6 +5,8 @@ import { EOL_LABEL, encodingLabel, type Encoding, type Eol } from '../lib/encodi
 import { effectiveAutosave } from '../lib/tree-ops';
 import { IcMarkdown, IcDoc } from './icons';
 import { ScaleSlider } from './ScaleSlider';
+import { isBinaryKind, formatBytes } from '../lib/view-kind';
+import { fileBadge } from '../lib/file-badge';
 
 export function StatusBar() {
   const s = settings.value;
@@ -47,6 +49,18 @@ export function StatusBar() {
       { label: 'Zoom out', shortcut: 'Ctrl+Minus', action: () => cmd.zoom(-10) },
       { label: 'Restore default zoom', shortcut: 'Ctrl+0', action: () => cmd.zoom('reset') },
     ]);
+
+  if (d && isBinaryKind(d.viewer))
+    return (
+      <footer class="statusbar">
+        <span class="sb-item">{fileBadge(d).label} · read-only</span>
+        <span class="sb-item">{formatBytes(d.size)}</span>
+        <span class="sb-flex" />
+        <span class="sb-item sb-scale">
+          <ScaleSlider compact />
+        </span>
+      </footer>
+    );
 
   return (
     <footer class="statusbar">

@@ -36,7 +36,7 @@ import { logHighlighter } from '../editor/log-lang';
 /** True when the active tab is showing the Visual (WYSIWYG) editor. */
 export function inVisual(): boolean {
   const d = activeDoc.value;
-  return !!d && d.language === 'markdown' && d.mdView === 'visual' && !!visualApi.editor;
+  return !!d && !d.viewer && d.language === 'markdown' && d.mdView === 'visual' && !!visualApi.editor;
 }
 
 export type Banner = { kind: 'external' | 'restored' | 'missing' | 'error' | 'mixed-eol' | 'readonly'; text: string };
@@ -796,7 +796,8 @@ export async function convertToMarkdown(id: string) {
 export function setMdView(id: string, mdView: MdView) {
   const d = docs.value[id];
   if (!d) return;
-  if (d.language !== 'markdown') patchDoc(id, { language: 'markdown' });
+  // Data files switch View / Source / Split; only text tabs turn into Markdown.
+  if (!d.viewer && d.language !== 'markdown') patchDoc(id, { language: 'markdown' });
   patchDoc(id, { mdView });
   if (activeId.value === id) refreshView();
   scheduleSession();
@@ -806,6 +807,10 @@ export function cycleMdView() {
   const d = activeDoc.value;
   if (!d) return;
   const order: MdView[] = ['visual', 'edit', 'split'];
+  if (d.viewer) {
+    if (hasViewPane(d.viewer)) setMdView(d.id, order[(order.indexOf(d.mdView) + 1) % 3]);
+    return;
+  }
   if (d.language !== 'markdown') return setMdView(d.id, 'visual');
   setMdView(d.id, order[(order.indexOf(d.mdView) + 1) % 3]);
 }

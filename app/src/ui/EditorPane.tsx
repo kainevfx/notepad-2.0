@@ -13,6 +13,8 @@ import { renderMermaid } from '../markdown/mermaid';
 import { resolveImageUrl } from '../editor/insert';
 import { VisualEditor } from './VisualEditor';
 import { followLink } from '../state/links';
+import { ViewerPane } from './ViewerPane';
+import { isBinaryKind, hasViewPane } from '../lib/view-kind';
 
 function Banner() {
   const d = activeDoc.value;
@@ -121,7 +123,10 @@ export function EditorPane() {
   const syncRef = useRef<((line: number, frac: number) => void) | null>(null);
   const [split, setSplit] = useState(0.5);
   const d = activeDoc.value;
-  const view = d?.language === 'markdown' ? d.mdView : 'edit';
+  const kind = d?.viewer;
+  const binary = isBinaryKind(kind);
+  const dataView = hasViewPane(kind);
+  const view = binary ? 'viewer' : dataView ? d!.mdView : d?.language === 'markdown' ? d.mdView : 'edit';
 
   useEffect(() => {
     const v = new EditorView({
@@ -170,11 +175,12 @@ export function EditorPane() {
         <div
           class="editor-host"
           ref={host}
-          style={view === 'split' ? { flex: `0 0 ${split * 100}%` } : view === 'visual' ? { display: 'none' } : undefined}
+          style={view === 'split' ? { flex: `0 0 ${split * 100}%` } : view === 'visual' || view === 'viewer' ? { display: 'none' } : undefined}
         />
         {view === 'split' && <div class="split-divider" onPointerDown={(e) => onDivider(e as PointerEvent)} />}
-        {view === 'split' && <Preview syncRef={syncRef} />}
-        {view === 'visual' && <VisualEditor />}
+        {view === 'split' && !dataView && <Preview syncRef={syncRef} />}
+        {view === 'visual' && !dataView && <VisualEditor />}
+        {d && (binary || (dataView && view !== 'edit')) && <ViewerPane key={d.id} doc={d} />}
       </div>
     </section>
   );
