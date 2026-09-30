@@ -6,5 +6,5 @@ import { Notice } from './Notice';
 export function PdfViewer({ doc }: ViewerProps) {
   if (!doc.path) return null;
   if (platform.kind === 'browser') return <Notice text="PDF preview needs the desktop app." path={null} />;
-  return <iframe class="pdf-frame" src={`${platform.assetUrl(doc.path)}?v=${doc.rev ?? 0}#view=FitH`} title={doc.title} />;
+  return <iframe class="pdf-frame" src={`${platform.assetUrl(doc.path)}${doc.rev ? `?v=${doc.rev}` : ''}#view=FitH`} title={doc.title} />;
 }

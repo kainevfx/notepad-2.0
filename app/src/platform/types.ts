@@ -135,7 +135,10 @@ export interface Platform {
   openAliasSettings(): Promise<void>;
 }
 
-export const FILE_TYPES = ['.txt', '.md', '.markdown', '.log', '.ini', '.cfg', '.json', '.csv'];
+/** Every type Notepad 2.0 opens (same list as KNOWN_EXTS in src-tauri/src/integration.rs). */
+export const FILE_TYPES = [
+  '.txt', '.md', '.markdown', '.log', '.ini', '.cfg', '.conf', '.toml', '.json', '.yaml', '.yml', '.xml', '.csv', '.tsv', '.html', '.htm', '.xlsx', '.xls', '.ods', '.docx', '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico',
+];
 
 export interface Workbook {
   sheets: { name: string; rows: string[][]; truncated: boolean }[];

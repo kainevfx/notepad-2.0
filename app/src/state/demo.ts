@@ -22,6 +22,12 @@ export async function seedDemo() {
   commitTree(T.createGroup(tree.value, { id: 'g-backend', name: 'Backend', color: 'cyan', collapsed: false }, [], 'g-dev'));
   await openFiles([D + 'Bugs.txt', D + 'server.log'], { groupId: 'g-backend' });
   await openFiles([D + 'Meeting Note 1.txt', D + 'Meeting Note 2.txt', D + 'Meeting Note 3.txt'], { groupId: 'g-meet' });
+  commitTree(T.createGroup(tree.value, { id: 'g-files', name: 'Production files', color: 'pink', collapsed: true }, [], null));
+  const P = D + 'Production\\';
+  await openFiles(
+    [P + 'Cast.csv', P + 'Budget.xlsx', P + 'config.json', P + 'pipeline.yaml', P + 'feed.xml', P + 'settings.toml', P + 'Brief.html', D + 'Production Brief.docx', D + 'Logo.png'],
+    { groupId: 'g-files' },
+  );
   newNote({ text: 'Laser-cut acrylic hologram box\n', groupId: 'g-ideas', activate: false });
   newNote({ text: 'Loop pack: liquid chrome at 174 BPM\n', groupId: 'g-ideas', activate: false });
   const q = newNote({ text: 'Call the venue about the rigging plot\n', groupId: QUICK_GROUP_ID, activate: false });

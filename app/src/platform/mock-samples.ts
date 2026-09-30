@@ -107,6 +107,70 @@ ffmpeg -i in.mov -c:v libx264 -crf 18 -pix_fmt yuv420p out.mp4
 2026-09-27 09:14:03 WARN  cache cold
 2026-09-27 09:15:10 INFO  render queue empty
 `,
+  [D + 'Production\\Cast.csv']: `Role,Performer,Scenes,Fee,Status
+Narrator,Ann Hale,"1, 4, 9",£1250,Confirmed
+Ghost Host,Ravi Patel,"2, 3",£900,Confirmed
+Pumpkin King,Sam O'Neil,5,£700,Pending
+"Choir (x4)",Hollow Voices,"6–8",£2400,Confirmed
+Stagehand,Jo Reyes,All,£480,Confirmed
+`,
+  [D + 'Production\\config.json']: `{
+  "project": "Halloween Window Pack",
+  "fps": 50,
+  "resolution": { "width": 3840, "height": 1152 },
+  "codecs": ["DXV3", "H.264"],
+  "loops": [
+    { "name": "Haunted Porch", "seconds": 16, "done": true },
+    { "name": "Pumpkin Parade", "seconds": 32, "done": false }
+  ],
+  "upload": null
+}
+`,
+  [D + 'Production\\pipeline.yaml']: `name: render-and-encode
+on: [push]
+steps:
+  - render: { frames: 800, samples: 256 }
+  - encode:
+      codecs: [dxv3, h264]
+      crf: 18
+  - upload: store
+`,
+  [D + 'Production\\feed.xml']: `<?xml version="1.0"?>
+<catalog updated="2026-09-30">
+  <pack id="halloween" price="29.00">
+    <title>Halloween Window Pack</title>
+    <loops>12</loops>
+  </pack>
+  <pack id="xmas" price="39.00">
+    <title>Xmas Facade</title>
+    <loops>16</loops>
+  </pack>
+</catalog>
+`,
+  [D + 'Production\\settings.toml']: `# Render settings
+[output]
+format = "dxv3"
+fps = 50
+
+[paths]
+renders = 'E:\\Renders\\Halloween'
+`,
+  [D + 'Production\\Brief.html']: `<!doctype html>
+<html><head><title>Brief</title><style>
+body { font-family: Georgia, serif; margin: 40px; color: #222; background: #fffdf7; }
+h1 { color: #c2410c; border-bottom: 3px solid #fb923c; padding-bottom: 8px; }
+.card { display: inline-block; width: 180px; margin: 8px; padding: 14px; border-radius: 10px; background: #1f2937; color: #fde68a; }
+</style></head><body>
+<h1>Halloween Window Pack</h1>
+<p>Twelve seamless loops for shop-window projection. <a href="Cast.csv">Cast list</a> · <a href="../">Project folder</a></p>
+<div class="card">Haunted Porch<br><small>16 s · rendered</small></div>
+<div class="card">Pumpkin Parade<br><small>32 s · in progress</small></div>
+<div class="card">Ghost Choir<br><small>16 s · storyboard</small></div>
+<script>document.body.innerHTML = 'scripts must never run';</script>
+</body></html>
+`,
+  [D + 'Production\\Budget.xlsx']: '',
+
 };
 
 export const DEMO_DIR = D;

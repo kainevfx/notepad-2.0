@@ -73,10 +73,17 @@ export function StatusBar() {
       </span>
       <span class="sb-item sb-save">{saveMode}</span>
       <span class="sb-flex" />
-      <button class="sb-item" onClick={(e) => langMenu(e as MouseEvent)} title="Language mode">
-        {d?.language === 'markdown' ? <IcMarkdown size={14} /> : <IcDoc size={14} />}
-        {d?.language === 'markdown' ? 'Markdown' : 'Plain text'}
-      </button>
+      {d?.viewer ? (
+        <span class="sb-item" title="File type">
+          <IcDoc size={14} />
+          {fileBadge(d).label}
+        </span>
+      ) : (
+        <button class="sb-item" onClick={(e) => langMenu(e as MouseEvent)} title="Language mode">
+          {d?.language === 'markdown' ? <IcMarkdown size={14} /> : <IcDoc size={14} />}
+          {d?.language === 'markdown' ? 'Markdown' : 'Plain text'}
+        </button>
+      )}
       <span class="sb-item sb-scale">
         <ScaleSlider compact />
       </span>

@@ -10,7 +10,10 @@ use serde::Serialize;
 pub const APP_KEY: &str = "Notepad2";
 pub const PROGID_TXT: &str = "Notepad2.txt";
 pub const PROGID_MD: &str = "Notepad2.md";
-pub const KNOWN_EXTS: &[&str] = &[".txt", ".md", ".markdown", ".log", ".ini", ".cfg", ".json", ".csv"];
+/// Every type Notepad 2.0 opens: offered in Open with (never made the default by itself).
+pub const KNOWN_EXTS: &[&str] = &[
+    ".txt", ".md", ".markdown", ".log", ".ini", ".cfg", ".conf", ".toml", ".json", ".yaml", ".yml", ".xml", ".csv", ".tsv", ".html", ".htm", ".xlsx", ".xls", ".ods", ".docx", ".pdf", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".ico",
+];
 pub const IFEO_KEY: &str = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe";
 pub const NOTEPAD_STYLE_FLAG: &str = "--notepad-style-cmdline";
 
@@ -385,6 +388,14 @@ mod tests {
         assert_eq!(progid_for(".MARKDOWN"), PROGID_MD);
         assert_eq!(progid_for(".txt"), PROGID_TXT);
         assert_eq!(progid_for(".log"), PROGID_TXT);
+    }
+
+    #[test]
+    fn known_exts_cover_every_viewer() {
+        for e in [".xlsx", ".xls", ".ods", ".csv", ".tsv", ".json", ".yaml", ".yml", ".xml", ".toml", ".html", ".htm", ".docx", ".pdf", ".png", ".jpg", ".svg"] {
+            assert!(KNOWN_EXTS.contains(&e), "{e}");
+        }
+        assert!(KNOWN_EXTS.iter().all(|e| valid_ext(e)));
     }
 
     #[test]

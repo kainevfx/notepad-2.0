@@ -1,7 +1,8 @@
 // Browser implementation: a fake C:\ drive and app store in localStorage, BroadcastChannel for
 // cross-window events. Used for development and Playwright screenshots on the VPS.
 import type { FileStat, IntegrationState, LaunchArgs, Platform } from './types';
-import { SAMPLE_FILES } from './mock-samples';
+import { SAMPLE_FILES, DEMO_DIR } from './mock-samples';
+import { SAMPLE_BINARY } from './mock-binary';
 
 const FS_KEY = 'np2.mockfs';
 const STORE_PREFIX = 'np2.store:';
@@ -28,6 +29,7 @@ function loadFs(): MockFs {
   for (const [path, text] of Object.entries(SAMPLE_FILES)) {
     fs[path] = { b64: b64encode(new TextEncoder().encode(text.replace(/\n/g, '\r\n'))), mtime: now };
   }
+  for (const [name, b64] of Object.entries(SAMPLE_BINARY)) fs[DEMO_DIR + name] = { b64, mtime: now };
   localStorage.setItem(FS_KEY, JSON.stringify(fs));
   return fs;
 }
@@ -257,7 +259,14 @@ export function createMockPlatform(label: string): Platform {
       window.open(url, '_blank', 'noopener');
     },
     async revealInExplorer() {},
-    assetUrl: (path) => path,
+    // Files in the fake drive become data: URLs so images show in the browser build.
+    assetUrl: (path) => {
+      const f = loadFs()[path];
+      if (!f) return path;
+      const ext = path.split('.').pop()!.toLowerCase();
+      const mime = ext === 'svg' ? 'image/svg+xml' : ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;
+      return `data:${mime};base64,${f.b64}`;
+    },
 
     async integrationState() {
       return { ...integration, defaults: { ...integration.defaults } };

@@ -26,7 +26,7 @@ export function ImageViewer({ doc }: ViewerProps) {
   if (failed) return <Notice text="Couldn't show this image." path={doc.path} />;
 
   const scale = zoom === 'fit' ? fitScale(nat?.w ?? 0, nat?.h ?? 0, stage.w, stage.h) : zoom;
-  const src = `${platform.assetUrl(doc.path)}?v=${doc.rev ?? 0}`;
+  const src = platform.assetUrl(doc.path) + (doc.rev ? `?v=${doc.rev}` : '');
   const onWheel = (e: WheelEvent) => {
     if (!e.ctrlKey) return;
     e.preventDefault();
