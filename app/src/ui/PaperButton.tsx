@@ -19,7 +19,11 @@ export function PaperButton({ label = true, cls = '' }: { label?: boolean; cls?:
     mounted.value = [...mounted.value, id];
     return () => {
       mounted.value = mounted.value.filter((m) => m !== id);
-      if (owner.value === id) owner.value = null;
+      // Its button went away (e.g. the rail's peek sidebar closed): close the popover with it.
+      if (owner.value === id) {
+        owner.value = null;
+        paperPopoverOpen.value = false;
+      }
     };
   }, [id]);
   const paper = effectivePaper(activeDoc.value);

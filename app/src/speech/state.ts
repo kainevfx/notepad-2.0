@@ -24,12 +24,37 @@ function audioFromBlob(blob: Blob): AudioHandle {
 const hasWindowsVoices = () => typeof window !== 'undefined' && 'speechSynthesis' in window;
 export const windowsVoices = (): SpeechSynthesisVoice[] => (hasWindowsVoices() ? window.speechSynthesis.getVoices() : []);
 
-const prepare: Prepare = async (text, o, abort) =>
-  o.engine === 'windows' ? windowsHandle(text, pickWindowsVoice(windowsVoices(), o.windowsVoice)) : audioFromBlob(await synthesize(text, o, abort));
+// The web view lists Windows voices only after asking once (then 'voiceschanged'): ask at start-up.
+if (hasWindowsVoices()) window.speechSynthesis.getVoices();
 
-export const speech = createSpeechPlayer(prepare, (s) => (speechState.value = s));
+/** The Windows voices, waiting briefly for the list the first time. */
+async function loadedWindowsVoices(): Promise<SpeechSynthesisVoice[]> {
+  const now = windowsVoices();
+  if (now.length || !hasWindowsVoices()) return now;
+  await new Promise<void>((resolve) => {
+    const done = () => resolve();
+    window.speechSynthesis.addEventListener?.('voiceschanged', done, { once: true });
+    setTimeout(done, 1000);
+  });
+  return windowsVoices();
+}
+
+const prepare: Prepare = async (text, o, abort) =>
+  o.engine === 'windows'
+    ? windowsHandle(text, pickWindowsVoice(await loadedWindowsVoices(), o.windowsVoice))
+    : audioFromBlob(await synthesize(text, o, abort));
+
+export const speech = createSpeechPlayer(prepare, (s) => {
+  // A Kokoro failure means "check again next time" for Automatic.
+  if (s.status === 'error') reach = null;
+  speechState.value = s;
+});
 
 let reach: { endpoint: string; ok: boolean; at: number } | null = null;
+/** What Settings → Test connection just found (so the next reading uses it straight away). */
+export function setKokoroReach(endpoint: string, ok: boolean) {
+  reach = { endpoint, ok, at: Date.now() };
+}
 /** Is a Kokoro server answering at `endpoint`? Remembered for 30 s so starting stays instant. */
 export async function kokoroReachable(endpoint: string): Promise<boolean> {
   if (reach && reach.endpoint === endpoint && Date.now() - reach.at < 30_000) return reach.ok;
@@ -44,6 +69,8 @@ export async function kokoroReachable(endpoint: string): Promise<boolean> {
 /** Start reading `text` (already turned into plain readable text). */
 export async function startReading(text: string, docId: string, title: string) {
   const s = settings.peek();
+  // "Preparing…" shows at once, and Stop (or Ctrl+Alt+R) during the engine check cancels it.
+  const token = speech.announce(docId, title);
   const { engine, note } = await chooseEngine(s.readAloudEngine, () => kokoroReachable(s.kokoroEndpoint), hasWindowsVoices());
-  await speech.start(text, docId, title, { engine, endpoint: s.kokoroEndpoint, voice: s.kokoroVoice, windowsVoice: s.windowsVoice, rate: s.readAloudRate }, note);
+  await speech.start(text, docId, title, { engine, endpoint: s.kokoroEndpoint, voice: s.kokoroVoice, windowsVoice: s.windowsVoice, rate: s.readAloudRate }, note, token);
 }

@@ -91,5 +91,5 @@ export function restore(raw: unknown, exists: (id: string) => boolean, fallback:
   };
   // Nothing to show on a side: one pane.
   if (s.on && (!s.docs.a || !s.docs.b)) return { ...SINGLE, ratio: s.ratio, docs: { a: s.docs.a ?? s.docs.b, b: null } };
-  return s;
+  return tidy(s);
 }

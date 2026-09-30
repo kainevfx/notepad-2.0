@@ -25,7 +25,20 @@ const encode = (p: string) => p.replace(/[%\s()<>#?]/g, (c) => '%' + c.charCodeA
 export function resolveImageUrl(docDir: string | null, url: string, asset: (path: string) => string): string {
   if (!url || /^(https?:|data:|blob:|asset:)/i.test(url)) return url;
   const target = resolveLinkTarget(url, docDir ? docDir + '/_document.md' : null);
-  return target.kind === 'path' ? asset(target.path) : url;
+  if (target.kind !== 'path') return url;
+  // An image on another computer's share is never fetched just because a document was opened
+  // (Windows would try to sign in to that server). Only a document on the same share loads it.
+  if (/^\\\\/.test(target.path)) {
+    const share = shareOf(target.path);
+    if (!docDir || shareOf(docDir.replace(/\//g, '\\')) !== share) return '';
+  }
+  return asset(target.path);
+}
+
+/** "\\server\share" (lower case) for a UNC path, else null. */
+function shareOf(p: string): string | null {
+  const m = /^\\\\([^\\]+)\\([^\\]+)/.exec(p);
+  return m ? `\\\\${m[1]}\\${m[2]}`.toLowerCase() : null;
 }
 
 /**

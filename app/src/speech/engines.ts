@@ -30,7 +30,10 @@ export function pickWindowsVoice(voices: SpeechSynthesisVoice[], name: string): 
 
 type Synth = Pick<SpeechSynthesis, 'speak' | 'pause' | 'resume' | 'cancel'>;
 
-/** One chunk spoken by a Windows voice, behaving like an audio element for the player. */
+/**
+ * One chunk spoken by a Windows voice, behaving like an audio element for the player. A speed
+ * change applies straight away: the chunk restarts from the last word spoken at the new speed.
+ */
 export function windowsHandle(
   text: string,
   voice: SpeechSynthesisVoice | null,
@@ -39,38 +42,69 @@ export function windowsHandle(
 ): AudioHandle {
   let started = false;
   let disposed = false;
-  const u = new Utterance(text);
-  if (voice) u.voice = voice;
+  let paused = false;
+  let rate = 1;
+  let spokenTo = 0; // characters of `text` already spoken (from word boundaries)
+  let current: SpeechSynthesisUtterance | null = null;
+
+  const speakFrom = (from: number) => {
+    const u = new Utterance(text.slice(from));
+    if (voice) u.voice = voice;
+    u.rate = rate;
+    current = u;
+    u.onboundary = (e: SpeechSynthesisEvent) => {
+      if (current === u) spokenTo = from + e.charIndex;
+    };
+    u.onend = () => {
+      if (current === u && !disposed) handle.onended?.();
+    };
+    u.onerror = (e: SpeechSynthesisErrorEvent) => {
+      // Stopping, replacing or restarting at a new speed cancels the utterance: not a failure.
+      if (current !== u || e.error === 'canceled' || e.error === 'interrupted') return;
+      handle.onerror?.();
+    };
+    synth.speak(u);
+  };
+
   const handle: AudioHandle = {
-    playbackRate: 1,
+    get playbackRate() {
+      return rate;
+    },
+    set playbackRate(r: number) {
+      if (r === rate) return;
+      rate = r;
+      if (started && !disposed && !paused) {
+        current = null;
+        synth.cancel();
+        speakFrom(spokenTo);
+      }
+    },
     onended: null,
     onerror: null,
     async play() {
       if (disposed) return;
-      if (started) synth.resume();
-      else {
+      if (!started) {
         started = true;
-        // Windows voices take their speed when they start (0.5–2 maps onto the same range).
-        u.rate = handle.playbackRate;
-        synth.speak(u);
+        speakFrom(0);
+      } else if (paused) {
+        paused = false;
+        synth.resume();
       }
     },
     pause() {
-      if (started && !disposed) synth.pause();
+      if (!started || disposed || paused) return;
+      paused = true;
+      synth.pause();
     },
     dispose() {
       if (disposed) return;
       disposed = true;
-      if (started) synth.cancel();
+      current = null;
+      if (!started) return;
+      // A paused synthesiser stays paused across cancel(): resume it so the next reading plays.
+      if (paused) synth.resume();
+      synth.cancel();
     },
-  };
-  u.onend = () => {
-    if (!disposed) handle.onended?.();
-  };
-  u.onerror = (e: SpeechSynthesisErrorEvent) => {
-    // Stopping or replacing the reading cancels the utterance: that's not a failure.
-    if (e.error === 'canceled' || e.error === 'interrupted') return;
-    handle.onerror?.();
   };
   return handle;
 }

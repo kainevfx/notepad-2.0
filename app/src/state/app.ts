@@ -1261,10 +1261,23 @@ function leaveVisual(then: () => void): boolean {
   return true;
 }
 
+/** Paste plain text where the Visual editor's cursor is (the menus' Paste in Visual). */
+async function pasteIntoVisual() {
+  const ed = visualApi.editor;
+  if (!ed) return;
+  try {
+    const text = await navigator.clipboard.readText();
+    ed.view.pasteText(text);
+  } catch {
+    ed.view.focus();
+    document.execCommand('paste');
+  }
+}
+
 export const cmd = {
   undo: () => (inVisual() ? visualApi.undo() : !sourceHidden() && withView((v) => undo(v))),
   redo: () => (inVisual() ? visualApi.redo() : !sourceHidden() && withView((v) => redo(v))),
-  selectAll: () => !sourceHidden() && withView((v) => selectAll(v)),
+  selectAll: () => (inVisual() ? void visualApi.editor!.commands.selectAll() : !sourceHidden() && withView((v) => selectAll(v))),
   find: () => leaveVisual(() => cmd.find()) || withView((v) => {
     openSearchPanel(v);
     setTimeout(() => (v.dom.querySelector('.cm-search input[name=search]') as HTMLInputElement | null)?.select(), 0);
@@ -1286,7 +1299,7 @@ export const cmd = {
     v.focus();
     document.execCommand('copy');
   }),
-  paste: () => !sourceHidden() && withView(async (v) => {
+  paste: () => (inVisual() ? pasteIntoVisual() : !sourceHidden() && withView(async (v) => {
     try {
       const text = await navigator.clipboard.readText();
       v.dispatch(v.state.replaceSelection(text));
@@ -1294,7 +1307,7 @@ export const cmd = {
       v.focus();
       document.execCommand('paste');
     }
-  }),
+  })),
   del: () => !sourceHidden() && withView((v) => {
     v.dispatch(v.state.replaceSelection(''));
   }),

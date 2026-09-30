@@ -74,12 +74,14 @@ describe('windowsHandle', () => {
     const err = vi.fn();
     h.onerror = err;
     await h.play();
-    h.dispose();
-    expect(synth.cancel).toHaveBeenCalled();
     synth.spoken[0].onerror({ error: 'canceled' });
     synth.spoken[0].onerror({ error: 'interrupted' });
     expect(err).not.toHaveBeenCalled();
     synth.spoken[0].onerror({ error: 'synthesis-failed' });
     expect(err).toHaveBeenCalledTimes(1);
+    h.dispose();
+    expect(synth.cancel).toHaveBeenCalled();
+    synth.spoken[0].onerror({ error: 'synthesis-failed' });
+    expect(err).toHaveBeenCalledTimes(1); // nothing is reported after stopping
   });
 });

@@ -38,7 +38,16 @@ pub async fn kokoro_voices(endpoint: String) -> Result<Vec<String>, String> {
     if !response.status().is_success() {
         return Err(format!("Kokoro answered HTTP {}.", response.status().as_u16()));
     }
-    let json: serde_json::Value = response.json().await.map_err(|_| "That server didn't send a Kokoro voice list.")?;
+    // A voice list is a few KB: never read more than 1 MB from whatever answers.
+    let mut body = Vec::new();
+    let mut response = response;
+    while let Some(chunk) = response.chunk().await.map_err(|_| "The voice list download was interrupted.")? {
+        if body.len() + chunk.len() > 1024 * 1024 {
+            return Err("That server didn't send a Kokoro voice list.".into());
+        }
+        body.extend_from_slice(&chunk);
+    }
+    let json: serde_json::Value = serde_json::from_slice(&body).map_err(|_| "That server didn't send a Kokoro voice list.")?;
     let voices = parse_voices(&json);
     if voices.is_empty() {
         return Err("That server didn't send a Kokoro voice list.".into());
@@ -65,7 +74,8 @@ pub async fn kokoro_speech(endpoint: String, input: String, voice: String) -> Re
     if input.trim().is_empty() || input.chars().count() > 1500 {
         return Err("Read aloud needs between 1 and 1500 characters per request.".into());
     }
-    if voice.is_empty() || voice.len() > 80 || !voice.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+    // Plain voice ids, or a mix such as "af_bella+af_sky" (Kokoro-FastAPI supports both).
+    if voice.is_empty() || voice.len() > 80 || !voice.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '+') {
         return Err("Choose a valid Kokoro voice in Settings.".into());
     }
     let client = reqwest::Client::builder()

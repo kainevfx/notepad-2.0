@@ -8,11 +8,10 @@ import {
   dirname, getView, panes, focusPane, setPaneView, setSplitRatio, type DocMeta,
 } from '../state/app';
 import { settings } from '../state/settings';
-import { platform } from '../platform';
 import { renderMarkdown } from '../markdown/pipeline';
 import { createEditorState } from '../editor/setup';
 import { renderMermaid } from '../markdown/mermaid';
-import { resolveImageUrl } from '../editor/insert';
+import { imageResolver } from '../editor/image-resolver';
 import { VisualEditor } from './VisualEditor';
 import { followLink } from '../state/links';
 import { ViewerPane } from './ViewerPane';
@@ -66,7 +65,7 @@ export function Preview({ docId, syncRef }: { docId: string; syncRef: { current:
         renderMarkdown(textOf(id), {
           blockRemoteImages: s.blockRemoteImages,
           // Relative images load from the document's folder, drive paths directly (also in unsaved notes).
-          resolveUrl: (u) => (u ? resolveImageUrl(base, u, platform.assetUrl) : base ?? ''),
+          resolveUrl: imageResolver(base),
         }),
       );
     }, 120);

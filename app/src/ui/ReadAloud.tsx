@@ -7,7 +7,7 @@ import { settings, updateSettings } from '../state/settings';
 import { openContextMenu, settingsOpen, showToast } from '../state/ui';
 import type { MenuItem } from '../state/ui';
 import { visualApi } from '../editor/visual/sync';
-import { speech, speechState, windowsVoices } from '../speech/state';
+import { speech, speechState, windowsVoices, setKokoroReach } from '../speech/state';
 import { readPage, readSelection, currentSelection, canRead, stopIfDocClosed } from '../speech/commands';
 import { kokoroVoices, KOKORO_VOICES, voiceLabel } from '../speech/kokoro';
 
@@ -16,9 +16,11 @@ export function readAloudItems(): MenuItem[] {
   const st = speech.state.status;
   const reading = st === 'loading' || st === 'playing' || st === 'paused';
   const ok = canRead();
+  // Keep the selection as it is now: clicking the menu item can clear it.
+  const selection = currentSelection();
   return [
     { label: 'Read page aloud', shortcut: 'Ctrl+Alt+R', disabled: !ok, action: () => void readPage() },
-    { label: 'Read selection aloud', disabled: !ok || !currentSelection().text.trim(), action: () => void readSelection() },
+    { label: 'Read selection aloud', disabled: !ok || !selection.text.trim(), action: () => void readSelection(selection) },
     ...(reading
       ? [
           { label: st === 'paused' ? 'Resume reading' : 'Pause reading', action: () => (st === 'paused' ? speech.resume() : speech.pause()) },
@@ -113,17 +115,30 @@ export function ReadAloudSettings({ Row }: { Row: (p: { title: string; desc?: st
   }, []);
 
   const runTest = async () => {
+    const endpoint = s.kokoroEndpoint;
     setTest({ ok: true, text: 'Checking…' });
     try {
-      const v = await kokoroVoices(s.kokoroEndpoint);
+      const v = await kokoroVoices(endpoint);
       setServerVoices(v);
+      setKokoroReach(endpoint, true);
       setTest({ ok: true, text: `Connected · ${v.length} voices` });
     } catch (e) {
+      setKokoroReach(endpoint, false);
       setTest({ ok: false, text: String((e as Error)?.message ?? e) });
     }
   };
   useEffect(() => {
-    void kokoroVoices(s.kokoroEndpoint).then(setServerVoices, () => setServerVoices(null));
+    // A new address: forget the old answer, and ignore a slow reply for the old one.
+    let live = true;
+    setTest(null);
+    setServerVoices(null);
+    void kokoroVoices(s.kokoroEndpoint).then(
+      (v) => live && setServerVoices(v),
+      () => live && setServerVoices(null),
+    );
+    return () => {
+      live = false;
+    };
   }, [s.kokoroEndpoint]);
 
   const kokoroList = serverVoices?.length ? serverVoices.map((id) => ({ id, label: voiceLabel(id) })) : KOKORO_VOICES;
@@ -156,7 +171,7 @@ export function ReadAloudSettings({ Row }: { Row: (p: { title: string; desc?: st
       </Row>
       <Row
         title="Start Kokoro on this PC"
-        desc="Kokoro is a free, offline neural voice (Kokoro-82M, Apache 2.0). With Docker Desktop running, this command starts it and keeps it running (about 2 GB to download once)."
+        desc="Kokoro is a free, offline neural voice (Kokoro-82M, Apache 2.0). With Docker Desktop running, this command starts it and keeps it running (about 2 GB to download once). Voice mixes such as af_bella+af_sky work too."
       >
         <div class="ra-setup">
           <code>{KOKORO_SETUP}</code>

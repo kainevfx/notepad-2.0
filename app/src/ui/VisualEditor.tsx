@@ -2,13 +2,12 @@
 // its text on entry and writes each Visual edit back as one minimal change (editor/visual/sync.ts).
 // With split view there can be two; only the active pane's is "the" Visual editor (toolbar, undo,
 // flush) and only it writes. The other one just shows its document and follows edits.
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { useSignalEffect } from '@preact/signals';
 import type { Editor } from '@tiptap/core';
 import { docs, activeId, editTick, getView, textOf, setPaneView, panes, effectivePaper, dirname } from '../state/app';
-import { platform } from '../platform';
-import { resolveImageUrl } from '../editor/insert';
 import { createRenderContext } from '../editor/visual/render-context';
+import { imageResolver } from '../editor/image-resolver';
 import { mountVisualEditor, loadIntoEditor, editorToMarkdown } from '../editor/visual/extensions';
 import { createVisualSync, visualApi, visualEpoch } from '../editor/visual/sync';
 import { followLink } from '../state/links';
@@ -22,15 +21,16 @@ export function VisualEditor({ pane = 'a' }: { pane?: PaneId }) {
   const host = useRef<HTMLDivElement>(null);
   const edRef = useRef<Editor | null>(null);
   const docId = useRef<string | null>(null);
-  const context = useRef(createRenderContext(() => {
-    const id = panes.peek().docs[pane] ?? activeId.peek();
-    const path = id ? docs.peek()[id]?.path : null;
-    const base = path ? dirname(path) : null;
-    return {
-      blockRemoteImages: settings.peek().blockRemoteImages,
-      resolveUrl: (u: string) => u ? resolveImageUrl(base, u, platform.assetUrl) : base ?? '',
-    };
-  })).current;
+  // What rendered blocks (images, maths, diagrams) depend on: this pane's document folder and the
+  // remote-image setting. The same resolver is reused until one of them changes.
+  const [context] = useState(() =>
+    createRenderContext(() => {
+      const id = panes.peek().docs[pane] ?? activeId.peek();
+      const path = id ? docs.peek()[id]?.path : null;
+      return { blockRemoteImages: settings.peek().blockRemoteImages, resolveUrl: imageResolver(path ? dirname(path) : null) };
+    }),
+  );
+  const renderKey = useRef('');
   const timer = useRef<ReturnType<typeof setTimeout>>();
   const reloadTimer = useRef<ReturnType<typeof setTimeout>>();
   const sync = useRef(
@@ -109,11 +109,14 @@ export function VisualEditor({ pane = 'a' }: { pane?: PaneId }) {
   });
 
   // Images and other rendered blocks resolve against this pane's document folder.
+  // Re-rendered only when the folder or the setting actually changes (not on every edit).
   useSignalEffect(() => {
     const id = panes.value.docs[pane] ?? activeId.value;
-    if (id) docs.value[id]?.path;
-    settings.value.blockRemoteImages;
-    context.refresh();
+    const key = `${(id && docs.value[id]?.path) || ''}|${settings.value.blockRemoteImages}`;
+    if (key === renderKey.current) return;
+    const first = renderKey.current === '';
+    renderKey.current = key;
+    if (!first) context.refresh();
   });
 
   // Load this pane's document, and re-load when its text changed elsewhere (Source, the other

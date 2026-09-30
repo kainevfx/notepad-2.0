@@ -64,7 +64,7 @@ describe('panes', () => {
   });
 
   it('restore keeps valid state', () => {
-    const raw = { on: true, ratio: 0.4, active: 'b', docs: { a: 'x', b: 'y' }, override: { a: null, b: 'edit' } };
+    const raw = { on: true, ratio: 0.4, active: 'b', docs: { a: 'x', b: 'x' }, override: { a: null, b: 'edit' } };
     expect(restore(raw, () => true, 'x')).toEqual(raw);
   });
   it('restore replaces a missing document with the fallback', () =>

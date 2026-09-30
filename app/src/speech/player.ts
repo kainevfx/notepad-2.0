@@ -45,12 +45,17 @@ export function createSpeechPlayer(prepare: Prepare, changed: (state: SpeechStat
     state = { ...state, ...patch };
     changed(state);
   };
+  let prefetch: { index: number; handle: Promise<AudioHandle> } | undefined;
   const release = () => {
     if (!audio) return;
     audio.onended = audio.onerror = null;
-    audio.pause();
     audio.dispose();
     audio = undefined;
+  };
+  /** Throw away a part prepared ahead of time (when it arrives, if it hasn't yet). */
+  const dropPrefetch = () => {
+    prefetch?.handle.then((h) => h.dispose(), () => {});
+    prefetch = undefined;
   };
   const stop = () => {
     generation++;
@@ -58,6 +63,7 @@ export function createSpeechPlayer(prepare: Prepare, changed: (state: SpeechStat
     controller = undefined;
     paused = false;
     release();
+    dropPrefetch();
     publish({ status: 'idle', error: undefined, note: undefined, part: 0, total: 0, docId: '', title: '' });
   };
   const fail = (error: unknown, token: number) => {
@@ -79,10 +85,20 @@ export function createSpeechPlayer(prepare: Prepare, changed: (state: SpeechStat
     get state() {
       return state;
     },
-    async start(text: string, docId: string, title: string, options: SpeechOptions, note?: string) {
+    /** Show "Preparing…" straight away (while the engine is chosen); returns the token for start(). */
+    announce(docId: string, title: string): number {
       stop();
+      publish({ status: 'loading', title, docId, part: 0, total: 0 });
+      return generation;
+    },
+    async start(text: string, docId: string, title: string, options: SpeechOptions, note?: string, announced?: number) {
+      if (announced === undefined) stop();
+      else if (announced !== generation) return; // stopped (or replaced) while it was being set up
       const chunks = speechChunks(text);
-      if (!chunks.length) return;
+      if (!chunks.length) {
+        stop();
+        return;
+      }
       const token = generation;
       controller = new AbortController();
       const signal = controller.signal;
@@ -97,7 +113,9 @@ export function createSpeechPlayer(prepare: Prepare, changed: (state: SpeechStat
         }
         publish({ part: index + 1, status: paused ? 'paused' : 'loading' });
         try {
-          const handle = await prepare(chunks[index], { ...options, rate }, signal);
+          const ready = prefetch?.index === index ? prefetch.handle : prepare(chunks[index], { ...options, rate }, signal);
+          prefetch = undefined;
+          const handle = await ready;
           if (token !== generation) {
             handle.dispose();
             return;
@@ -106,6 +124,12 @@ export function createSpeechPlayer(prepare: Prepare, changed: (state: SpeechStat
           audio.playbackRate = rate;
           audio.onended = () => void next(index + 1);
           audio.onerror = () => fail(new Error('The audio could not be played. Try another voice.'), token);
+          // Prepare the next part while this one plays, so there's no gap between parts.
+          if (index + 1 < chunks.length) {
+            const handle = prepare(chunks[index + 1], { ...options, rate }, signal);
+            handle.catch(() => {});
+            prefetch = { index: index + 1, handle };
+          }
           await play(token);
         } catch (error) {
           fail(error, token);
