@@ -1,6 +1,6 @@
 // Insert and Help menu actions. They work in every view: Visual (TipTap), Source / Split and
 // plain text (CodeMirror).
-import { activeDoc, getView, displayTitle } from '../state/app';
+import { activeDoc, getView, displayTitle , activeView } from '../state/app';
 import { ask, alertMsg, guideOpen } from '../state/ui';
 import { visualApi } from '../editor/visual/sync';
 import { insertSnippet, imageMarkdown } from '../editor/insert';
@@ -10,7 +10,7 @@ import type { MenuItem } from '../state/ui';
 
 const inVisual = () => {
   const d = activeDoc.value;
-  return !!d && d.language === 'markdown' && d.mdView === 'visual' && !!visualApi.editor;
+  return !!d && d.language === 'markdown' && activeView(d) === 'visual' && !!visualApi.editor;
 };
 
 /** Put text at the cursor in the source / plain-text editor. */

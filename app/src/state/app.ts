@@ -125,7 +125,14 @@ const paneViews: Record<PaneId, EditorView | null> = { a: null, b: null };
 
 /** The view mode the active pane shows for `d` (a pane's own override when both sides show `d`). */
 export function activeView(d: DocMeta): MdView {
-  return P.viewFor(panes.value, panes.value.active, d.mdView);
+  const s = panes.value;
+  return d.id === s.docs[s.active] ? P.viewFor(s, s.active, d.mdView) : d.mdView;
+}
+
+/** The document the inactive pane shows (null when split view is off). */
+function otherDoc(): string | null {
+  const s = panes.value;
+  return s.on ? s.docs[P.other(s.active)] : null;
 }
 
 /** Highlighting for a data file's source: logs get level colours, others their language. */
@@ -183,6 +190,7 @@ function addDoc(d: DocMeta, text: string, syntax?: Extension) {
 
 /** A pane's editor mounted (or unmounted, with null). */
 export function attachPaneView(pane: PaneId, v: EditorView | null) {
+  if (paneViews[pane] && view === paneViews[pane]) view = null;
   paneViews[pane] = v;
   if (pane === panes.value.active) {
     view = v;
@@ -204,8 +212,12 @@ function showInOtherPane() {
   }
   if (!v) return;
   const d = docs.value[id];
-  const st = id === activeId.value && view ? createEditorState(view.state.doc.toString(), d.language === 'markdown', d.readonly, viewConfig(d), syntaxes.get(id)) : states.get(id);
-  if (!st) return;
+  const live = view && view === paneViews[s.active] ? view.state : null;
+  const base = id === activeId.value && live ? live : states.get(id);
+  if (!base) return;
+  // The same document on both sides: a separate copy (own cursor and undo), kept in step by
+  // forwarding edits. A different document: its stored state.
+  const st = id === activeId.value ? createEditorState(base.doc.toString(), d.language === 'markdown', d.readonly, viewConfig(d), syntaxes.get(id)) : base;
   v.setState(st);
   v.dispatch({ effects: reconfigureEffects(viewConfig(d), d.language === 'markdown', d.readonly) });
 }
@@ -251,7 +263,7 @@ export function setSplitRatio(r: number) {
 export function setPaneView(pane: PaneId, v: MdView) {
   focusPane(pane);
   const s = panes.value;
-  const id = s.docs[pane];
+  const id = s.docs[pane] ?? (pane === s.active ? activeId.value : null);
   if (!id) return;
   if (P.setView(s, pane) === 'override') {
     visualApi.flush();
@@ -317,7 +329,8 @@ setUpdateHandler((u: ViewUpdate) => {
     const s = panes.value;
     const ov = s.on ? paneViews[P.other(s.active)] : null;
     if (ov && s.docs[P.other(s.active)] === activeId.value) {
-      for (const tr of u.transactions) if (tr.docChanged) ov.dispatch({ changes: tr.changes, annotations: Transaction.addToHistory.of(false) });
+      if (ov.state.doc.length !== u.startState.doc.length) showInOtherPane();
+      else for (const tr of u.transactions) if (tr.docChanged) ov.dispatch({ changes: tr.changes, annotations: Transaction.addToHistory.of(false) });
     }
   }
   if (u.selectionSet || u.docChanged) updateCursorInfo();
@@ -346,6 +359,8 @@ export function activate(id: string) {
     settingsOpen.value = false;
   });
   showInView(id);
+  const od = otherDoc();
+  if (panes.value.on && (!od || !docs.value[od])) showInOtherPane();
   updateWindowTitle();
   scheduleSession();
 }
@@ -709,7 +724,11 @@ export async function closeDoc(id: string, opts: { skipPrompt?: boolean } = {}):
   const d = docs.value[id];
   if (!d) return true;
   if (d.kind === 'file' && d.dirty && !opts.skipPrompt) {
-    activate(id);
+    // Show the file being asked about: its own pane in split view, else load it.
+    const s0 = panes.value;
+    const shownIn = s0.on ? (['a', 'b'] as const).find((p) => s0.docs[p] === id) : undefined;
+    if (shownIn) focusPane(shownIn);
+    else activate(id);
     const r = await ask({
       title: 'Notepad 2.0',
       body: `Do you want to save changes to ${d.path ?? displayTitle(d)}?`,
@@ -749,13 +768,14 @@ export async function closeDoc(id: string, opts: { skipPrompt?: boolean } = {}):
   states.delete(id);
   syntaxes.delete(id);
   const nextOk = next && rest[next] ? next : null;
+  const otherBefore = otherDoc();
   if (panes.value.on) panes.value = P.onRemoved(panes.value, [id], () => nextOk);
   if (activeId.value === null) {
     const want = panes.value.on ? panes.value.docs[panes.value.active] : nextOk;
     if (want && rest[want]) activate(want);
     else newNote();
   }
-  if (panes.value.on) showInOtherPane();
+  if (panes.value.on && otherDoc() !== otherBefore) showInOtherPane();
   scheduleSession();
   return true;
 }
@@ -925,12 +945,13 @@ export function cycleMdView() {
   const d = activeDoc.value;
   if (!d) return;
   const order: MdView[] = ['visual', 'edit', 'split'];
+  const next = order[(order.indexOf(activeView(d)) + 1) % 3];
   if (d.viewer) {
-    if (hasViewPane(d.viewer)) setMdView(d.id, order[(order.indexOf(d.mdView) + 1) % 3]);
+    if (hasViewPane(d.viewer)) setPaneView(panes.value.active, next);
     return;
   }
   if (d.language !== 'markdown') return setMdView(d.id, 'visual');
-  setMdView(d.id, order[(order.indexOf(d.mdView) + 1) % 3]);
+  setPaneView(panes.value.active, next);
 }
 
 /** Set by the sheet viewer: the sheet on screen, for Save sheet as CSV. */
@@ -1205,6 +1226,7 @@ export function onQuickNoteUpdated(p: { id: string; text: string; from: string; 
     view.dispatch({ selection: { anchor: sel } });
     editTick.value++;
   }
+  if (otherDoc() === p.id) showInOtherPane();
 }
 
 // ---------------------------------------------------------------- commands used by menus & keys
@@ -1234,7 +1256,7 @@ function leaveVisual(then: () => void): boolean {
   }
   if (!inVisual()) return false;
   visualApi.flush();
-  setMdView(activeId.value!, 'edit');
+  setPaneView(panes.value.active, 'edit');
   queueMicrotask(then);
   return true;
 }
@@ -1316,18 +1338,24 @@ export const cmd = {
   print() {
     const d = activeDoc.value;
     if (!d) return;
-    printText(textOf(d.id), displayTitle(d), d.language === 'markdown' && d.mdView !== 'edit');
+    printText(textOf(d.id), displayTitle(d), d.language === 'markdown' && activeView(d) !== 'edit');
   },
   toggleTabsMode() {
     updateSettings({ tabsMode: nextTabsMode(settings.value.tabsMode) });
   },
 };
 
+/** The rendered page to print: the active pane's (split view has two). */
+export function printSourceElement(): Element | null {
+  const root = panes.value.on ? document.querySelector('.editor-pane.pane-active') : document;
+  return root?.querySelector('.md-preview .markdown-body, .visual-editor .ProseMirror') ?? null;
+}
+
 export function printText(text: string, title: string, rendered: boolean) {
   const root = document.createElement('div');
   root.id = 'print-root';
   if (rendered) {
-    const src = document.querySelector('.md-preview .markdown-body, .visual-editor .ProseMirror');
+    const src = printSourceElement();
     root.innerHTML = src ? src.innerHTML : '';
     root.className = 'markdown-body';
   } else {
@@ -1426,12 +1454,13 @@ export function removeDocs(ids: string[]) {
   docs.value = Object.fromEntries(Object.entries(docs.value).filter(([id]) => !drop.has(id)));
   const left = orderedIds.value.find((id) => !drop.has(id)) ?? null;
   if (panes.value.on) {
+    const otherBefore = otherDoc();
     panes.value = P.onRemoved(panes.value, ids, () => left);
     if (!activeId.value) {
       const a = panes.value.docs[panes.value.active];
       if (a && docs.value[a]) activate(a);
     }
-    showInOtherPane();
+    if (otherDoc() !== otherBefore) showInOtherPane();
   }
 }
 
@@ -1528,6 +1557,7 @@ async function restoreSession(): Promise<boolean> {
   for (const id of keep) if (!inTree.has(id)) tree.value = [...tree.value, { id, kind: 'note' }];
   let act = s.activeId && keep.has(s.activeId) ? s.activeId : T.flattenNotes(tree.value)[0] ?? null;
   applySessionSplit(s.split, keep, act);
+  view = paneViews[panes.value.active];
   act = panes.value.docs[panes.value.active] ?? act;
   activeId.value = null;
   if (act) {

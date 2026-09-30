@@ -5,7 +5,7 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { useSignalEffect } from '@preact/signals';
 import type { Editor } from '@tiptap/core';
-import { docs, activeId, editTick, getView, textOf, setMdView, panes, effectivePaper } from '../state/app';
+import { docs, activeId, editTick, getView, textOf, setPaneView, panes, effectivePaper } from '../state/app';
 import { mountVisualEditor, loadIntoEditor, editorToMarkdown } from '../editor/visual/extensions';
 import { createVisualSync, visualApi, visualEpoch } from '../editor/visual/sync';
 import { followLink } from '../state/links';
@@ -20,6 +20,7 @@ export function VisualEditor({ pane = 'a' }: { pane?: PaneId }) {
   const edRef = useRef<Editor | null>(null);
   const docId = useRef<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>();
+  const reloadTimer = useRef<ReturnType<typeof setTimeout>>();
   const sync = useRef(
     createVisualSync({
       serialize: () => (edRef.current ? editorToMarkdown(edRef.current) : ''),
@@ -48,7 +49,7 @@ export function VisualEditor({ pane = 'a' }: { pane?: PaneId }) {
       const id = docId.current;
       if (locked && id) {
         flush();
-        setMdView(id, 'edit');
+        setPaneView(pane, 'edit');
       }
     };
     ed.view.dom.addEventListener('dblclick', onDbl);
@@ -80,12 +81,19 @@ export function VisualEditor({ pane = 'a' }: { pane?: PaneId }) {
   useSignalEffect(() => {
     const on = isActivePane(pane);
     const ed = edRef.current;
-    if (!ed || !on || visualApi.editor === ed) return;
-    visualApi.editor = ed;
-    visualApi.flush = flush;
-    visualApi.undo = () => ed.commands.undo();
-    visualApi.redo = () => ed.commands.redo();
-    visualEpoch.value++;
+    if (!ed) return;
+    if (on && visualApi.editor !== ed) {
+      visualApi.editor = ed;
+      visualApi.flush = flush;
+      visualApi.undo = () => ed.commands.undo();
+      visualApi.redo = () => ed.commands.redo();
+      visualEpoch.value++;
+    } else if (!on && visualApi.editor === ed) {
+      visualApi.editor = null;
+      visualApi.flush = () => {};
+      visualApi.undo = visualApi.redo = () => false;
+      visualEpoch.value++;
+    }
   });
 
   // Load this pane's document, and re-load when its text changed elsewhere (Source, the other
@@ -102,10 +110,17 @@ export function VisualEditor({ pane = 'a' }: { pane?: PaneId }) {
     // A pending edit belongs to the document shown before; write it there first.
     if (docId.current && docId.current !== d.id) flush();
     clearTimeout(timer.current);
-    loadIntoEditor(ed, text, !d.readonly);
-    docId.current = d.id;
-    sync.loaded(text);
+    clearTimeout(reloadTimer.current);
+    const load = () => {
+      loadIntoEditor(ed, textOf(d.id), !d.readonly);
+      docId.current = d.id;
+      sync.loaded(textOf(d.id));
+    };
+    // The inactive pane follows the other pane's typing after a short pause, not per keystroke.
+    if (!isActivePane(pane) && docId.current === d.id) reloadTimer.current = setTimeout(load, 150);
+    else load();
   });
+  useEffect(() => () => clearTimeout(reloadTimer.current), []);
 
   const id = panes.value.docs[pane] ?? activeId.value;
   const paper = visualPaper(effectivePaper(id ? docs.value[id] ?? null : null), settings.value);

@@ -3,7 +3,7 @@
 //   Source/Split -> Markdown (and small HTML) syntax inserted in CodeMirror
 //   Plain text   -> only what plain text can hold (wrap, indent, display font size/weight)
 import type { DocMeta } from '../state/app';
-import { getView, refreshView, activeDoc } from '../state/app';
+import { getView, refreshView, activeDoc, activeView } from '../state/app';
 import { platform } from '../platform';
 import { relativeLink } from '../lib/link-target';
 import { settings, updateSettings } from '../state/settings';
@@ -191,5 +191,5 @@ export const readonlyTarget: FormatTarget = {
 export function targetFor(d: DocMeta | null): FormatTarget {
   if (d?.readonly) return readonlyTarget;
   if (!d || d.language !== 'markdown') return plainTarget;
-  return d.mdView === 'visual' ? visualTarget : sourceTarget;
+  return activeView(d) === 'visual' ? visualTarget : sourceTarget;
 }

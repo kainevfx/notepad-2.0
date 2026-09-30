@@ -4,7 +4,7 @@ import { settingsOpen, paperPopoverOpen, closedNotesOpen, openContextMenu } from
 import { settings, updateSettings, isDark } from '../state/settings';
 import {
   activeDoc, activeId, newNote, openWithDialog, saveDoc, saveDocAs, saveAll, closeDoc, cmd, recentFiles, openFiles, hideToTray,
-  quitApp, setMdView, setLanguage, cycleMdView, effectivePaper, refreshView, newGroupFrom, closedNotes, setPaper, saveSheetCsv, panes, toggleSplit,
+  quitApp, setLanguage, cycleMdView, effectivePaper, refreshView, newGroupFrom, closedNotes, setPaper, saveSheetCsv, panes, toggleSplit, activeView, setPaneView,
 } from '../state/app';
 import { platform } from '../platform';
 import { MenuList } from './MenuList';
@@ -122,9 +122,9 @@ function viewMenu(): MenuItem[] {
       label: 'Markdown',
       disabled: !!d?.viewer,
       submenu: [
-        { label: 'Visual', checked: d?.language === 'markdown' && d.mdView === 'visual', action: () => d && setMdView(d.id, 'visual') },
-        { label: 'Source', checked: d?.language === 'markdown' && d.mdView === 'edit', action: () => d && setMdView(d.id, 'edit') },
-        { label: 'Source and preview', checked: d?.language === 'markdown' && d.mdView === 'split', action: () => d && setMdView(d.id, 'split') },
+        { label: 'Visual', checked: d?.language === 'markdown' && activeView(d) === 'visual', action: () => d && setPaneView(panes.value.active, 'visual') },
+        { label: 'Source', checked: d?.language === 'markdown' && activeView(d) === 'edit', action: () => d && setPaneView(panes.value.active, 'edit') },
+        { label: 'Source and preview', checked: d?.language === 'markdown' && activeView(d) === 'split', action: () => d && setPaneView(panes.value.active, 'split') },
         { label: 'Cycle views', shortcut: 'Ctrl+Shift+V', action: () => cycleMdView() },
         { separator: true },
         { label: 'Treat this tab as plain text', checked: d?.language === 'plain', action: () => d && setLanguage(d.id, d.language === 'plain' ? 'markdown' : 'plain') },
