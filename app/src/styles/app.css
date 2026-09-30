@@ -692,3 +692,6 @@ html.dark .cm-line.log-warn { color: #f0b429; }
 .tv-attr { color: var(--syn-fn); }
 .tv-text { color: var(--text); }
 .tv-error { margin: 12px; }
+
+/* HTML viewer: pages expect a white page. */
+.html-frame { flex: 1 1 auto; width: 100%; min-height: 0; border: 0; background: #fff; }
