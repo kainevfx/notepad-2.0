@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { MenuItem } from '../state/ui';
-import { settingsOpen, paperPopoverOpen, closedNotesOpen } from '../state/ui';
+import { settingsOpen, paperPopoverOpen, closedNotesOpen, openContextMenu } from '../state/ui';
 import { settings, updateSettings, isDark } from '../state/settings';
 import {
   activeDoc, activeId, newNote, openWithDialog, saveDoc, saveDocAs, saveAll, closeDoc, cmd, recentFiles, openFiles, hideToTray,
@@ -8,10 +8,9 @@ import {
 } from '../state/app';
 import { platform } from '../platform';
 import { MenuList } from './MenuList';
-import { IcGear, IcPencil, IcSplit, IcEye, IcGrid, IcLines, IcNumbers, IcNone, IcSidebar, IcTabsTop } from './icons';
-import { PaperPopover } from './PaperPopover';
+import { IcSidebar, IcTabsTop } from './icons';
 import { insertMenu, helpMenu } from './insert-actions';
-import { hasViewPane } from '../lib/view-kind';
+import { TABS_MODES, tabsModeLabel } from '../lib/tabs-modes';
 
 type MenuName = 'File' | 'Edit' | 'Insert' | 'View' | 'Help';
 
@@ -100,6 +99,7 @@ function viewMenu(): MenuItem[] {
         { label: 'Along the top', checked: s.tabsMode === 'top', action: () => updateSettings({ tabsMode: 'top' }) },
         { label: 'Down the left side', checked: s.tabsMode === 'left', action: () => updateSettings({ tabsMode: 'left' }) },
         { label: 'Collapsed rail', checked: s.tabsMode === 'rail', action: () => updateSettings({ tabsMode: 'rail' }) },
+        { label: 'Compact (vertical labels)', checked: s.tabsMode === 'compact', action: () => updateSettings({ tabsMode: 'compact' }) },
         { separator: true },
         { label: 'New file group from this file', shortcut: 'Ctrl+Shift+G', action: () => activeId.value && newGroupFrom([activeId.value]) },
       ],
@@ -135,9 +135,7 @@ function viewMenu(): MenuItem[] {
 export function MenuBar() {
   const [open, setOpen] = useState<MenuName | null>(null);
   const [anchor, setAnchor] = useState({ left: 0, top: 0 });
-  const d = activeDoc.value;
   const s = settings.value;
-  const paper = effectivePaper(d);
 
   useEffect(() => {
     if (!open) return;
@@ -174,7 +172,6 @@ export function MenuBar() {
     </button>
   );
 
-  const PaperIcon = paper === 'grid' ? IcGrid : paper === 'lines' ? IcLines : paper === 'numbers' ? IcNumbers : IcNone;
 
   return (
     <div class="menubar">
@@ -182,45 +179,32 @@ export function MenuBar() {
       {btn('Edit')}
       {btn('Insert')}
       {btn('View')}
+      <button
+        class={`menubar-btn${settingsOpen.value ? ' open' : ''}`}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          setOpen(null);
+          settingsOpen.value = !settingsOpen.value;
+        }}
+      >
+        Settings
+      </button>
       {btn('Help')}
       {open && <MenuList items={items} onDone={() => setOpen(null)} style={{ position: 'fixed', left: `${anchor.left}px`, top: `${anchor.top}px` }} />}
       <div class="menubar-spacer" />
-      {d && ((d.language === 'markdown' && !d.viewer) || hasViewPane(d.viewer)) && (
-        <div class="seg" role="group" aria-label={d.viewer ? 'View' : 'Markdown view'}>
-          <button class={d.mdView === 'visual' ? 'on' : ''} title={d.viewer ? 'Formatted view' : 'Visual editing'} onClick={() => setMdView(d.id, 'visual')}>
-            <IcEye /> <span>{d.viewer ? 'View' : 'Visual'}</span>
-          </button>
-          <button class={d.mdView === 'edit' ? 'on' : ''} title={d.viewer ? 'Source text' : 'Markdown source'} onClick={() => setMdView(d.id, 'edit')}>
-            <IcPencil /> <span>Source</span>
-          </button>
-          <button class={d.mdView === 'split' ? 'on' : ''} title="Source and preview side by side (Ctrl+Shift+V cycles)" onClick={() => setMdView(d.id, 'split')}>
-            <IcSplit /> <span>Split</span>
-          </button>
-        </div>
-      )}
-      <div class="paper-anchor">
-        <button
-          class={`icon-btn labeled${paperPopoverOpen.value ? ' pressed' : ''}`}
-          title="Paper: Grid, Lines, Code, None, and page margin"
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => (paperPopoverOpen.value = !paperPopoverOpen.value)}
-        >
-          <PaperIcon />
-          <span>Paper</span>
-        </button>
-        {paperPopoverOpen.value && <PaperPopover />}
-      </div>
       <button
         class="icon-btn labeled"
-        title={s.tabsMode === 'top' ? 'Vertical tabs (Ctrl+Shift+,)' : 'Tabs along the top (Ctrl+Shift+,)'}
-        onClick={() => cmd.toggleTabsMode()}
+        title="Tab layout: top, left, rail or compact (Ctrl+Shift+, cycles)"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) =>
+          openContextMenu(
+            e as MouseEvent,
+            TABS_MODES.map((t) => ({ label: `${t.label} · ${t.hint}`, checked: s.tabsMode === t.mode, action: () => updateSettings({ tabsMode: t.mode }) })),
+          )
+        }
       >
-        {s.tabsMode === 'top' ? <IcSidebar /> : <IcTabsTop />}
-        <span>{s.tabsMode === 'top' ? 'Tabs: Top' : 'Tabs: Left'}</span>
-      </button>
-      <button class={`icon-btn labeled${settingsOpen.value ? ' pressed' : ''}`} title="Settings" onClick={() => (settingsOpen.value = !settingsOpen.value)}>
-        <IcGear />
-        <span>Settings</span>
+        {s.tabsMode === 'top' ? <IcTabsTop /> : <IcSidebar />}
+        <span>{tabsModeLabel(s.tabsMode)}</span>
       </button>
     </div>
   );

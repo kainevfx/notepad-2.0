@@ -713,3 +713,19 @@ html.dark .cm-line.log-warn { color: #f0b429; }
 .sheet-tab { height: 30px; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--text-2); font: 12px var(--ui-font); cursor: pointer; white-space: nowrap; }
 .sheet-tab:hover { color: var(--text); background: var(--bg-hover); }
 .sheet-tab.on { color: var(--text); border-bottom-color: var(--accent); background: var(--bg-editor); }
+
+/* The view switch floats in the document's top-right corner. */
+.editor-split { position: relative; }
+.view-switch { position: absolute; top: 8px; right: 18px; z-index: 5; background: color-mix(in srgb, var(--bg-chrome) 92%, transparent); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); opacity: 0.9; }
+.view-switch:hover { opacity: 1; }
+.view-switch button span { font-size: 12px; }
+
+/* Paper button with the tab controls; Sort under the search field. */
+.tabstrip-row { flex: 0 0 auto; display: flex; align-items: stretch; min-width: 0; position: relative; z-index: 6; }
+.tabstrip-row .tabstrip { flex: 1 1 auto; }
+.tabstrip-end { flex: 0 0 auto; display: flex; align-items: center; padding: 4px 8px 0; background: var(--bg-title); border-bottom: 1px solid var(--stroke); }
+.tabstrip-end .paper-pop { right: 0; left: auto; top: 34px; }
+.side-actions .paper-pop, .rail-paper .paper-pop, .crail-paper .paper-pop { left: 0; right: auto; top: 34px; }
+.side-head .side-search { flex: 1; }
+.sidebar > .side-tools > .side-sort, .side-tools .side-sort { margin-top: 6px; }
+.rail-paper { align-self: flex-start; margin: 2px 0 6px; }

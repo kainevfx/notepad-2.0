@@ -218,7 +218,7 @@ export function Settings() {
         <h2>Tabs and groups</h2>
         <div class="card">
           <Row title="Tab position" desc="Along the top like Notepad, or down the left with Chrome-style groups. Ctrl+Shift+, switches.">
-            <Select k="tabsMode" options={[['top', 'Top'], ['left', 'Left side'], ['rail', 'Left, collapsed rail']]} />
+            <Select k="tabsMode" options={[['top', 'Top'], ['left', 'Left side'], ['rail', 'Left, collapsed rail'], ['compact', 'Left, compact (vertical labels)']]} />
           </Row>
         </div>
 

@@ -11,6 +11,7 @@ import { startDrag, consumeDragClick, dropClass } from './dnd';
 import { noteMenu, groupMenu } from './menus';
 import { groupVars, docColorVars } from './colors';
 import { fileBadge } from '../lib/file-badge';
+import { PaperButton } from './PaperButton';
 
 function Tab({ id, group, lvl }: { id: string; group: GroupNode | null; lvl: number }) {
   const d = docs.value[id];
@@ -94,14 +95,20 @@ export function TabStrip() {
   }, [active]);
   const out = render(tree.value, null, 0);
   return (
-    <div class="tabstrip" onWheel={(e) => ((e.currentTarget as HTMLElement).scrollLeft += (e as WheelEvent).deltaY)}>
-      {out}
-      <button class="tab-new" title="New text file (Ctrl+N)" onClick={() => newNote({ language: 'plain' })}>
-        <IcPlus />
-      </button>
-      <button class="tab-new" title="New Markdown file (Ctrl+Alt+N)" onClick={() => newNote({ language: 'markdown' })}>
-        <IcNewMd />
-      </button>
+    <div class="tabstrip-row">
+      <div class="tabstrip" onWheel={(e) => ((e.currentTarget as HTMLElement).scrollLeft += (e as WheelEvent).deltaY)}>
+        {out}
+        <button class="tab-new" title="New text file (Ctrl+N)" onClick={() => newNote({ language: 'plain' })}>
+          <IcPlus />
+        </button>
+        <button class="tab-new" title="New Markdown file (Ctrl+Alt+N)" onClick={() => newNote({ language: 'markdown' })}>
+          <IcNewMd />
+        </button>
+      </div>
+      {/* Pinned at the right end so it never scrolls away with the tabs. */}
+      <div class="tabstrip-end">
+        <PaperButton label={false} />
+      </div>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useSignalEffect } from '@preact/signals';
 import { EditorView } from '@codemirror/view';
 import {
   attachView, activeDoc, editTick, textOf, reloadDoc, keepMine, dismissBanner, discardRestored, saveDocAs, refreshView,
-  dirname, getView,
+  dirname, getView, setMdView,
 } from '../state/app';
 import { settings } from '../state/settings';
 import { platform } from '../platform';
@@ -14,6 +14,7 @@ import { resolveImageUrl } from '../editor/insert';
 import { VisualEditor } from './VisualEditor';
 import { followLink } from '../state/links';
 import { ViewerPane } from './ViewerPane';
+import { ViewSwitch, showsViewSwitch } from './ViewSwitch';
 import { isBinaryKind, hasViewPane } from '../lib/view-kind';
 
 function Banner() {
@@ -172,6 +173,7 @@ export function EditorPane() {
     <section class={`editor-pane view-${view}`} style={{ '--page-margin': `${settings.value.pageMargin}px` } as any}>
       <Banner />
       <div class="editor-split">
+        {d && showsViewSwitch(d) && <ViewSwitch doc={d} view={d.mdView} onSet={(v) => setMdView(d.id, v)} />}
         <div
           class="editor-host"
           ref={host}

@@ -33,6 +33,7 @@ import { languages } from '@codemirror/language-data';
 import { codeHighlight, cSyntax } from '../editor/setup';
 import { logHighlighter } from '../editor/log-lang';
 import { toCsv } from '../lib/csv';
+import { nextTabsMode } from '../lib/tabs-modes';
 
 /** True when the active tab is showing the Visual (WYSIWYG) editor. */
 export function inVisual(): boolean {
@@ -1203,8 +1204,7 @@ export const cmd = {
     printText(textOf(d.id), displayTitle(d), d.language === 'markdown' && d.mdView !== 'edit');
   },
   toggleTabsMode() {
-    const m = settings.value.tabsMode;
-    updateSettings({ tabsMode: m === 'top' ? 'left' : 'top' });
+    updateSettings({ tabsMode: nextTabsMode(settings.value.tabsMode) });
   },
 };
 

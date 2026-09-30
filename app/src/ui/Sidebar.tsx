@@ -4,6 +4,7 @@ import { signal } from '@preact/signals';
 import type { TreeNode, GroupNode } from '../lib/tree-ops';
 import { tree, docs, activeId, activate, closeDoc, newNote, displayTitle, toggleGroup, newGroupFrom, renameDoc, renameGroupTo } from '../state/app';
 import { settings, updateSettings } from '../state/settings';
+import { PaperButton } from './PaperButton';
 import { openContextMenu, railPeek, closedNotesOpen, renamingId } from '../state/ui';
 import { InlineRename } from './InlineRename';
 import { IcChevronDown, IcChevronUp, IcChevronLeft, IcChevronRight, IcClose, IcFolderPlus, IcSearch, IcNewText, IcNewMd } from './icons';
@@ -144,24 +145,22 @@ export function Sidebar() {
     <aside class="sidebar" style={{ width: s.sidebarWidth + 'px' }}>
       <div class="side-tools">
         <div class="side-head">
-          <label class="side-sort" title="How files are ordered here. Manual keeps the order you arranged.">
-            <span>Sort</span>
-            <select class="fb-select" value={s.sidebarSort} onChange={(e) => updateSettings({ sidebarSort: (e.target as HTMLSelectElement).value as SortMode })}>
-              {(Object.keys(SORT_LABELS) as SortMode[]).map((m) => (
-                <option value={m}>{SORT_LABELS[m]}</option>
-              ))}
-            </select>
-          </label>
-          <button class="icon-btn side-collapse" title="Collapse sidebar to a rail" onClick={() => updateSettings({ tabsMode: 'rail' })}>
-            <IcChevronLeft />
-          </button>
-        </div>
-        <div class="side-search-row">
           <div class="side-search">
             <IcSearch size={14} />
             <input placeholder="Search tabs" value={q} onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
           </div>
+          <button class="icon-btn side-collapse" title="Collapse sidebar to a rail" onClick={() => updateSettings({ tabsMode: 'rail' })}>
+            <IcChevronLeft />
+          </button>
         </div>
+        <label class="side-sort" title="How files are ordered here. Manual keeps the order you arranged.">
+          <span>Sort</span>
+          <select class="fb-select" value={s.sidebarSort} onChange={(e) => updateSettings({ sidebarSort: (e.target as HTMLSelectElement).value as SortMode })}>
+            {(Object.keys(SORT_LABELS) as SortMode[]).map((m) => (
+              <option value={m}>{SORT_LABELS[m]}</option>
+            ))}
+          </select>
+        </label>
         <div class="side-actions">
           <button class="side-action" title="New text file (Ctrl+N)" onClick={() => newNote({ language: 'plain', groupId: null })}>
             <IcNewText />
@@ -175,6 +174,7 @@ export function Sidebar() {
             <IcFolderPlus />
             <span>New group</span>
           </button>
+          <PaperButton />
         </div>
       </div>
       <div
@@ -210,6 +210,7 @@ export function Rail() {
       <button class="icon-btn rail-open" title="Expand sidebar" onClick={() => updateSettings({ tabsMode: 'left' })}>
         <IcChevronRight />
       </button>
+      <PaperButton label={false} cls="rail-paper" />
       <div class="rail-items">
         {loose > 0 && (
           <button class="rail-item rail-loose" title={`Ungrouped (${loose})`} onClick={peek} onContextMenu={(e) => openContextMenu(e as MouseEvent, ungroupedMenu())}>

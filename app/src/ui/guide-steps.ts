@@ -41,7 +41,7 @@ export const GUIDE_STEPS: GuideStep[] = [
   {
     title: 'Visual, Source and Split',
     text: 'Markdown files open in Visual: type straight into the formatted page. Source shows the raw Markdown, and Split shows Source next to a live preview.',
-    target: ['.menubar .seg'],
+    target: ['.view-switch'],
   },
   {
     title: 'Tables',

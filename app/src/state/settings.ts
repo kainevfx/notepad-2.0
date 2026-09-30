@@ -3,7 +3,7 @@ import { platform } from '../platform';
 import type { SortMode } from '../lib/sort';
 
 export type PaperMode = 'none' | 'lines' | 'grid' | 'numbers';
-export type TabsMode = 'top' | 'left' | 'rail';
+export type TabsMode = 'top' | 'left' | 'rail' | 'compact';
 export type MdView = 'visual' | 'edit' | 'split';
 
 export function migrateMdView(v: string | undefined): MdView {
