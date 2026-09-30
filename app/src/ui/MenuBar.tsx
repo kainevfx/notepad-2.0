@@ -11,6 +11,7 @@ import { MenuList } from './MenuList';
 import { IcSidebar, IcTabsTop, IcSplit } from './icons';
 import { insertMenu, helpMenu } from './insert-actions';
 import { TABS_MODES, tabsModeLabel } from '../lib/tabs-modes';
+import { resetPaperOwner } from './PaperButton';
 
 type MenuName = 'File' | 'Edit' | 'Insert' | 'View' | 'Help';
 
@@ -113,7 +114,7 @@ function viewMenu(): MenuItem[] {
         { label: 'Code', checked: paper === 'numbers', action: setP('numbers') },
         { label: 'None', checked: paper === 'none', action: setP('none') },
         { separator: true },
-        { label: 'Page margin…', action: () => setTimeout(() => (paperPopoverOpen.value = true), 0) },
+        { label: 'Page margin…', action: () => setTimeout(() => (resetPaperOwner(), (paperPopoverOpen.value = true)), 0) },
         { separator: true },
         { label: 'Also show line numbers', checked: s.paperNumbers, action: () => { updateSettings({ paperNumbers: !s.paperNumbers }); refreshView(); } },
       ],
@@ -185,8 +186,8 @@ export function MenuBar() {
         onPointerDown={(e) => {
           e.stopPropagation();
           setOpen(null);
-          settingsOpen.value = !settingsOpen.value;
         }}
+        onClick={() => (settingsOpen.value = !settingsOpen.value)}
       >
         Settings
       </button>

@@ -754,3 +754,6 @@ html.dark .crail-item { background: color-mix(in srgb, var(--g-dark, var(--strok
 .tab.also-shown, .side-note.also-shown { box-shadow: inset 0 0 0 1px var(--accent); }
 /* Data viewers start below the floating view switch so it never covers a header row. */
 .editor-split:has(> .view-switch) > .viewer { padding-top: 46px; }
+/* Text starts below the floating view switch, so it never covers the end of a line. */
+.editor-split:has(> .view-switch) .editor-host .cm-scroller { padding-top: 34px; }
+.editor-split:has(> .view-switch) > .md-preview .markdown-body { padding-top: calc(46px + var(--page-margin, 16px)); }

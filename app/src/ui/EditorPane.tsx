@@ -175,6 +175,9 @@ function Pane({ pane }: { pane: PaneId }) {
       class={`editor-pane view-${view}${s.on ? ' in-split' : ''}${active && s.on ? ' pane-active' : ''}`}
       style={{ '--page-margin': `${settings.value.pageMargin}px` } as any}
       onPointerDownCapture={() => focusPane(pane)}
+      // Lower-case names: Preact passes them straight through as the real event names
+      // (Chromium has no onfocusin property, so onFocusIn would listen for 'FocusIn').
+      {...({ ondragenter: () => focusPane(pane), onfocusin: () => focusPane(pane) } as any)}
     >
       <Banner d={d} />
       <div class="editor-split">
