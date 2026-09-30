@@ -65,3 +65,4 @@
   .page-break::after { content: none !important; }
   .print-page + .print-page { break-before: page; }
 }
+.docx-body { max-width: 860px; margin: 0 auto; }

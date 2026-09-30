@@ -23,6 +23,7 @@ export const viewerLoaders: Partial<Record<ViewerKind, Loader>> = {
   image: () => import('./viewers/ImageViewer').then((m) => m.ImageViewer),
   pdf: () => import('./viewers/PdfViewer').then((m) => m.PdfViewer),
   sheet: () => import('./viewers/SheetViewer').then((m) => m.SheetViewer),
+  docx: () => import('./viewers/DocxViewer').then((m) => m.DocxViewer),
 };
 
 const loaded = new Map<ViewerKind, ComponentType<ViewerProps>>();
