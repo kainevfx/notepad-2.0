@@ -18,6 +18,8 @@ export const cWrap = new Compartment();
 export const cLang = new Compartment();
 export const cAttrs = new Compartment();
 export const cReadOnly = new Compartment();
+/** Highlighting for data files (JSON, YAML, XML, HTML, TOML, INI, logs); set once per tab. */
+export const cSyntax = new Compartment();
 
 // Notepad keeps Ctrl+G for Go to line and Ctrl+H for Replace, so drop CodeMirror's bindings
 // that collide (Mod-g find next, Mod-Alt-g goto, Mod-d select next).
@@ -44,6 +46,9 @@ const mdHighlight = HighlightStyle.define([
   { tag: [t.function(t.variableName), t.function(t.propertyName)], color: 'var(--syn-fn)' },
   { tag: [t.typeName, t.className], color: 'var(--syn-type)' },
 ]);
+
+/** The same colours for data files' source. */
+export const codeHighlight = syntaxHighlighting(mdHighlight);
 
 export const markdownEditingKeymap = keymap.of([
   { key: 'Mod-b', run: (v) => toggleWrap(v, '**', '**', 'bold') },
@@ -111,7 +116,7 @@ export function setUpdateHandler(h: UpdateHandler) {
   updateHandler = h;
 }
 
-export function createEditorState(text: string, isMarkdown: boolean, readOnly: boolean, cfg: ViewConfig): EditorState {
+export function createEditorState(text: string, isMarkdown: boolean, readOnly: boolean, cfg: ViewConfig, syntax?: Extension): EditorState {
   return EditorState.create({
     doc: text,
     extensions: [
@@ -136,6 +141,7 @@ export function createEditorState(text: string, isMarkdown: boolean, readOnly: b
       cNumbers.of(numbersExt(cfg)),
       cWrap.of(cfg.settings.wordWrap ? EditorView.lineWrapping : []),
       cLang.of(languageExt(isMarkdown)),
+      cSyntax.of(syntax ?? []),
       cAttrs.of(attrsExt(cfg)),
       cReadOnly.of(EditorState.readOnly.of(readOnly)),
       EditorView.updateListener.of((u) => updateHandler(u)),

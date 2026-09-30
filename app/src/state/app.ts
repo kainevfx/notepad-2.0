@@ -26,6 +26,12 @@ import { ask, alertMsg, cursorInfo, showToast, settingsOpen } from './ui';
 import { visualApi } from '../editor/visual/sync';
 import { copyName } from '../lib/copy-name';
 import { sessionKey, windowTitle } from '../lib/transfer';
+import { viewKindFor, isBinaryKind, hasViewPane, MAX_PREVIEW_BYTES, type ViewerKind } from '../lib/view-kind';
+import type { Extension } from '@codemirror/state';
+import { LanguageDescription } from '@codemirror/language';
+import { languages } from '@codemirror/language-data';
+import { codeHighlight, cSyntax } from '../editor/setup';
+import { logHighlighter } from '../editor/log-lang';
 
 /** True when the active tab is showing the Visual (WYSIWYG) editor. */
 export function inVisual(): boolean {
@@ -58,6 +64,12 @@ export interface DocMeta {
   banner?: Banner | null;
   /** Tab colour (same palette as groups). */
   color?: GroupColor;
+  /** How the file is shown (unset: the text / Markdown editor). */
+  viewer?: ViewerKind;
+  /** File size in bytes (binary tabs). */
+  size?: number;
+  /** Bumped when a binary file changes on disk, so its viewer reloads. */
+  rev?: number;
 }
 
 export interface ClosedNote {
@@ -91,7 +103,22 @@ export const activeDoc = computed(() => (activeId.value ? docs.value[activeId.va
 export const orderedIds = computed(() => T.flattenNotes(tree.value).filter((id) => docs.value[id]));
 
 const states = new Map<string, EditorState>();
+/** Highlighting for data files, kept so a reload or tab switch keeps it. */
+const syntaxes = new Map<string, Extension>();
 let view: EditorView | null = null;
+
+/** Highlighting for a data file's source: logs get level colours, others their language. */
+async function syntaxFor(path: string, viewer: ViewerKind | undefined): Promise<Extension> {
+  if (!viewer || viewer === 'text' || isBinaryKind(viewer)) return [];
+  if (/\.log$/i.test(path)) return logHighlighter();
+  const desc = LanguageDescription.matchFilename(languages, basename(path));
+  if (!desc) return [];
+  try {
+    return [await desc.load(), codeHighlight];
+  } catch {
+    return [];
+  }
+}
 
 export function uid(prefix = 'n'): string {
   return prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
@@ -125,8 +152,9 @@ function patchDoc(id: string, patch: Partial<DocMeta>) {
   docs.value = { ...docs.value, [id]: { ...d, ...patch } };
 }
 
-function addDoc(d: DocMeta, text: string) {
-  states.set(d.id, createEditorState(text, d.language === 'markdown', d.readonly, viewConfig(d)));
+function addDoc(d: DocMeta, text: string, syntax?: Extension) {
+  if (syntax) syntaxes.set(d.id, syntax);
+  states.set(d.id, createEditorState(text, d.language === 'markdown', d.readonly, viewConfig(d), syntaxes.get(d.id)));
   docs.value = { ...docs.value, [d.id]: d };
 }
 
@@ -297,17 +325,39 @@ export async function openFiles(paths: string[], opts: { groupId?: string } = {}
       continue;
     }
     try {
+      const viewer = viewKindFor(path);
+      if (viewer !== 'text') {
+        const st = await platform.stat(path);
+        if (!st.exists) throw new Error('The system cannot find the file specified.');
+        // Shown straight from the file (and data files too large to preview): no text is read.
+        if (isBinaryKind(viewer) || st.size > MAX_PREVIEW_BYTES) {
+          const id = uid('file');
+          addDoc(
+            {
+              id, kind: 'file', path, title: basename(path), encoding: 'utf-8', bom: false, eol: 'crlf', language: 'plain', mdView: 'visual',
+              dirty: false, mtime: st.mtime, readonly: true, created: Date.now(), modified: st.mtime, size: st.size, banner: null,
+              viewer: isBinaryKind(viewer) ? viewer : 'large',
+            },
+            '',
+          );
+          if (opts.groupId) tree.value = T.insert(tree.value, { id, kind: 'note' }, opts.groupId, 9999);
+          else placeNewNode(id, last ?? activeId.value);
+          addRecent(path);
+          last = id;
+          continue;
+        }
+      }
       const f = await platform.readFile(path);
       const dec = decodeBytes(f.bytes);
-      const md = isMarkdownPath(path) || (settings.value.mdForTxt && /\.txt$/i.test(path));
+      const md = viewer === 'text' && (isMarkdownPath(path) || (settings.value.mdForTxt && /\.txt$/i.test(path)));
       const id = uid('file');
       const now = Date.now();
       const big = f.bytes.length > 5 * 1024 * 1024;
       addDoc(
         {
           id, kind: 'file', path, title: basename(path), encoding: dec.encoding, bom: dec.bom, eol: dec.eol,
-          language: md ? 'markdown' : 'plain', mdView: md && !big ? settings.value.mdDefaultView : 'edit', dirty: false,
-          mtime: f.mtime, readonly: f.readonly, created: now, modified: now,
+          language: md ? 'markdown' : 'plain', mdView: hasViewPane(viewer) ? 'visual' : md && !big ? settings.value.mdDefaultView : 'edit', dirty: false,
+          mtime: f.mtime, readonly: f.readonly, created: now, modified: now, viewer: viewer === 'text' ? undefined : viewer,
           banner: dec.mixedEol
             ? { kind: 'mixed-eol', text: `This file mixes line endings. Saving will use ${dec.eol.toUpperCase()} throughout.` }
             : f.readonly
@@ -315,6 +365,7 @@ export async function openFiles(paths: string[], opts: { groupId?: string } = {}
               : null,
         },
         dec.text,
+        await syntaxFor(path, viewer),
       );
       if (opts.groupId) tree.value = T.insert(tree.value, { id, kind: 'note' }, opts.groupId, 9999);
       else placeNewNode(id, last ?? activeId.value);
@@ -341,7 +392,7 @@ const fileTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 function onEdited(id: string) {
   const d = docs.value[id];
-  if (!d) return;
+  if (!d || isBinaryKind(d.viewer)) return;
   const now = Date.now();
   if (d.kind === 'note') {
     const title = noteTitle(view && activeId.value === id ? view.state.doc.sliceString(0, 2000) : textOf(id).slice(0, 2000));
@@ -387,6 +438,12 @@ async function persistRecovery(id: string) {
   );
 }
 
+/** What the session stores for a tab: binary tabs only their path and view state. */
+export function sessionDoc(d: DocMeta): DocMeta {
+  if (isBinaryKind(d.viewer)) return { ...d, dirty: false, banner: null };
+  return { ...d, banner: d.banner?.kind === 'restored' ? d.banner : null };
+}
+
 let sessionTimer: ReturnType<typeof setTimeout> | undefined;
 /** Write this window's session now (the receiving side of a move does this before replying). */
 export async function saveSessionNow() {
@@ -407,7 +464,7 @@ async function saveSession() {
     version: 1,
     tree: tree.value,
     activeId: activeId.value,
-    docs: Object.values(docs.value).map((d) => ({ ...d, banner: d.banner?.kind === 'restored' ? d.banner : null })),
+    docs: Object.values(docs.value).map(sessionDoc),
     closedNotes: closedNotes.value,
     recentFiles: recentFiles.value,
   };
@@ -448,6 +505,10 @@ export async function saveDoc(id: string, opts: { silent?: boolean } = {}): Prom
   visualApi.flush();
   const d = docs.value[id];
   if (!d) return false;
+  if (isBinaryKind(d.viewer)) {
+    if (!opts.silent) showToast('This file is shown read-only.');
+    return false;
+  }
   if (d.kind === 'note' || !d.path || d.readonly) return saveDocAs(id);
   fileTimers.delete(id);
   const text = textOf(id);
@@ -490,6 +551,10 @@ export async function saveDocAs(id: string): Promise<boolean> {
   visualApi.flush();
   const d = docs.value[id];
   if (!d) return false;
+  if (isBinaryKind(d.viewer)) {
+    showToast('This file is shown read-only.');
+    return false;
+  }
   const md = d.language === 'markdown';
   const suggested = d.path
     ? md && !isMarkdownPath(d.path) ? basename(d.path).replace(/(\.[^.]*)?$/, '.md') : basename(d.path)
@@ -569,6 +634,7 @@ export async function closeDoc(id: string, opts: { skipPrompt?: boolean } = {}):
     if (activeId.value === id) activeId.value = null;
   });
   states.delete(id);
+  syntaxes.delete(id);
   if (activeId.value === null) {
     if (next && rest[next]) activate(next);
     else newNote();
@@ -629,7 +695,8 @@ export async function checkExternalChanges() {
         continue;
       }
       if (st.mtime > d.mtime + 1) {
-        if (!d.dirty) await reloadDoc(d.id, true);
+        if (isBinaryKind(d.viewer)) patchDoc(d.id, { mtime: st.mtime, size: st.size, rev: (d.rev ?? 0) + 1, banner: null });
+        else if (!d.dirty) await reloadDoc(d.id, true);
         else patchDoc(d.id, { banner: { kind: 'external', text: 'This file changed on disk.' } });
       }
     } catch {
@@ -642,9 +709,14 @@ export async function reloadDoc(id: string, silent = false) {
   visualApi.flush();
   const d = docs.value[id];
   if (!d?.path) return;
+  if (isBinaryKind(d.viewer)) {
+    const s = await platform.stat(d.path);
+    patchDoc(id, { mtime: s.mtime, size: s.size, rev: (d.rev ?? 0) + 1, banner: null });
+    return;
+  }
   const f = await platform.readFile(d.path);
   const dec = decodeBytes(f.bytes);
-  const st = createEditorState(dec.text, d.language === 'markdown', f.readonly, viewConfig(d));
+  const st = createEditorState(dec.text, d.language === 'markdown', f.readonly, viewConfig(d), syntaxes.get(id));
   states.set(id, st);
   patchDoc(id, { mtime: f.mtime, dirty: false, encoding: dec.encoding, bom: dec.bom, eol: dec.eol, readonly: f.readonly, banner: null });
   await platform.storeDelete(`recovery/${id}.json`);
@@ -1159,6 +1231,12 @@ export function importDocs(entries: { meta: DocMeta; text: string }[]) {
     if (meta.kind === 'file' && meta.path && findOpenFile(meta.path)) continue;
     addDoc({ ...meta, banner: null }, text);
     if (meta.dirty) onEdited(meta.id);
+    if (meta.path && meta.viewer && !isBinaryKind(meta.viewer)) {
+      void syntaxFor(meta.path, meta.viewer).then((s) => {
+        syntaxes.set(meta.id, s);
+        if (activeId.value === meta.id) view?.dispatch({ effects: cSyntax.reconfigure(s) });
+      });
+    }
   }
 }
 
@@ -1171,6 +1249,7 @@ export function removeDocs(ids: string[]) {
   }
   for (const id of ids) {
     states.delete(id);
+    syntaxes.delete(id);
     clearTimeout(noteTimers.get(id));
     clearTimeout(fileTimers.get(id));
     noteTimers.delete(id);
@@ -1213,6 +1292,15 @@ async function restoreSession(): Promise<boolean> {
         keep.add(meta.id);
         continue;
       }
+      if (isBinaryKind(meta.viewer)) {
+        const bst = await platform.stat(meta.path!);
+        if (bst.exists) {
+          addDoc({ ...meta, dirty: false, mtime: bst.mtime, size: bst.size, banner: null }, '');
+          keep.add(meta.id);
+        }
+        continue;
+      }
+      if (meta.viewer) syntaxes.set(meta.id, await syntaxFor(meta.path!, meta.viewer));
       const recRaw = await platform.storeRead(`recovery/${meta.id}.json`);
       const rec = recRaw ? JSON.parse(recRaw) : null;
       const st = await platform.stat(meta.path!);

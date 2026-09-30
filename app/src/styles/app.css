@@ -648,3 +648,10 @@ button.sb-item:hover { background: var(--bg-hover); }
 .guide-count { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; }
 .guide-actions { display: flex; align-items: center; gap: 8px; }
 .guide-flex { flex: 1; }
+
+/* Log files: level colours and dimmed timestamps (editor/log-lang.ts). */
+.cm-line.log-error { color: #e5484d; }
+.cm-line.log-warn { color: #c9921a; }
+html.dark .cm-line.log-warn { color: #f0b429; }
+.cm-line.log-info, .cm-line.log-debug { color: var(--text-2); }
+.log-time { color: var(--text-3); }
