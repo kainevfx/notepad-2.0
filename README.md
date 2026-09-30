@@ -79,6 +79,7 @@ Tabs, File / Edit / View menus, Find and Replace, Go to line, Print, Date/time w
 - **Source** is the raw Markdown with syntax highlighting. **Split** shows the source next to a live preview.
 - The preview understands GitHub-flavoured Markdown: tables, task lists, footnotes, front matter, maths, Mermaid diagrams and highlighted code.
 - Formatting Markdown can't express is saved as the small HTML tags GitHub understands (`<u>`, `<span style="color:…">`, `<div align="center">`), so your files look right on GitHub too.
+- **Images** show in Visual and Split: relative paths (from the document's folder, spaces and brackets included), `C:\...` paths, `file:///` links and embedded images.
 - Front matter, maths, Mermaid and other raw HTML appear as locked blocks in Visual. Double-click one to edit it in Source. They are written back unchanged.
 - Press **Ctrl+Shift+V** to cycle between the three views.
 - **Links go where they point.** A link to another file opens it in a tab; a link to a **folder** (`[Assets](../Art%20Refs/)`, `C:\Projects\Show`, `file:///D:/Renders`) opens it in **File Explorer**; web links open in your browser. In the Visual editor, **Ctrl+click** a link to follow it. Insert → Link has **File…** and **Folder…** buttons that write the path relative to your document.
@@ -143,6 +144,21 @@ Press **Win+Alt+N** from anywhere (or click the tray icon) and a small always-on
 Click the **microphone** button to dictate with Windows voice typing (the same as pressing Win+H). Speak and your words appear in the note.
 
 ![The Quick Note bubble](docs/screenshots/10-quick-note.png)
+
+### Read aloud
+
+Right-click the page and choose **Read page aloud** (or select some text and choose **Read selection aloud**), press **Ctrl+Alt+R**, or use **View → Read aloud**. Front matter, code blocks and link addresses are skipped; tables are read cell by cell. A bar under the document shows the progress, with **Pause**, **Stop** and **Speed** (0.75–2×, changes straight away). Reading carries on while you switch tabs or work in the other side of split view, and stops when you close that document. Press **Ctrl+Alt+R** again to stop.
+
+Two voices, chosen in **Settings → Read aloud → Voice engine**:
+
+- **Kokoro**: a free, offline neural voice (Kokoro-82M) that sounds natural. It runs as a small server; with Docker Desktop running, one command starts it for good (Settings shows it with a **Copy** button, and **Test connection** checks it). The voice list comes from the server; British English Emma is the default.
+- **Windows voices**: the speech voices installed in Windows. Nothing to set up.
+
+**Automatic** (the default) uses Kokoro when its server answers and a Windows voice otherwise, and the bar says so. Your text only ever goes to the Kokoro server you set (HTTPS for a server on another machine).
+
+![Reading aloud: the playback bar under the document](docs/screenshots/20-read-aloud.png)
+
+![Settings → Read aloud](docs/screenshots/21-read-aloud-settings.png)
 
 ### Look and feel
 
@@ -219,6 +235,7 @@ Read-only files are never autosaved or changed, and they refresh when the file c
 | Ctrl+click | Follow a link in the Visual editor |
 | Ctrl+Shift+V | Cycle Visual → Source → Split |
 | Ctrl+\\ | Split view on / off |
+| Ctrl+Alt+R | Read aloud (the selection, else the page); again to stop |
 | Ctrl+Shift+, | Cycle the tab layouts |
 | Ctrl+] / Ctrl+[ | Indent / outdent a list item |
 | Ctrl+Plus / Ctrl+Minus / Ctrl+0 | Text zoom in / out / reset |

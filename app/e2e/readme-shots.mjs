@@ -162,6 +162,24 @@ await setup({ theme: 'light', tabsMode: 'compact' });
 await open('Meeting Note 2').catch(() => {});
 await shot('19-compact-rail');
 
+// 20. Read aloud: the playback bar (speech kept going so the bar stays up)
+await setup({ tabsMode: 'left' });
+await open('Business strategy');
+await view('Visual');
+await page.evaluate(() => { window.speechSynthesis.speak = () => {}; });
+await page.keyboard.press('Control+Alt+r');
+await page.waitForTimeout(3500);
+await shot('20-read-aloud');
+await page.keyboard.press('Control+Alt+r');
+
+// 21. Settings → Read aloud
+await page.locator('.menubar-btn', { hasText: 'Settings' }).click();
+await page.waitForTimeout(500);
+await page.locator('h2', { hasText: 'Read aloud' }).scrollIntoViewIfNeeded();
+await page.evaluate(() => document.querySelector('.settings-page')?.scrollBy(0, 120));
+await shot('21-read-aloud-settings');
+await page.keyboard.press('Escape');
+
 // 10. Quick Note bubble
 const qn = await ctx.newPage();
 await qn.setViewportSize({ width: 420, height: 520 });
