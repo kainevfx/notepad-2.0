@@ -16,7 +16,9 @@ export interface ViewerProps {
 type Loader = () => Promise<ComponentType<ViewerProps>>;
 
 /** Filled in as viewers are added; a kind without one shows its Source only. */
-export const viewerLoaders: Partial<Record<ViewerKind, Loader>> = {};
+export const viewerLoaders: Partial<Record<ViewerKind, Loader>> = {
+  table: () => import('./viewers/TableViewer').then((m) => m.TableViewer),
+};
 
 const loaded = new Map<ViewerKind, ComponentType<ViewerProps>>();
 

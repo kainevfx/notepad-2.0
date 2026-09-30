@@ -665,3 +665,15 @@ html.dark .cm-line.log-warn { color: #f0b429; }
 .viewer-toolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-bottom: 1px solid var(--stroke); font-size: 12px; color: var(--text-2); }
 .viewer-toolbar .btn { height: 26px; padding: 0 10px; }
 .viewer-toolbar .viewer-info { margin-left: auto; color: var(--text-3); }
+
+/* Data grid (CSV / TSV / spreadsheets). */
+.grid-wrap { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.grid { border-collapse: separate; border-spacing: 0; font: 13px/1.2 var(--ui-font); color: var(--text); }
+.grid th, .grid td { height: 28px; box-sizing: border-box; padding: 0 10px; border-right: 1px solid var(--stroke); border-bottom: 1px solid var(--stroke); white-space: pre; max-width: 420px; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.grid thead th { position: sticky; top: 0; z-index: 2; background: var(--bg-2, var(--bg-hover)); font-weight: 600; cursor: pointer; user-select: none; }
+.grid thead th:hover { background: var(--bg-hover); }
+.grid .grid-rownum { position: sticky; left: 0; z-index: 1; min-width: 44px; text-align: right; color: var(--text-3); background: var(--bg-editor); font-variant-numeric: tabular-nums; }
+.grid thead .grid-rownum { z-index: 3; background: var(--bg-2, var(--bg-hover)); }
+.grid tbody tr:hover td { background: var(--bg-hover); }
+.grid-sort { color: var(--accent-text); }
+.grid-note, .grid-empty { padding: 10px 14px; color: var(--text-3); font-size: 12px; }
