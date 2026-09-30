@@ -7,7 +7,7 @@ import { TitleBar } from './TitleBar';
 import { MenuBar } from './MenuBar';
 import { FormatBar } from './FormatBar';
 import { TabStrip } from './TabStrip';
-import { Sidebar, Rail } from './Sidebar';
+import { Sidebar, Rail, CompactRail } from './Sidebar';
 import { EditorPane } from './EditorPane';
 import { StatusBar } from './StatusBar';
 import { Settings } from './Settings';
@@ -41,6 +41,7 @@ export function App() {
       <div class="workspace">
         {mode === 'left' && <Sidebar />}
         {mode === 'rail' && <Rail />}
+        {mode === 'compact' && <CompactRail />}
         <div class="main-col">
           <EditorPane />
           {settingsOpen.value && <Settings />}

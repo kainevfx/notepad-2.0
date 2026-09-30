@@ -729,3 +729,15 @@ html.dark .cm-line.log-warn { color: #f0b429; }
 .side-head .side-search { flex: 1; }
 .sidebar > .side-tools > .side-sort, .side-tools .side-sort { margin-top: 6px; }
 .rail-paper { align-self: flex-start; margin: 2px 0 6px; }
+
+/* Compact rail: a thin strip with each file group's name written vertically. */
+.crail { position: relative; flex: 0 0 38px; width: 38px; background: var(--bg-chrome); border-right: 1px solid var(--stroke); display: flex; flex-direction: column; align-items: center; padding: 6px 0 0; zoom: var(--ui-zoom, 1); }
+.crail-open, .crail-paper { margin-bottom: 4px; }
+.crail-items { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 0 8px; overflow-y: auto; scrollbar-width: none; width: 100%; }
+.crail-item { width: 26px; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 0; border: 0; border-radius: 6px; background: color-mix(in srgb, var(--g-light, var(--stroke-strong)) 26%, transparent); color: var(--text); font: 12px var(--ui-font); cursor: pointer; }
+html.dark .crail-item { background: color-mix(in srgb, var(--g-dark, var(--stroke-strong)) 30%, transparent); }
+.crail-item:hover { filter: brightness(1.08); outline: 1px solid var(--stroke-strong); }
+.crail-loose { background: var(--bg-hover) !important; }
+.crail-label { writing-mode: vertical-rl; transform: rotate(180deg); max-height: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crail-count { font-size: 10px; color: var(--text-3); }
+.crail-peek { left: 38px; }

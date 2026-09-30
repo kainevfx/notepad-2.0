@@ -240,3 +240,44 @@ export function Rail() {
     </aside>
   );
 }
+
+/** Compact rail: a thin strip, Ungrouped first, each file group's name running vertically. */
+export function CompactRail() {
+  const groups = tree.value.filter((n): n is GroupNode => n.kind === 'group');
+  const loose = tree.value.filter((n) => n.kind === 'note').length;
+  const peek = () => (railPeek.value = !railPeek.value);
+  return (
+    <aside class="crail">
+      <button class="icon-btn crail-open" title="Expand sidebar" onClick={() => updateSettings({ tabsMode: 'left' })}>
+        <IcChevronRight />
+      </button>
+      <PaperButton label={false} cls="crail-paper" />
+      <div class="crail-items">
+        {loose > 0 && (
+          <button class="crail-item crail-loose" title={`Ungrouped (${loose})`} onClick={peek} onContextMenu={(e) => openContextMenu(e as MouseEvent, ungroupedMenu())}>
+            <span class="crail-label">Ungrouped</span>
+            <span class="crail-count">{loose}</span>
+          </button>
+        )}
+        {groups.map((g) => (
+          <button
+            key={g.id}
+            class="crail-item"
+            style={groupVars(g.color)}
+            title={`${g.name} (${countNotes(g)})`}
+            onClick={peek}
+            onContextMenu={(e) => openContextMenu(e as MouseEvent, groupMenu(g.id))}
+          >
+            <span class="crail-label">{g.name}</span>
+            <span class="crail-count">{countNotes(g)}</span>
+          </button>
+        ))}
+      </div>
+      {railPeek.value && (
+        <div class="rail-peek crail-peek" onMouseLeave={() => !drag.value && !renamingId.value && (railPeek.value = false)}>
+          <Sidebar />
+        </div>
+      )}
+    </aside>
+  );
+}
