@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Notepad 2.0 Quickstart</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root {
+    --ink: #1b1f24; --muted: #5b6470; --line: #e3e6ea; --accent: #3aa0f0; --accent-dark: #1673c4;
+    --soft: #f4f8fc; --purple: #b57cf0; --orange: #f5a25a; --green: #6fcf8a; --cyan: #5fd3e8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #fff; color: var(--ink); font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; font-size: 10.5pt; line-height: 1.5; }
+  .page { width: 210mm; height: 297mm; padding: 18mm 18mm 16mm; position: relative; page-break-after: always; overflow: hidden; }
+  .page:last-child { page-break-after: auto; }
+  .folio { position: absolute; bottom: 9mm; left: 18mm; right: 18mm; display: flex; justify-content: space-between; font-size: 8pt; color: var(--muted); border-top: 1px solid var(--line); padding-top: 3mm; }
+  h1, h2, h3 { font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif; margin: 0; }
+  h2 { font-size: 20pt; font-weight: 700; letter-spacing: -0.01em; }
+  h3 { font-size: 12pt; font-weight: 650; margin: 5mm 0 1.5mm; }
+  p { margin: 0 0 2.5mm; }
+  .kicker { font-size: 8.5pt; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-dark); margin-bottom: 1.5mm; }
+  .lede { font-size: 11.5pt; color: var(--muted); margin: 2mm 0 5mm; }
+  .shot { width: 100%; border-radius: 3mm; border: 1px solid #d5dae0; box-shadow: 0 2mm 6mm rgba(20, 30, 45, 0.12); display: block; }
+  .caption { font-size: 8.5pt; color: var(--muted); margin-top: 1.8mm; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 7mm; }
+  .cols3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; }
+  ul { margin: 0 0 2.5mm; padding-left: 5mm; }
+  li { margin-bottom: 1.2mm; }
+  kbd { font-family: "Segoe UI", sans-serif; font-size: 8.5pt; font-weight: 600; background: #f1f3f5; border: 1px solid #cfd5db; border-bottom-width: 2px; border-radius: 1.2mm; padding: 0.2mm 1.6mm; white-space: nowrap; }
+  .tip { background: var(--soft); border-left: 1.2mm solid var(--accent); border-radius: 0 2mm 2mm 0; padding: 3mm 4mm; font-size: 9.5pt; margin: 4mm 0; }
+  .tip b { color: var(--accent-dark); }
+
+  /* Cover */
+  .cover { background: linear-gradient(160deg, #10151c 0%, #1b2430 55%, #16324a 100%); color: #fff; padding: 22mm 20mm; }
+  .cover .brand { display: flex; align-items: center; gap: 4mm; font-size: 11pt; color: #a9c7e4; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; }
+  .cover .logo { width: 13mm; height: 13mm; border-radius: 3mm; background: linear-gradient(135deg, #5ab8ff, #2a7de0); display: grid; place-items: center; font-weight: 800; font-size: 14pt; color: #fff; }
+  .cover h1 { font-size: 44pt; line-height: 1.05; margin: 16mm 0 5mm; letter-spacing: -0.02em; }
+  .cover h1 span { color: #5ab8ff; }
+  .cover .sub { font-size: 14pt; color: #c9d6e3; max-width: 150mm; }
+  .cover .hero { position: absolute; left: 20mm; right: 20mm; bottom: 34mm; }
+  .cover .hero img { width: 100%; border-radius: 3mm; box-shadow: 0 4mm 14mm rgba(0, 0, 0, 0.5); border: 1px solid #2d3a48; }
+  .cover .foot { position: absolute; left: 20mm; right: 20mm; bottom: 14mm; display: flex; justify-content: space-between; font-size: 9pt; color: #8fa5bb; }
+
+  /* Steps */
+  .steps { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm 6mm; margin-top: 5mm; }
+  .step { display: grid; grid-template-columns: 10mm 1fr; gap: 3mm; padding: 4mm; border: 1px solid var(--line); border-radius: 2.5mm; background: #fff; }
+  .step .n { width: 9mm; height: 9mm; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: 11pt; }
+  .step b { display: block; font-size: 10.5pt; margin-bottom: 0.6mm; }
+  .step div { font-size: 9.5pt; color: #3a424c; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+  th { text-align: left; font-weight: 650; color: var(--muted); font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1.5px solid var(--ink); padding: 1.8mm 2mm; }
+  td { border-bottom: 1px solid var(--line); padding: 1.9mm 2mm; vertical-align: top; }
+  td:first-child { white-space: nowrap; width: 1%; }
+
+  .chips { display: flex; gap: 2mm; flex-wrap: wrap; margin: 2mm 0 3mm; }
+  .chip { font-size: 8.5pt; font-weight: 600; border-radius: 10mm; padding: 0.8mm 3mm; color: #1b1f24; }
+  .feature { border: 1px solid var(--line); border-radius: 2.5mm; padding: 4mm; }
+  .feature h3 { margin-top: 0; }
+  .zoom { position: relative; height: 44mm; overflow: hidden; border-radius: 3mm; border: 1px solid #d5dae0; box-shadow: 0 2mm 6mm rgba(20, 30, 45, 0.12); }
+  .zoom img { position: absolute; width: 190%; }
+  .qn { display: grid; grid-template-columns: 58mm 1fr; gap: 7mm; align-items: start; }
+</style>
+</head>
+<body>
+
+<!-- 1. Cover -->
+<section class="page cover">
+  <div class="brand"><div class="logo">N2</div> Quickstart guide</div>
+  <h1>Notepad <span>2.0</span></h1>
+  <p class="sub">The Windows 11 Notepad you know, with file groups, a Markdown editor you type straight into, several windows, paper styles and a Quick Note one keypress away.</p>
+  <div class="hero"><img src="../screenshots/01-hero-visual-dark.png" alt=""></div>
+  <div class="foot"><span>Version 0.1 · Windows 10 and 11</span><span>github.com/kainevfx/notepad-2.0</span></div>
+</section>
+
+<!-- 2. Install + first five minutes -->
+<section class="page">
+  <div class="kicker">Get started</div>
+  <h2>Install, then your first five minutes</h2>
+  <p class="lede">Setup takes a few seconds, installs for your user only (no admin password), and doesn't need a restart.</p>
+
+  <h3>Install</h3>
+  <ul>
+    <li>Run <b>Notepad 2.0_0.1.0_x64-setup.exe</b> (or the <b>.msi</b>).</li>
+    <li>Open <b>Notepad 2.0</b> from the Start menu. The first time, it offers a short tour.</li>
+    <li>To open your <b>.txt</b> and <b>.md</b> files with it, or to replace <b>notepad.exe</b>, see <i>Windows integration</i> on page 7.</li>
+  </ul>
+
+  <h3>Seven things to try</h3>
+  <div class="steps">
+    <div class="step"><span class="n">1</span><div><b>New text file: <kbd>Ctrl</kbd>+<kbd>N</kbd></b>Start typing. It autosaves until you choose where to keep it.</div></div>
+    <div class="step"><span class="n">2</span><div><b>New Markdown file: <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd></b>It opens in the Visual editor. Use the toolbar for headings, colours, lists and tables.</div></div>
+    <div class="step"><span class="n">3</span><div><b>Make a file group</b>Right-click a tab, then <i>New file group…</i>. Drag more files onto it.</div></div>
+    <div class="step"><span class="n">4</span><div><b>Change the layout</b>Click <i>Tabs: Top</i> (top right) for tabs on top, a sidebar, or a slim rail.</div></div>
+    <div class="step"><span class="n">5</span><div><b>Pick a paper</b>Click <i>Paper</i> for Code, Lines or Grid, and set a page margin.</div></div>
+    <div class="step"><span class="n">6</span><div><b>Tear off a window</b>Drag a tab outside the window. It opens in a new window.</div></div>
+    <div class="step"><span class="n">7</span><div><b>Quick Note: <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd></b>From anywhere. Type, click away, it's saved.</div></div>
+    <div class="step"><span class="n">?</span><div><b>Take the tour</b><i>Help → Startup guide</i> spotlights each part of the window in 13 steps.</div></div>
+  </div>
+
+  <div class="tip"><b>Nothing is ever lost.</b> Untitled notes and Quick Notes save as you type. Opened files save with <kbd>Ctrl</kbd>+<kbd>S</kbd> like Notepad, but unsaved edits survive a crash or reboot and come back with a banner.</div>
+
+  <div class="folio"><span>Notepad 2.0 Quickstart</span><span>2</span></div>
+</section>
+
+<!-- 3. The window -->
+<section class="page">
+  <div class="kicker">The basics</div>
+  <h2>It's still Notepad</h2>
+  <p class="lede">Same menus, same shortcuts, same instant start. Plain text stays plain, and a file you haven't changed is never altered by a single byte.</p>
+  <img class="shot" src="../screenshots/02-notepad-light-top-tabs.png" alt="">
+  <div class="caption">Light theme, tabs on top, a plain .txt file. On a text file only the tools plain text can hold are active, and a <b>Convert to Markdown</b> button appears.</div>
+
+  <div class="cols" style="margin-top: 6mm;">
+    <div>
+      <h3>Everything Notepad does</h3>
+      <ul>
+        <li>Find, Replace, Go to line, Print</li>
+        <li>Date and time with <kbd>F5</kbd></li>
+        <li>UTF-8, UTF-16 and ANSI; CRLF or LF, shown in the status bar</li>
+        <li>Font picker, word wrap, text zoom</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Look and feel</h3>
+      <ul>
+        <li><b>Light, Dark or System</b> theme</li>
+        <li><b>Interface size</b> 75–150% from the status-bar slider. Hold <kbd>Shift</kbd> and press <kbd>+</kbd> / <kbd>−</kbd> outside the text to nudge it.</li>
+        <li>Text zoom (<kbd>Ctrl</kbd> <kbd>+</kbd> / <kbd>−</kbd>) is separate</li>
+      </ul>
+    </div>
+  </div>
+  <div class="zoom" style="margin-top: 3mm; height: 44mm;"><img src="../screenshots/09-startup-guide.png" alt="" style="width: 150%; left: 0; top: -138%;"></div>
+  <div class="caption">New here? <i>Help → Startup guide</i> is a 13-step spotlight tour of the window, offered the first time you start.</div>
+  <div class="folio"><span>Notepad 2.0 Quickstart</span><span>3</span></div>
+</section>
+
+<!-- 4. Groups -->
+<section class="page">
+  <div class="kicker">Organise</div>
+  <h2>File groups, tabs and the sidebar</h2>
+  <p class="lede">Keep related files together in coloured groups. Groups can sit inside groups, and ungrouped files always stay at the top.</p>
+  <div class="chips">
+    <span class="chip" style="background:#8fb8f5">Project Alpha</span>
+    <span class="chip" style="background:var(--purple)">Development</span>
+    <span class="chip" style="background:var(--cyan)">Backend</span>
+    <span class="chip" style="background:var(--orange)">Meeting Notes</span>
+    <span class="chip" style="background:var(--green)">Ideas</span>
+  </div>
+  <img class="shot" src="../screenshots/06-group-menu.png" alt="">
+  <div class="caption">Right-click a group to rename it, add files, change its colour, nest a group inside, collapse everything, or set autosave for the whole group.</div>
+
+  <div class="cols" style="margin-top: 5mm;">
+    <div>
+      <h3>Layouts</h3>
+      <ul>
+        <li><b>Tabs on top</b>, joined to the page</li>
+        <li><b>Sidebar</b> on the left: drag its edge to resize</li>
+        <li><b>Rail</b>: a slim list of groups</li>
+      </ul>
+      <h3>Sort</h3>
+      <p>Manual, Date modified, Date created, Name A–Z or File type. Sorting is a view: your own order is kept.</p>
+    </div>
+    <div>
+      <h3>File actions</h3>
+      <ul>
+        <li><b>Rename in place</b>: double-click or <kbd>F2</kbd>. Saved files are renamed on disk, never over an existing file.</li>
+        <li><b>Duplicate, Copy, Paste</b> into another group. Copies are named <i>Name (2).ext</i>.</li>
+        <li><b>Open in File Explorer</b></li>
+        <li>Right-click → <b>Colour</b> tints a single tab</li>
+      </ul>
+    </div>
+  </div>
+  <div class="folio"><span>Notepad 2.0 Quickstart</span><span>4</span></div>
+</section>
+
+<!-- 5. Markdown -->
+<section class="page">
+  <div class="kicker">Write</div>
+  <h2>Markdown you can type into</h2>
+  <p class="lede">Three views of the same file. Switch with the buttons at the top right, or press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd>.</p>
+  <table style="margin-bottom: 5mm;">
+    <tr><th>View</th><th>What it's for</th></tr>
+    <tr><td><b>Visual</b></td><td>A true WYSIWYG editor. Type straight into the formatted document, like a word processor.</td></tr>
+    <tr><td><b>Source</b></td><td>The raw Markdown, with syntax highlighting.</td></tr>
+    <tr><td><b>Split</b></td><td>Source on the left, a live preview on the right: tables, task lists, footnotes, front matter, maths, Mermaid diagrams, highlighted code.</td></tr>
+  </table>
+  <img class="shot" src="../screenshots/03-split-view.png" alt="">
+  <div class="caption">Split view. Formatting Markdown can't express (underline, colour, alignment) is saved as the small HTML tags GitHub understands, so files look right there too.</div>
+  <div class="tip"><b>Locked blocks.</b> Front matter, maths, Mermaid and other raw HTML show as locked blocks in Visual so nothing is mangled. Double-click one to edit it in Source.</div>
+  <div class="folio"><span>Notepad 2.0 Quickstart</span><span>5</span></div>
+</section>
+
+<!-- 6. Tables + Insert + Paper -->
+<section class="page">
+  <div class="kicker">Write</div>
+  <h2>Tables, inserts and paper</h2>
+  <p class="lede">Click inside a table and a <b>Table</b> menu appears on the toolbar.</p>
+  <img class="shot" src="../screenshots/11-table-editing.png" alt="" style="height: 92mm; object-fit: cover; object-position: top right;">
+  <div class="caption">Add or delete rows and columns, toggle the header row, merge or split cells. Drag borders to resize. Cells hold formatted text and lists.</div>
+
+  <div class="cols" style="margin-top: 5mm;">
+    <div>
+      <h3>Insert menu</h3>
+      <p>Page break, line break, image, table (with a size picker), link (<kbd>Ctrl</kbd>+<kbd>K</kbd>), horizontal line, date and time.</p>
+      <h3>Paper</h3>
+      <table>
+        <tr><td><b>None</b></td><td>A clean page</td></tr>
+        <tr><td><b>Code</b></td><td>Line numbers down the whole page</td></tr>
+        <tr><td><b>Lines</b></td><td>Ruled writing paper</td></tr>
+        <tr><td><b>Grid</b></td><td>Graph paper</td></tr>
+      </table>
+      <p style="margin-top: 2mm;">For every tab or per tab. <b>Page margin</b> (0–200 px) works in every view.</p>
+    </div>
+    <div>
+      <div class="zoom"><img src="../screenshots/04-code-paper.png" alt="" style="left: -38%; top: -8%;"></div>
+
+      <div class="caption">Code paper</div>
+      <div class="zoom" style="margin-top: 3mm;"><img src="../screenshots/05-lines-paper-rail.png" alt="" style="left: -2%; top: -4%;"></div>
+
+      <div class="caption">Lines paper, with the slim rail</div>
+    </div>
+  </div>
+  <div class="folio"><span>Notepad 2.0 Quickstart</span><span>6</span></div>
+</section>
+
+<!-- 7. Windows, Quick Note, integration -->
+<section class="page">
+  <div class="kicker">Go further</div>
+  <h2>Windows, Quick Note and dictation</h2>
+
+  <div class="feature" style="margin-top: 5mm;">
+    <h3>Several windows</h3>
+    <ul>
+      <li><b>Drag a file, group or sub-group outside the window</b>: it opens in a new window at the pointer.</li>
+      <li><b>Drag between windows</b> to move items, dropped exactly where you let go.</li>
+      <li><b>Close a window</b> and its files move into the window you used last. Nothing is lost.</li>
+      <li><b>Restart</b> and every window comes back where it was, the last one you used in front.</li>
+      <li>Opening a file that's already open elsewhere brings that window forward.</li>
+    </ul>
+  </div>
+
+  <div class="qn" style="margin-top: 6mm;">
+    <div>
+      <img class="shot" src="../screenshots/10-quick-note.png" alt="">
+    </div>
+    <div>
+      <h3 style="margin-top: 0;">Quick Note</h3>
+      <p>Press <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd> anywhere, or click the tray icon. A small always-on-top note pops up above the tray and saves as you type. Your Quick Notes collect in a <b>Quick Notes</b> group in the main window.</p>
+      <h3>Dictate</h3>
+      <p>Click the <b>microphone</b> button in the Quick Note to dictate with Windows voice typing (the same as <kbd>Win</kbd>+<kbd>H</kbd>). Speak, and your words appear in the note.</p>
+      <h3>Windows integration</h3>
+      <p>In <i>Settings → Windows integration</i>:</p>
+      <ul>
+        <li>Default app for .txt and .md</li>
+        <li><b>Replace notepad.exe</b> (one admin prompt, reversible)</li>
+        <li><i>Edit with Notepad 2.0</i> in File Explorer's right-click menu</li>
+        <li>Start with Windows, quietly in the tray</li>
+      </ul>
+      <p>Uninstalling removes all of these.</p>
+    </div>
+  </div>
+  <div class="folio"><span>Notepad 2.0 Quickstart</span><span>7</span></div>
+</section>
+
+<!-- 8. Shortcuts -->
+<section class="page">
+  <div class="kicker">Reference</div>
+  <h2>Keyboard shortcuts</h2>
+  <p class="lede">Every Notepad shortcut works as before. These are the ones worth learning.</p>
+  <div class="cols">
+    <table>
+      <tr><th colspan="2">Files and tabs</th></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>N</kbd></td><td>New text file</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd></td><td>New Markdown file</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Open</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd></td><td>Save as</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd></td><td>Save all</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>Close tab</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>W</kbd></td><td>Close window to the tray</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd></td><td>New file group</td></tr>
+      <tr><td><kbd>F2</kbd></td><td>Rename the current file</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>Print</td></tr>
+      <tr><td><kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd></td><td>Quick Note, from anywhere</td></tr>
+    </table>
+    <table>
+      <tr><th colspan="2">Editing and view</th></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Find</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>H</kbd></td><td>Replace</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>G</kbd></td><td>Go to line</td></tr>
+      <tr><td><kbd>F3</kbd> / <kbd>Shift</kbd>+<kbd>F3</kbd></td><td>Find next / previous</td></tr>
+      <tr><td><kbd>F5</kbd></td><td>Insert date and time</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Insert link</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd></td><td>Visual → Source → Split</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>]</kbd> / <kbd>[</kbd></td><td>Indent / outdent a list item</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>−</kbd> / <kbd>0</kbd></td><td>Text zoom in / out / reset</td></tr>
+      <tr><td><kbd>Shift</kbd>+<kbd>+</kbd> / <kbd>−</kbd></td><td>Interface size (outside the text)</td></tr>
+      <tr><td><kbd>Win</kbd>+<kbd>H</kbd></td><td>Dictate</td></tr>
+    </table>
+  </div>
+
+  <h3 style="margin-top: 9mm;">Where your notes are kept</h3>
+  <ul>
+    <li>Files you open or save live <b>wherever you put them</b>, as ordinary .txt and .md files.</li>
+    <li>Untitled notes, Quick Notes, groups, window layout and settings live in <b>%APPDATA%\Notepad2\</b>. Paste that into the File Explorer address bar to open it.</li>
+  </ul>
+  <img class="shot" src="../screenshots/08-settings.png" alt="" style="margin-top: 4mm; height: 58mm; object-fit: cover; object-position: top center;">
+  <div class="caption">Settings: interface size, theme, font, tabs and groups, saving, Quick Note and Windows integration.</div>
+  <div class="folio"><span>Notepad 2.0 Quickstart</span><span>8</span></div>
+</section>
+
+</body>
+</html>

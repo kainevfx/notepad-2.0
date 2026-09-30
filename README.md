@@ -1,2 +1,202 @@
-# notepad-2.0
-an updated version of the windows notepad app
+# Notepad 2.0
+
+**A Windows 11 Notepad that grew up.** It looks and behaves like the Notepad you know (same menus, same shortcuts, same instant start), and adds file groups, a real Markdown editor you can type straight into, several windows, paper styles and a Quick Note that is always one keypress away.
+
+![Notepad 2.0: file groups in the sidebar and a Markdown document in the Visual editor](docs/screenshots/01-hero-visual-dark.png)
+
+📄 **[Download the Quickstart guide (PDF)](docs/Notepad-2.0-Quickstart.pdf)**: a 10-minute illustrated tour of everything below.
+
+---
+
+## Contents
+
+- [Install](#install)
+- [Quickstart: your first five minutes](#quickstart-your-first-five-minutes)
+- [Features](#features)
+- [Keyboard shortcuts](#keyboard-shortcuts)
+- [Where your notes are kept](#where-your-notes-are-kept)
+- [Build from source](#build-from-source)
+
+---
+
+## Install
+
+1. Get the installer, `Notepad 2.0_0.1.0_x64-setup.exe` (or the `.msi`):
+   - from the [Releases](https://github.com/kainevfx/notepad-2.0/releases) page when a release is published, or
+   - by building it yourself in a few minutes (see [Build from source](#build-from-source)).
+2. Run it. Setup installs for your user only, so it doesn't ask for an admin password, and it doesn't need a restart.
+3. Open **Notepad 2.0** from the Start menu. A short startup guide offers a tour the first time.
+
+Want it to open your `.txt` and `.md` files, or to replace `notepad.exe` completely? See [Windows integration](#windows-integration).
+
+---
+
+## Quickstart: your first five minutes
+
+| # | Do this | What happens |
+|---|---|---|
+| 1 | Press **Ctrl+N** | A new text file. Start typing: it autosaves until you decide where to keep it. |
+| 2 | Press **Ctrl+Alt+N** | A new Markdown file, in the **Visual** editor. Use the toolbar for headings, bold, colours, lists, tables. |
+| 3 | Right-click a tab → **New file group…** | Tabs are grouped into a coloured container. Drag other files onto it. |
+| 4 | Click **Tabs: Top** (top right) | Switch between tabs on top, a sidebar on the left, or a slim rail. |
+| 5 | Click **Paper** | Pick Code (line numbers), Lines or Grid paper, and a page margin. |
+| 6 | Drag a tab **outside the window** | It opens in a new Notepad 2.0 window. Drag it back to move it again. |
+| 7 | Press **Win+Alt+N** anywhere | A Quick Note bubble pops up above the tray. Type, click away, it's saved. |
+
+Everything is also in **Help → Startup guide**, a 13-step spotlight tour you can run any time.
+
+![The startup guide spotlights each part of the window](docs/screenshots/09-startup-guide.png)
+
+---
+
+## Features
+
+### It's still Notepad
+
+Tabs, File / Edit / View menus, Find and Replace, Go to line, Print, Date/time with F5, encodings (UTF-8, UTF-16, ANSI) and line endings (CRLF / LF) in the status bar, a font picker, word wrap and zoom. Plain `.txt` files stay plain. Opening, viewing and saving a file you haven't changed never alters a byte.
+
+![Light mode, tabs on top, a plain text file](docs/screenshots/02-notepad-light-top-tabs.png)
+
+### File groups, tabs and the sidebar
+
+- **Groups** are coloured containers for related files. Groups can sit inside groups. Click a group to fold it away.
+- **Three layouts:** tabs along the top (joined to the page), a resizable **sidebar** on the left, or a slim **rail**.
+- Every tab shows a **TXT** / **MD** badge and when you last edited it. Right-click → **Colour** tints one tab.
+- **Sort** the sidebar by Manual, Date modified, Date created, Name A–Z or File type. Sorting is a view: your own order is kept.
+- **Rename in place:** double-click, F2 or right-click → Rename. Saved files are renamed on disk and never over an existing file.
+- **Duplicate, Copy and Paste** files into another group. Copies are named `Name (2).ext`, and nothing is ever overwritten.
+- **Open in File Explorer** from any saved file.
+
+![Right-click a group: rename, add files, colour, nest, collapse](docs/screenshots/06-group-menu.png)
+
+### Markdown you can type into: Visual, Source and Split
+
+- **Visual** is a true WYSIWYG editor: headings, bold, italic, underline, strikethrough, font colour, size and weight, alignment, bullet / numbered / checklist lists, links, images, horizontal lines and tables.
+- **Source** is the raw Markdown with syntax highlighting. **Split** shows the source next to a live preview.
+- The preview understands GitHub-flavoured Markdown: tables, task lists, footnotes, front matter, maths, Mermaid diagrams and highlighted code.
+- Formatting Markdown can't express is saved as the small HTML tags GitHub understands (`<u>`, `<span style="color:…">`, `<div align="center">`), so your files look right on GitHub too.
+- Front matter, maths, Mermaid and other raw HTML appear as locked blocks in Visual. Double-click one to edit it in Source. They are written back unchanged.
+- Press **Ctrl+Shift+V** to cycle between the three views.
+
+![Split view: Markdown source on the left, live preview on the right](docs/screenshots/03-split-view.png)
+
+### Tables
+
+Insert a table from the toolbar with a size picker. Click inside it and a **Table** menu appears: add or delete rows and columns, toggle the header row, merge or split cells, delete the table. Cells can hold formatted text and lists. Drag the borders to resize columns and rows.
+
+![Editing a table in the Visual editor, with the Table menu open](docs/screenshots/11-table-editing.png)
+
+### Insert menu
+
+Page break, line break, image, table, link, horizontal line and the date and time.
+
+![The Insert menu](docs/screenshots/07-insert-menu.png)
+
+### Paper styles and page margin
+
+| Paper | Looks like |
+|---|---|
+| **None** | A clean page, like Notepad |
+| **Code** | A line number on every line down the whole page, with faint rules |
+| **Lines** | Ruled writing paper, with optional line numbers |
+| **Grid** | Graph paper |
+
+Choose one for every tab or per tab. **Page margin** (0–200 px) keeps text away from the edges in every view.
+
+![Code paper: line numbers down the page](docs/screenshots/04-code-paper.png)
+
+![Lines paper in light mode, with the slim rail on the left](docs/screenshots/05-lines-paper-rail.png)
+
+### Several windows
+
+- **Drag a file, group or sub-group outside the window** and it opens in a new Notepad 2.0 window at the pointer.
+- **Drag between windows** to move files and groups from one to another, dropped exactly where you let go.
+- **Close a window** and its files move into the window you used last, so nothing is lost.
+- When you restart, **all your windows come back** where they were, and the last one you used is in front.
+- Opening a file that's already open in another window brings that window forward instead of opening it twice.
+
+### Quick Note and dictation
+
+Press **Win+Alt+N** from anywhere (or click the tray icon) and a small always-on-top note pops up above the tray. It saves as you type and shows up in a **Quick Notes** group in the main window.
+
+Click the **microphone** button to dictate with Windows voice typing (the same as pressing Win+H). Speak and your words appear in the note.
+
+![The Quick Note bubble](docs/screenshots/10-quick-note.png)
+
+### Look and feel
+
+- **Light, Dark or System** theme (Settings or View → Dark mode).
+- **Interface size** 75%–150% from the status bar slider scales the sidebar and page. Menus and toolbars stay put. Hold **Shift** and press **+ / −** (outside the text) to nudge it.
+- Text zoom (**Ctrl + / −**) is separate.
+
+![Settings: interface size, theme, font](docs/screenshots/08-settings.png)
+
+### Saving: nothing is ever lost
+
+- Untitled notes and Quick Notes **autosave continuously**.
+- Opened files work like Notepad: you save with **Ctrl+S**. But unsaved edits survive a crash, a reboot or a power cut, and come back with a banner.
+- Autosave for opened files can be switched on in Settings, globally or per group.
+
+### Windows integration
+
+In **Settings → Windows integration**:
+
+- Make Notepad 2.0 the default app for `.txt` and `.md`. Windows then asks you to confirm once.
+- **Replace notepad.exe**, so everything that opens Notepad opens Notepad 2.0. This needs one admin prompt and can be undone.
+- Add **Edit with Notepad 2.0** to the File Explorer right-click menu.
+- **Start with Windows** quietly in the tray.
+
+Uninstalling removes all of these.
+
+---
+
+## Keyboard shortcuts
+
+| Keys | Action |
+|---|---|
+| Ctrl+N / Ctrl+Alt+N | New text file / new Markdown file |
+| Ctrl+O | Open |
+| Ctrl+S / Ctrl+Shift+S / Ctrl+Alt+S | Save / Save as / Save all |
+| Ctrl+W | Close tab |
+| Ctrl+Shift+W | Close window to the tray |
+| Ctrl+Shift+G | New file group |
+| F2 | Rename the current file |
+| Ctrl+F / Ctrl+H / Ctrl+G | Find / Replace / Go to line |
+| F3 / Shift+F3 | Find next / previous |
+| F5 | Insert date and time |
+| Ctrl+K | Insert link |
+| Ctrl+Shift+V | Cycle Visual → Source → Split |
+| Ctrl+] / Ctrl+[ | Indent / outdent a list item |
+| Ctrl+Plus / Ctrl+Minus / Ctrl+0 | Text zoom in / out / reset |
+| Shift + / − (outside the text) | Nudge interface size |
+| Ctrl+P | Print |
+| Win+Alt+N | Quick Note, from anywhere |
+| Win+H | Dictate (Windows voice typing) |
+
+---
+
+## Where your notes are kept
+
+- Files you open or save live **wherever you put them**, as ordinary `.txt` / `.md` files.
+- Untitled notes, Quick Notes, groups, window layout and settings live in `%APPDATA%\Notepad2\` (paste that into the File Explorer address bar to open it).
+
+---
+
+## Build from source
+
+You need Windows 10 or 11, Node 24, Rust (stable) and WebView2, which Windows 11 already has.
+
+```powershell
+cd app
+npm ci
+npx tauri dev      # run it
+npx tauri build    # installers in app\src-tauri\target\release\bundle\{nsis,msi}
+```
+
+Tests: `npm run typecheck`, `npm test` (270 tests), and `cargo test --manifest-path src-tauri/Cargo.toml --lib`.
+
+Screenshots in this README come from the browser build: run `npx vite --port 5188` in `app\`, then `node e2e/readme-shots.mjs`.
+
+For the full technical notes (architecture, file layout, command-line switches), see [app/README.md](app/README.md).
+
+Built with [Tauri 2](https://tauri.app), [Preact](https://preactjs.com), [CodeMirror 6](https://codemirror.net) and [TipTap](https://tiptap.dev).
