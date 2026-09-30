@@ -361,6 +361,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             speech::kokoro_speech,
+            speech::kokoro_voices,
             get_launch_args,
             read_file,
             file_stat,

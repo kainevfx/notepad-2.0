@@ -1,6 +1,51 @@
 //! Kokoro transport. Audio stays in memory; document text is never logged or stored here.
 use std::time::Duration;
 
+/// `{endpoint}/v1/audio/{what}` after the same checks as the speech URL.
+fn api_url(endpoint: &str, what: &str) -> Result<reqwest::Url, String> {
+    let mut url = speech_url(endpoint)?;
+    let path = url.path().trim_end_matches("speech").to_string() + what;
+    url.set_path(&path);
+    Ok(url)
+}
+
+/// Voice ids from a Kokoro server's voice list: `{"voices": [...]}` or a bare array, with plain
+/// strings or objects carrying `id` / `name`. Sorted; anything that isn't a plain id is dropped.
+fn parse_voices(v: &serde_json::Value) -> Vec<String> {
+    let list = v.get("voices").unwrap_or(v).as_array().cloned().unwrap_or_default();
+    let mut out: Vec<String> = list
+        .iter()
+        .filter_map(|x| x.as_str().or_else(|| x.get("id").and_then(|i| i.as_str())).or_else(|| x.get("name").and_then(|i| i.as_str())))
+        .filter(|id| !id.is_empty() && id.len() <= 80 && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_'))
+        .map(String::from)
+        .collect();
+    out.sort();
+    out.dedup();
+    out
+}
+
+/// The voices a Kokoro server offers. Also the "is Kokoro running?" check (short timeout).
+#[tauri::command]
+pub async fn kokoro_voices(endpoint: String) -> Result<Vec<String>, String> {
+    let url = api_url(&endpoint, "voices")?;
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(4))
+        .connect_timeout(Duration::from_secs(2))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .map_err(|_| "Could not prepare the Kokoro connection.")?;
+    let response = client.get(url).send().await.map_err(|_| "Cannot reach Kokoro at this address.")?;
+    if !response.status().is_success() {
+        return Err(format!("Kokoro answered HTTP {}.", response.status().as_u16()));
+    }
+    let json: serde_json::Value = response.json().await.map_err(|_| "That server didn't send a Kokoro voice list.")?;
+    let voices = parse_voices(&json);
+    if voices.is_empty() {
+        return Err("That server didn't send a Kokoro voice list.".into());
+    }
+    Ok(voices)
+}
+
 fn speech_url(endpoint: &str) -> Result<reqwest::Url, String> {
     let mut url = reqwest::Url::parse(endpoint.trim()).map_err(|_| "Enter a valid Kokoro server URL in Settings.")?;
     let local = matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]"));
@@ -49,6 +94,22 @@ pub async fn kokoro_speech(endpoint: String, input: String, voice: String) -> Re
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn voice_lists_in_the_shapes_kokoro_servers_use() {
+        use serde_json::json;
+        assert_eq!(parse_voices(&json!({"voices": ["bf_emma", "am_adam"]})), ["am_adam", "bf_emma"]);
+        assert_eq!(parse_voices(&json!({"voices": [{"id": "af_heart"}, {"name": "bm_george"}]})), ["af_heart", "bm_george"]);
+        assert_eq!(parse_voices(&json!(["bf_isabella"])), ["bf_isabella"]);
+        assert!(parse_voices(&json!({"error": "x"})).is_empty());
+        // Anything that isn't a plain voice id is dropped.
+        assert_eq!(parse_voices(&json!({"voices": ["ok_voice", "../x", "a b"]})), ["ok_voice"]);
+    }
+
+    #[test]
+    fn voices_url() {
+        assert_eq!(api_url("http://127.0.0.1:8880", "voices").unwrap().as_str(), "http://127.0.0.1:8880/v1/audio/voices");
+    }
+
     #[test]
     fn endpoint_rules() {
         assert_eq!(speech_url("http://127.0.0.1:8880/").unwrap().as_str(), "http://127.0.0.1:8880/v1/audio/speech");

@@ -6,6 +6,7 @@ import { settingsOpen, dialog, paperPopoverOpen } from '../state/ui';
 import { platform } from '../platform';
 import { settings, updateSettings, clampScale } from '../state/settings';
 import { uiScaleStep } from '../lib/scale-keys';
+import { toggleReadAloud } from '../speech/commands';
 import { startRename } from './menus';
 
 export function installShortcuts() {
@@ -49,6 +50,7 @@ export function installShortcuts() {
     if (e.altKey) {
       if (k === 's') return run(saveAll);
       if (k === 'n') return run(() => newNote({ language: 'markdown' }));
+      if (k === 'r') return run(() => void toggleReadAloud());
       return;
     }
     switch (k) {

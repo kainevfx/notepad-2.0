@@ -12,6 +12,7 @@ import { IcSidebar, IcTabsTop, IcSplit } from './icons';
 import { insertMenu, helpMenu } from './insert-actions';
 import { TABS_MODES, tabsModeLabel } from '../lib/tabs-modes';
 import { resetPaperOwner } from './PaperButton';
+import { readAloudItems } from './ReadAloud';
 
 type MenuName = 'File' | 'Edit' | 'Insert' | 'View' | 'Help';
 
@@ -119,6 +120,7 @@ function viewMenu(): MenuItem[] {
         { label: 'Also show line numbers', checked: s.paperNumbers, action: () => { updateSettings({ paperNumbers: !s.paperNumbers }); refreshView(); } },
       ],
     },
+    { label: 'Read aloud', submenu: readAloudItems() },
     {
       label: 'Markdown',
       disabled: !!d?.viewer,

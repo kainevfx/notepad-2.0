@@ -52,8 +52,12 @@ export interface Settings {
   mdDefaultView: MdView;
   mdForTxt: boolean;
   blockRemoteImages: boolean;
+  /** Read aloud: Automatic (Kokoro when it answers, else a Windows voice), Kokoro only, or Windows voices only. */
+  readAloudEngine: 'auto' | 'kokoro' | 'windows';
   kokoroEndpoint: string;
   kokoroVoice: string;
+  /** A Windows voice by name ('' = British English if installed, else the default). */
+  windowsVoice: string;
   readAloudRate: number;
 
   /** X button sends the app to the tray (Kaine's choice) instead of quitting. */
@@ -94,8 +98,10 @@ export const DEFAULT_SETTINGS: Settings = {
   mdDefaultView: 'visual',
   mdForTxt: false,
   blockRemoteImages: false,
+  readAloudEngine: 'auto',
   kokoroEndpoint: 'http://127.0.0.1:8880',
   kokoroVoice: 'bf_emma',
+  windowsVoice: '',
   readAloudRate: 1,
 
   closeToTray: true,
