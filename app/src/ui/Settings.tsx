@@ -6,6 +6,7 @@ import { platform, FILE_TYPES, type IntegrationState } from '../platform';
 import { IcChevronLeft } from './icons';
 import { ScaleSlider } from './ScaleSlider';
 import { MarginControl } from './MarginControl';
+import { ReadAloudSettings } from './ReadAloud';
 
 function Toggle({ on, onChange, disabled }: { on: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
@@ -218,7 +219,7 @@ export function Settings() {
         <h2>Tabs and groups</h2>
         <div class="card">
           <Row title="Tab position" desc="Along the top like Notepad, or down the left with Chrome-style groups. Ctrl+Shift+, switches.">
-            <Select k="tabsMode" options={[['top', 'Top'], ['left', 'Left side'], ['rail', 'Left, collapsed rail']]} />
+            <Select k="tabsMode" options={[['top', 'Top'], ['left', 'Left side'], ['rail', 'Left, collapsed rail'], ['compact', 'Left, compact (vertical labels)']]} />
           </Row>
         </div>
 
@@ -242,6 +243,11 @@ export function Settings() {
           </Row>
           <Row title="Treat new notes and .txt files as Markdown">{bool('mdForTxt')}</Row>
           <Row title="Block remote images in previews">{bool('blockRemoteImages')}</Row>
+        </div>
+
+        <h2>Read aloud</h2>
+        <div class="card">
+          <ReadAloudSettings Row={Row} />
         </div>
 
         <h2>Saving</h2>

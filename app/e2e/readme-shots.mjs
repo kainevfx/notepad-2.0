@@ -38,7 +38,7 @@ async function open(title) {
   await page.waitForTimeout(700);
 }
 async function view(name) {
-  await page.locator('.seg button', { hasText: name }).first().click();
+  await page.locator('.view-switch button', { hasText: name }).first().click();
   await page.waitForTimeout(900);
 }
 
@@ -138,6 +138,47 @@ await openFile('Brief.html');
 await shot('15-html-view');
 await openFile('Production Brief.docx');
 await shot('16-word-document');
+
+// 17. Split view: Markdown in Visual on the left, the CSV grid on the right
+await setup({ tabsMode: 'left' });
+await open('Business strategy');
+await view('Visual');
+await page.locator('.menubar .icon-btn', { hasText: 'Split' }).click();
+await page.waitForTimeout(800);
+await page.locator('.editor-pane').nth(1).dispatchEvent('pointerdown');
+await openFile('Cast.csv');
+await shot('17-split-view');
+await page.locator('.menubar .icon-btn', { hasText: 'Split' }).click();
+await page.waitForTimeout(500);
+
+// 18. Lines paper in the Visual view
+await setup({ tabsMode: 'left', paper: 'lines', paperMargin: true });
+await open('Business strategy');
+await view('Visual');
+await shot('18-visual-lines-paper');
+
+// 19. Compact rail with vertical labels, light
+await setup({ theme: 'light', tabsMode: 'compact' });
+await open('Meeting Note 2').catch(() => {});
+await shot('19-compact-rail');
+
+// 20. Read aloud: the playback bar (speech kept going so the bar stays up)
+await setup({ tabsMode: 'left' });
+await open('Business strategy');
+await view('Visual');
+await page.evaluate(() => { window.speechSynthesis.speak = () => {}; });
+await page.keyboard.press('Control+Alt+r');
+await page.waitForTimeout(3500);
+await shot('20-read-aloud');
+await page.keyboard.press('Control+Alt+r');
+
+// 21. Settings → Read aloud
+await page.locator('.menubar-btn', { hasText: 'Settings' }).click();
+await page.waitForTimeout(500);
+await page.locator('h2', { hasText: 'Read aloud' }).scrollIntoViewIfNeeded();
+await page.evaluate(() => document.querySelector('.settings-page')?.scrollBy(0, 120));
+await shot('21-read-aloud-settings');
+await page.keyboard.press('Escape');
 
 // 10. Quick Note bubble
 const qn = await ctx.newPage();

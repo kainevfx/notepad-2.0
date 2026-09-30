@@ -7,6 +7,8 @@ import { renderMermaid } from '../../markdown/mermaid';
 import { alignedToken } from './align';
 import { ownSpan } from './marks';
 import { ownHtmlTable } from './tables';
+import type { VisualRenderContext } from './render-context';
+import type { RenderOptions } from '../../markdown/pipeline';
 
 type BlockKind = 'frontmatter' | 'math' | 'mermaid' | 'footnote' | 'reference' | 'html';
 export const LOCKED_LABEL: Record<string, string> = {
@@ -95,8 +97,8 @@ const INLINE_RULES: { kind: string; re: RegExp }[] = [
   { kind: 'escape', re: /^\\[!-/:-@[-`{-~]/ },
 ];
 
-function renderInto(el: HTMLElement, raw: string) {
-  el.innerHTML = renderMarkdown(raw); // sanitised by the preview pipeline
+function renderInto(el: HTMLElement, raw: string, options: RenderOptions = {}) {
+  el.innerHTML = renderMarkdown(raw, options); // sanitised by the preview pipeline
   if (!el.textContent?.trim() && !el.querySelector('img, svg, hr, .page-break')) {
     // Renders to nothing on its own (e.g. a footnote or link definition): show the source.
     const pre = document.createElement('pre');
@@ -110,6 +112,7 @@ function renderInto(el: HTMLElement, raw: string) {
 
 export const LockedBlock = Node.create({
   name: 'lockedBlock',
+  addOptions() { return { renderContext: undefined as VisualRenderContext | undefined }; },
   group: 'block',
   atom: true,
   selectable: true,
@@ -125,6 +128,7 @@ export const LockedBlock = Node.create({
   },
   // Show the block rendered (KaTeX, Mermaid, sanitised HTML) rather than as source.
   addNodeView() {
+    const context = this.options.renderContext as VisualRenderContext | undefined;
     return ({ node }: { node: any }) => {
       const dom = document.createElement('div');
       const label = LOCKED_LABEL[node.attrs.kind] ?? 'Locked';
@@ -135,9 +139,11 @@ export const LockedBlock = Node.create({
       dom.contentEditable = 'false';
       const body = document.createElement('div');
       body.className = 'locked-render';
-      renderInto(body, String(node.attrs.raw));
+      const render = () => renderInto(body, String(node.attrs.raw), context?.options());
+      render();
+      const unsubscribe = context?.subscribe(render);
       dom.append(body);
-      return { dom, ignoreMutation: () => true };
+      return { dom, ignoreMutation: () => true, destroy: unsubscribe };
     };
   },
   markdownTokenizer: {
@@ -166,6 +172,7 @@ export const LockedBlock = Node.create({
 
 export const LockedInline = Node.create({
   name: 'lockedInline',
+  addOptions() { return { renderContext: undefined as VisualRenderContext | undefined }; },
   group: 'inline',
   inline: true,
   atom: true,
@@ -186,6 +193,26 @@ export const LockedInline = Node.create({
       }),
       String(node.attrs.raw),
     ];
+  },
+  addNodeView() {
+    const context = this.options.renderContext as VisualRenderContext | undefined;
+    return ({ node }: { node: any }) => {
+      const dom = document.createElement('span');
+      dom.className = 'locked-inline';
+      dom.dataset.locked = node.attrs.kind;
+      dom.contentEditable = 'false';
+      dom.title = `${LOCKED_LABEL[node.attrs.kind] ?? 'Locked'}: double-click to edit in Source view`;
+      const render = () => {
+        // A Markdown image renders inside a paragraph; unwrap it for an inline node view.
+        const body = document.createElement('div');
+        renderInto(body, String(node.attrs.raw), context?.options());
+        const p = body.childElementCount === 1 && body.firstElementChild?.tagName === 'P' ? body.firstElementChild : body;
+        dom.replaceChildren(...Array.from(p.childNodes));
+      };
+      render();
+      const unsubscribe = context?.subscribe(render);
+      return { dom, ignoreMutation: () => true, destroy: unsubscribe };
+    };
   },
   markdownTokenizer: {
     name: 'lockedInline',

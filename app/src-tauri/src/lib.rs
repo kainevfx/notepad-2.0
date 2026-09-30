@@ -4,6 +4,7 @@
 pub mod files;
 pub mod integration;
 pub mod sheets;
+pub mod speech;
 pub mod windows;
 
 use serde::Serialize;
@@ -253,6 +254,9 @@ async fn open_alias_settings() -> Result<(), String> {
 
 // ------------------------------------------------------------------ tray
 
+/// The tray icon: a sheet of yellow writing paper (assets/icon/tray-icon.svg, rendered to 32 px).
+const TRAY_ICON: &[u8] = include_bytes!("../icons/tray.png");
+
 fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let open = MenuItem::with_id(app, "open", "Open Notepad 2.0", true, None::<&str>)?;
     let quick = MenuItem::with_id(app, "quick", "Quick Note\tWin+Alt+N", true, None::<&str>)?;
@@ -264,7 +268,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let menu = Menu::with_items(app, &[&open, &quick, &new_quick, &sep1, &settings, &sep2, &quit])?;
 
     TrayIconBuilder::with_id("main-tray")
-        .icon(app.default_window_icon().cloned().expect("bundle icon"))
+        .icon(tauri::image::Image::from_bytes(TRAY_ICON)?)
         .tooltip("Notepad 2.0: click for Quick Note")
         .menu(&menu)
         .show_menu_on_left_click(false)
@@ -356,6 +360,8 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            speech::kokoro_speech,
+            speech::kokoro_voices,
             get_launch_args,
             read_file,
             file_stat,
@@ -397,4 +403,15 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running Notepad 2.0");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tray_icon_is_a_32px_png() {
+        let img = tauri::image::Image::from_bytes(TRAY_ICON).unwrap();
+        assert_eq!((img.width(), img.height()), (32, 32));
+    }
 }

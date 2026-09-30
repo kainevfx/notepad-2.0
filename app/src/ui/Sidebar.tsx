@@ -2,8 +2,9 @@
 import { useRef, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
 import type { TreeNode, GroupNode } from '../lib/tree-ops';
-import { tree, docs, activeId, activate, closeDoc, newNote, displayTitle, toggleGroup, newGroupFrom, renameDoc, renameGroupTo } from '../state/app';
+import { tree, docs, activeId, activate, closeDoc, newNote, displayTitle, toggleGroup, newGroupFrom, renameDoc, renameGroupTo , panes } from '../state/app';
 import { settings, updateSettings } from '../state/settings';
+import { PaperButton } from './PaperButton';
 import { openContextMenu, railPeek, closedNotesOpen, renamingId } from '../state/ui';
 import { InlineRename } from './InlineRename';
 import { IcChevronDown, IcChevronUp, IcChevronLeft, IcChevronRight, IcClose, IcFolderPlus, IcSearch, IcNewText, IcNewMd } from './icons';
@@ -43,7 +44,7 @@ function NoteRow({ id, depth }: { id: string; depth: number }) {
   const b = fileBadge(d);
   return (
     <div
-      class={`side-note${activeId.value === id ? ' active' : ''}${d.color ? ' colored' : ''}${dropClass(id)}`}
+      class={`side-note${activeId.value === id ? ' active' : panes.value.on && (panes.value.docs.a === id || panes.value.docs.b === id) ? ' also-shown' : ''}${d.color ? ' colored' : ''}${dropClass(id)}`}
       style={{ '--depth': depth, ...docColorVars(d.color) } as any}
       data-drop-id={id}
       data-drop-kind="note"
@@ -144,24 +145,22 @@ export function Sidebar() {
     <aside class="sidebar" style={{ width: s.sidebarWidth + 'px' }}>
       <div class="side-tools">
         <div class="side-head">
-          <label class="side-sort" title="How files are ordered here. Manual keeps the order you arranged.">
-            <span>Sort</span>
-            <select class="fb-select" value={s.sidebarSort} onChange={(e) => updateSettings({ sidebarSort: (e.target as HTMLSelectElement).value as SortMode })}>
-              {(Object.keys(SORT_LABELS) as SortMode[]).map((m) => (
-                <option value={m}>{SORT_LABELS[m]}</option>
-              ))}
-            </select>
-          </label>
-          <button class="icon-btn side-collapse" title="Collapse sidebar to a rail" onClick={() => updateSettings({ tabsMode: 'rail' })}>
-            <IcChevronLeft />
-          </button>
-        </div>
-        <div class="side-search-row">
           <div class="side-search">
             <IcSearch size={14} />
             <input placeholder="Search tabs" value={q} onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
           </div>
+          <button class="icon-btn side-collapse" title="Collapse sidebar to a rail" onClick={() => updateSettings({ tabsMode: 'rail' })}>
+            <IcChevronLeft />
+          </button>
         </div>
+        <label class="side-sort" title="How files are ordered here. Manual keeps the order you arranged.">
+          <span>Sort</span>
+          <select class="fb-select" value={s.sidebarSort} onChange={(e) => updateSettings({ sidebarSort: (e.target as HTMLSelectElement).value as SortMode })}>
+            {(Object.keys(SORT_LABELS) as SortMode[]).map((m) => (
+              <option value={m}>{SORT_LABELS[m]}</option>
+            ))}
+          </select>
+        </label>
         <div class="side-actions">
           <button class="side-action" title="New text file (Ctrl+N)" onClick={() => newNote({ language: 'plain', groupId: null })}>
             <IcNewText />
@@ -175,6 +174,7 @@ export function Sidebar() {
             <IcFolderPlus />
             <span>New group</span>
           </button>
+          <PaperButton />
         </div>
       </div>
       <div
@@ -210,6 +210,7 @@ export function Rail() {
       <button class="icon-btn rail-open" title="Expand sidebar" onClick={() => updateSettings({ tabsMode: 'left' })}>
         <IcChevronRight />
       </button>
+      <PaperButton label={false} cls="rail-paper" />
       <div class="rail-items">
         {loose > 0 && (
           <button class="rail-item rail-loose" title={`Ungrouped (${loose})`} onClick={peek} onContextMenu={(e) => openContextMenu(e as MouseEvent, ungroupedMenu())}>
@@ -233,6 +234,47 @@ export function Rail() {
       </div>
       {railPeek.value && (
         <div class="rail-peek" onMouseLeave={() => !drag.value && !renamingId.value && (railPeek.value = false)}>
+          <Sidebar />
+        </div>
+      )}
+    </aside>
+  );
+}
+
+/** Compact rail: a thin strip, Ungrouped first, each file group's name running vertically. */
+export function CompactRail() {
+  const groups = tree.value.filter((n): n is GroupNode => n.kind === 'group');
+  const loose = tree.value.filter((n) => n.kind === 'note').length;
+  const peek = () => (railPeek.value = !railPeek.value);
+  return (
+    <aside class="crail">
+      <button class="icon-btn crail-open" title="Expand sidebar" onClick={() => updateSettings({ tabsMode: 'left' })}>
+        <IcChevronRight />
+      </button>
+      <PaperButton label={false} cls="crail-paper" />
+      <div class="crail-items">
+        {loose > 0 && (
+          <button class="crail-item crail-loose" title={`Ungrouped (${loose})`} onClick={peek} onContextMenu={(e) => openContextMenu(e as MouseEvent, ungroupedMenu())}>
+            <span class="crail-label">Ungrouped</span>
+            <span class="crail-count">{loose}</span>
+          </button>
+        )}
+        {groups.map((g) => (
+          <button
+            key={g.id}
+            class="crail-item"
+            style={groupVars(g.color)}
+            title={`${g.name} (${countNotes(g)})`}
+            onClick={peek}
+            onContextMenu={(e) => openContextMenu(e as MouseEvent, groupMenu(g.id))}
+          >
+            <span class="crail-label">{g.name}</span>
+            <span class="crail-count">{countNotes(g)}</span>
+          </button>
+        ))}
+      </div>
+      {railPeek.value && (
+        <div class="rail-peek crail-peek" onMouseLeave={() => !drag.value && !renamingId.value && (railPeek.value = false)}>
           <Sidebar />
         </div>
       )}

@@ -17,6 +17,7 @@
 .visual-editor td > p, .visual-editor th > p { margin: 0; }
 .visual-editor .selectedCell { background: color-mix(in srgb, var(--accent) 18%, transparent); }
 .visual-editor a { cursor: text; }
+.visual-editor .locked-inline:has(img) { padding: 0; background: transparent; font: inherit; }
 
 /* Tables: resizable columns (drag a column border) and rows (drag a row's bottom border) */
 .visual-editor .tableWrapper { overflow-x: auto; margin: 0 0 16px; }
@@ -27,3 +28,28 @@
 .visual-editor .column-resize-handle { position: absolute; right: -2px; top: 0; bottom: -2px; width: 4px; background: var(--accent); pointer-events: none; z-index: 2; }
 .visual-editor .ProseMirror.resize-cursor { cursor: col-resize; }
 .visual-editor .ProseMirror.row-resize-cursor, .visual-editor .ProseMirror.row-resizing { cursor: row-resize; }
+
+/* Paper in the Visual view (editor/visual/paper.ts): a background at the text's line height,
+   starting at the page's top padding. The rules scroll with the text. */
+.visual-editor.vpaper .ProseMirror { --vtop: calc(12px + var(--page-margin, 16px)); background-position: 0 var(--vtop); }
+.visual-editor.vpaper-lines .ProseMirror {
+  background-image: linear-gradient(to bottom, transparent calc(var(--vlh) - 1px), var(--paper-rule) calc(var(--vlh) - 1px));
+  background-size: 100% var(--vlh);
+}
+.visual-editor.vpaper-code .ProseMirror {
+  background-image: linear-gradient(to bottom, transparent calc(var(--vlh) - 1px), var(--paper-rule-faint) calc(var(--vlh) - 1px));
+  background-size: 100% var(--vlh);
+}
+.visual-editor.vpaper-grid .ProseMirror {
+  background-image:
+    linear-gradient(to bottom, transparent calc(var(--vlh) - 1px), var(--paper-rule) calc(var(--vlh) - 1px)),
+    linear-gradient(to right, transparent calc(var(--vlh) - 1px), var(--paper-rule) calc(var(--vlh) - 1px));
+  background-size: var(--vlh) var(--vlh);
+}
+.visual-editor.vpaper-margin .ProseMirror {
+  background-image:
+    linear-gradient(to right, transparent calc(var(--page-margin, 16px) + 8px), var(--paper-margin) calc(var(--page-margin, 16px) + 8px), var(--paper-margin) calc(var(--page-margin, 16px) + 9px), transparent calc(var(--page-margin, 16px) + 9px)),
+    linear-gradient(to bottom, transparent calc(var(--vlh) - 1px), var(--paper-rule) calc(var(--vlh) - 1px));
+  background-size: 100% 100%, 100% var(--vlh);
+  background-position: 0 0, 0 var(--vtop);
+}

@@ -10,6 +10,7 @@ import { Placeholder } from '@tiptap/extensions';
 import { markExtensions } from './marks';
 import { alignExtensions } from './align';
 import { lockedExtensions } from './locked';
+import type { VisualRenderContext } from './render-context';
 
 /** Indent/outdent list items with Ctrl+] / Ctrl+[, and Ctrl+K opens the toolbar's link dialog. */
 const ExtraKeys = Extension.create({
@@ -37,10 +38,10 @@ const SafeFenceCodeBlock = CodeBlock.extend({
   },
 } as any);
 
-export function visualExtensions(opts: { placeholder?: string } = {}): AnyExtension[] {
+export function visualExtensions(opts: { placeholder?: string; renderContext?: VisualRenderContext } = {}): AnyExtension[] {
   return [
     // Locked content first so its tokenizers win over code blocks, rules and raw HTML.
-    ...lockedExtensions,
+    ...lockedExtensions.map((extension) => extension.configure({ renderContext: opts.renderContext })),
     StarterKit.configure({
       underline: false,
       paragraph: false,
@@ -72,10 +73,10 @@ export function editorToMarkdown(editor: Editor): string {
  * Create the Visual editor. `onDocEdited` fires only for transactions that change the document,
  * never for loading text or toggling read-only (TipTap emits "update" for those too).
  */
-export function mountVisualEditor(element: HTMLElement, onDocEdited: () => void): Editor {
+export function mountVisualEditor(element: HTMLElement, onDocEdited: () => void, renderContext?: VisualRenderContext): Editor {
   return new Editor({
     element,
-    extensions: visualExtensions(),
+    extensions: visualExtensions({ renderContext }),
     editorProps: { attributes: { class: 'markdown-body', spellcheck: 'false' } },
     onUpdate: ({ transaction }) => {
       if (transaction.docChanged) onDocEdited();

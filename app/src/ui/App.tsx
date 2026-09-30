@@ -7,8 +7,9 @@ import { TitleBar } from './TitleBar';
 import { MenuBar } from './MenuBar';
 import { FormatBar } from './FormatBar';
 import { TabStrip } from './TabStrip';
-import { Sidebar, Rail } from './Sidebar';
-import { EditorPane } from './EditorPane';
+import { Sidebar, Rail, CompactRail } from './Sidebar';
+import { EditorArea } from './EditorPane';
+import { ReadAloudBar } from './ReadAloud';
 import { StatusBar } from './StatusBar';
 import { Settings } from './Settings';
 import { ContextMenuHost } from './MenuList';
@@ -41,8 +42,10 @@ export function App() {
       <div class="workspace">
         {mode === 'left' && <Sidebar />}
         {mode === 'rail' && <Rail />}
+        {mode === 'compact' && <CompactRail />}
         <div class="main-col">
-          <EditorPane />
+          <EditorArea />
+          <ReadAloudBar />
           {settingsOpen.value && <Settings />}
         </div>
       </div>
