@@ -19,7 +19,7 @@ it('renders Markdown and HTML images with the document folder, without changing 
   editor = mountVisualEditor(document.createElement('div'), () => edits++, context);
   const source = 'EDIT\n\n![Photo](images/a%20b.png)\n\n<figure><img src="images/c.png" width="220"></figure>\n\n![Remote](https://example.com/a.png)';
   loadIntoEditor(editor, source, true);
-  const images = () => Array.from(editor!.view.dom.querySelectorAll('img:not(.ProseMirror-separator)'));
+  const images = () => Array.from(editor!.view.dom.querySelectorAll<HTMLImageElement>('img:not(.ProseMirror-separator)'));
   expect(images()).toHaveLength(3);
   expect(images()[0].src).toContain(encodeURIComponent('E:\\[WIP]\\My documents\\images\\a b.png'));
   expect(images()[1].getAttribute('width')).toBe('220');
