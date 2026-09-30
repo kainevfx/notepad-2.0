@@ -13,6 +13,7 @@ import remarkFrontmatter from 'remark-frontmatter';
 import remarkMath from 'remark-math';
 import remarkRehype from 'remark-rehype';
 import rehypeRaw from 'rehype-raw';
+import rehypeParse from 'rehype-parse';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeKatex from 'rehype-katex';
 import rehypeHighlight from 'rehype-highlight';
@@ -160,6 +161,17 @@ const schema = {
   },
   tagNames: [...(defaultSchema.tagNames ?? []), 'mark', 'u', 'abbr', 'figure', 'figcaption', 'center', 'colgroup', 'col'],
 };
+
+const htmlSanitizer = unified()
+  .use(rehypeParse, { fragment: true })
+  .use(rehypeSanitize, { ...schema, protocols: { ...defaultSchema.protocols, src: [...(defaultSchema.protocols?.src ?? []), 'data'] } } as any)
+  .use(rehypeCleanStyles)
+  .use(rehypeStringify);
+
+/** Converted documents (Word) through the same rules as the Markdown preview; embedded images kept. */
+export function sanitizeHtml(html: string): string {
+  return String(htmlSanitizer.processSync(html));
+}
 
 function buildProcessor(opts: RenderOptions) {
   return unified()

@@ -3,7 +3,7 @@ import { useSignalEffect } from '@preact/signals';
 import { EditorView } from '@codemirror/view';
 import {
   attachView, activeDoc, editTick, textOf, reloadDoc, keepMine, dismissBanner, discardRestored, saveDocAs, refreshView,
-  dirname, openFiles, getView,
+  dirname, getView,
 } from '../state/app';
 import { settings } from '../state/settings';
 import { platform } from '../platform';
@@ -12,6 +12,9 @@ import { createEditorState } from '../editor/setup';
 import { renderMermaid } from '../markdown/mermaid';
 import { resolveImageUrl } from '../editor/insert';
 import { VisualEditor } from './VisualEditor';
+import { followLink } from '../state/links';
+import { ViewerPane } from './ViewerPane';
+import { isBinaryKind, hasViewPane } from '../lib/view-kind';
 
 function Banner() {
   const d = activeDoc.value;
@@ -38,17 +41,6 @@ function Banner() {
       </div>
     </div>
   );
-}
-
-function joinPath(dir: string, rel: string): string {
-  const sep = dir.includes('\\') ? '\\' : '/';
-  const parts = (dir + sep + rel.replace(/[\\/]/g, sep)).split(sep);
-  const out: string[] = [];
-  for (const p of parts) {
-    if (p === '..') out.pop();
-    else if (p !== '.') out.push(p);
-  }
-  return out.join(sep);
 }
 
 export function Preview({ syncRef }: { syncRef: { current: ((line: number, frac: number) => void) | null } }) {
@@ -113,21 +105,10 @@ export function Preview({ syncRef }: { syncRef: { current: ((line: number, frac:
   const onClick = (e: MouseEvent) => {
     const a = (e.target as HTMLElement).closest('a');
     if (!a) return;
-    const href = a.getAttribute('href') ?? '';
     e.preventDefault();
-    if (href.startsWith('#')) {
-      const target = ref.current?.querySelector(`[id="${CSS.escape('user-content-' + decodeURIComponent(href.slice(1)))}"], [id="${CSS.escape(decodeURIComponent(href.slice(1)))}"]`);
-      target?.scrollIntoView({ block: 'start' });
-      return;
-    }
-    if (/^(https?:|mailto:)/i.test(href)) {
-      platform.openExternal(href);
-      return;
-    }
-    if (d?.path && href) {
-      const p = joinPath(dirname(d.path), decodeURI(href.split('#')[0]));
-      openFiles([p]);
-    }
+    void followLink(a.getAttribute('href') ?? '', d?.path ?? null, (id) =>
+      ref.current?.querySelector(`[id="${CSS.escape('user-content-' + id)}"], [id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'start' }),
+    );
   };
 
   return (
@@ -142,7 +123,10 @@ export function EditorPane() {
   const syncRef = useRef<((line: number, frac: number) => void) | null>(null);
   const [split, setSplit] = useState(0.5);
   const d = activeDoc.value;
-  const view = d?.language === 'markdown' ? d.mdView : 'edit';
+  const kind = d?.viewer;
+  const binary = isBinaryKind(kind);
+  const dataView = hasViewPane(kind);
+  const view = binary ? 'viewer' : dataView ? d!.mdView : d?.language === 'markdown' ? d.mdView : 'edit';
 
   useEffect(() => {
     const v = new EditorView({
@@ -191,11 +175,12 @@ export function EditorPane() {
         <div
           class="editor-host"
           ref={host}
-          style={view === 'split' ? { flex: `0 0 ${split * 100}%` } : view === 'visual' ? { display: 'none' } : undefined}
+          style={view === 'split' ? { flex: `0 0 ${split * 100}%` } : view === 'visual' || view === 'viewer' ? { display: 'none' } : undefined}
         />
         {view === 'split' && <div class="split-divider" onPointerDown={(e) => onDivider(e as PointerEvent)} />}
-        {view === 'split' && <Preview syncRef={syncRef} />}
-        {view === 'visual' && <VisualEditor />}
+        {view === 'split' && !dataView && <Preview syncRef={syncRef} />}
+        {view === 'visual' && !dataView && <VisualEditor />}
+        {d && (binary || (dataView && view !== 'edit')) && <ViewerPane key={d.id} doc={d} />}
       </div>
     </section>
   );

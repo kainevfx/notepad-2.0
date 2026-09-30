@@ -124,3 +124,17 @@ describe('review fixes: images with drive paths', () => {
     expect(html).toContain('src="http://asset.localhost/');
   });
 });
+
+import { sanitizeHtml } from './pipeline';
+describe('sanitizeHtml (Word documents)', () => {
+  it('keeps structure, drops scripts and handlers, keeps embedded images', () => {
+    const out = sanitizeHtml('<h1 onclick="x()">T</h1><script>alert(1)</script><p><strong>b</strong></p><img src="data:image/png;base64,AAAA"><table><tr><td>c</td></tr></table>');
+    expect(out).toContain('<h1>T</h1>');
+    expect(out).toContain('<strong>b</strong>');
+    expect(out).not.toContain('script');
+    expect(out).not.toContain('onclick');
+    expect(out).toContain('data:image/png;base64,AAAA');
+    expect(out).toContain('<td>c</td>');
+  });
+  it('javascript: links are removed', () => expect(sanitizeHtml('<a href="javascript:alert(1)">x</a>')).not.toContain('javascript'));
+});

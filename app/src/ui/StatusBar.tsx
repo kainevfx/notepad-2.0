@@ -5,6 +5,8 @@ import { EOL_LABEL, encodingLabel, type Encoding, type Eol } from '../lib/encodi
 import { effectiveAutosave } from '../lib/tree-ops';
 import { IcMarkdown, IcDoc } from './icons';
 import { ScaleSlider } from './ScaleSlider';
+import { isBinaryKind, formatBytes } from '../lib/view-kind';
+import { fileBadge } from '../lib/file-badge';
 
 export function StatusBar() {
   const s = settings.value;
@@ -48,6 +50,18 @@ export function StatusBar() {
       { label: 'Restore default zoom', shortcut: 'Ctrl+0', action: () => cmd.zoom('reset') },
     ]);
 
+  if (d && isBinaryKind(d.viewer))
+    return (
+      <footer class="statusbar">
+        <span class="sb-item">{fileBadge(d).label} · read-only</span>
+        <span class="sb-item">{formatBytes(d.size)}</span>
+        <span class="sb-flex" />
+        <span class="sb-item sb-scale">
+          <ScaleSlider compact />
+        </span>
+      </footer>
+    );
+
   return (
     <footer class="statusbar">
       <button class="sb-item sb-pos" onClick={() => cmd.goToLine()} title="Go to line (Ctrl+G)">
@@ -59,10 +73,17 @@ export function StatusBar() {
       </span>
       <span class="sb-item sb-save">{saveMode}</span>
       <span class="sb-flex" />
-      <button class="sb-item" onClick={(e) => langMenu(e as MouseEvent)} title="Language mode">
-        {d?.language === 'markdown' ? <IcMarkdown size={14} /> : <IcDoc size={14} />}
-        {d?.language === 'markdown' ? 'Markdown' : 'Plain text'}
-      </button>
+      {d?.viewer ? (
+        <span class="sb-item" title="File type">
+          <IcDoc size={14} />
+          {fileBadge(d).label}
+        </span>
+      ) : (
+        <button class="sb-item" onClick={(e) => langMenu(e as MouseEvent)} title="Language mode">
+          {d?.language === 'markdown' ? <IcMarkdown size={14} /> : <IcDoc size={14} />}
+          {d?.language === 'markdown' ? 'Markdown' : 'Plain text'}
+        </button>
+      )}
       <span class="sb-item sb-scale">
         <ScaleSlider compact />
       </span>

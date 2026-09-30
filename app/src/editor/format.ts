@@ -3,7 +3,9 @@
 //   Source/Split -> Markdown (and small HTML) syntax inserted in CodeMirror
 //   Plain text   -> only what plain text can hold (wrap, indent, display font size/weight)
 import type { DocMeta } from '../state/app';
-import { getView, refreshView } from '../state/app';
+import { getView, refreshView, activeDoc } from '../state/app';
+import { platform } from '../platform';
+import { relativeLink } from '../lib/link-target';
 import { settings, updateSettings } from '../state/settings';
 import { ask } from '../state/ui';
 import { visualApi } from './visual/sync';
@@ -30,13 +32,23 @@ function toggleWrapSetting() {
   refreshView();
 }
 
+/** The link dialog: type an address, or Browse for a file or folder (written relative to the document). */
 async function askLink(current: string): Promise<string | null> {
-  const r = await ask({
-    title: 'Link',
-    buttons: [{ label: 'OK', value: 'ok', primary: true }, { label: 'Cancel', value: 'cancel' }],
-    input: { value: current, label: 'Address (leave empty to remove the link)', select: true },
-  });
-  return r.value === 'ok' ? (r.input ?? '').trim() : null;
+  for (let value = current; ; ) {
+    const r = await ask({
+      title: 'Link',
+      buttons: [
+        { label: 'OK', value: 'ok', primary: true },
+        { label: 'File…', value: 'file' },
+        { label: 'Folder…', value: 'folder' },
+        { label: 'Cancel', value: 'cancel' },
+      ],
+      input: { value, label: 'Address, file or folder (leave empty to remove the link)', select: true },
+    });
+    if (r.value !== 'file' && r.value !== 'folder') return r.value === 'ok' ? (r.input ?? '').trim() : null;
+    const picked = await platform.pickPath(r.value);
+    value = picked ? relativeLink(picked, activeDoc.value?.path ?? null, r.value === 'folder') : r.input ?? value;
+  }
 }
 
 export const plainTarget: FormatTarget = {

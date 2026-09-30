@@ -130,6 +130,8 @@ export function FormatBar() {
 
   const blockValue = STYLE_OPTIONS.map(([c]) => c).find((c) => c !== 'body' && t.isActive(c)) ?? 'body';
 
+  // Data files (CSV, JSON, images…) have nothing to format.
+  if (d?.viewer) return null;
   return (
     <div class="formatbar" role="toolbar" aria-label="Formatting">
       <select

@@ -10,7 +10,10 @@ use serde::Serialize;
 pub const APP_KEY: &str = "Notepad2";
 pub const PROGID_TXT: &str = "Notepad2.txt";
 pub const PROGID_MD: &str = "Notepad2.md";
-pub const KNOWN_EXTS: &[&str] = &[".txt", ".md", ".markdown", ".log", ".ini", ".cfg", ".json", ".csv"];
+/// Every type Notepad 2.0 opens: offered in Open with (never made the default by itself).
+pub const KNOWN_EXTS: &[&str] = &[
+    ".txt", ".md", ".markdown", ".log", ".ini", ".cfg", ".conf", ".toml", ".json", ".yaml", ".yml", ".xml", ".csv", ".tsv", ".html", ".htm", ".xlsx", ".xls", ".ods", ".docx", ".pdf", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".ico",
+];
 pub const IFEO_KEY: &str = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe";
 pub const NOTEPAD_STYLE_FLAG: &str = "--notepad-style-cmdline";
 
@@ -86,6 +89,11 @@ mod imp {
         // SW_SHOWNORMAL = 1. Return value > 32 means success.
         let r = unsafe { ShellExecuteW(std::ptr::null_mut(), op.as_ptr(), t.as_ptr(), std::ptr::null(), std::ptr::null(), 1) };
         if (r as isize) > 32 { Ok(()) } else { Err(format!("Windows could not open {target}")) }
+    }
+
+    /// File Explorer at a folder.
+    pub fn open_folder(path: &str) -> Result<(), String> {
+        Command::new("explorer.exe").arg(path).spawn().map(|_| ()).map_err(|e| e.to_string())
     }
 
     pub fn reveal(path: &str) -> Result<(), String> {
@@ -336,6 +344,9 @@ mod imp {
     pub fn shell_open(target: &str) -> Result<(), String> {
         std::process::Command::new("xdg-open").arg(target).spawn().map(|_| ()).map_err(|e| e.to_string())
     }
+    pub fn open_folder(path: &str) -> Result<(), String> {
+        shell_open(path)
+    }
     pub fn reveal(path: &str) -> Result<(), String> {
         let dir = std::path::Path::new(path).parent().map(|p| p.to_string_lossy().into_owned()).unwrap_or_default();
         shell_open(&dir)
@@ -377,6 +388,14 @@ mod tests {
         assert_eq!(progid_for(".MARKDOWN"), PROGID_MD);
         assert_eq!(progid_for(".txt"), PROGID_TXT);
         assert_eq!(progid_for(".log"), PROGID_TXT);
+    }
+
+    #[test]
+    fn known_exts_cover_every_viewer() {
+        for e in [".xlsx", ".xls", ".ods", ".csv", ".tsv", ".json", ".yaml", ".yml", ".xml", ".toml", ".html", ".htm", ".docx", ".pdf", ".png", ".jpg", ".svg"] {
+            assert!(KNOWN_EXTS.contains(&e), "{e}");
+        }
+        assert!(KNOWN_EXTS.iter().all(|e| valid_ext(e)));
     }
 
     #[test]

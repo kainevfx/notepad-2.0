@@ -6,6 +6,7 @@ import type { Editor } from '@tiptap/core';
 import { activeDoc, activeId, editTick, getView, textOf, setMdView } from '../state/app';
 import { mountVisualEditor, loadIntoEditor, editorToMarkdown } from '../editor/visual/extensions';
 import { createVisualSync, visualApi, visualEpoch } from '../editor/visual/sync';
+import { followLink } from '../state/links';
 
 export function VisualEditor() {
   const host = useRef<HTMLDivElement>(null);
@@ -44,6 +45,14 @@ export function VisualEditor() {
       }
     };
     ed.view.dom.addEventListener('dblclick', onDbl);
+    // Ctrl+click follows a link (a plain click places the cursor, as in Word).
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement).closest('a[href]');
+      if (!a || !(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      void followLink(a.getAttribute('href') ?? '', activeDoc.value?.path ?? null);
+    };
+    ed.view.dom.addEventListener('click', onClick);
     edRef.current = ed;
     visualApi.editor = ed;
     visualApi.flush = flush;
@@ -53,6 +62,7 @@ export function VisualEditor() {
     return () => {
       flush();
       ed.view.dom.removeEventListener('dblclick', onDbl);
+      ed.view.dom.removeEventListener('click', onClick);
       visualApi.editor = null;
       visualApi.flush = () => {};
       visualApi.undo = visualApi.redo = () => false;

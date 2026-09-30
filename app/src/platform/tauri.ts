@@ -4,9 +4,19 @@ import { getCurrentWindow, Window, primaryMonitor, LogicalPosition, LogicalSize,
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { open as openDlg, save as saveDlg } from '@tauri-apps/plugin-dialog';
 import type { FileRead, FileStat, IntegrationState, LaunchArgs, Platform, Unlisten } from './types';
+import { FILE_TYPES } from './types';
 
 const TEXT_FILTERS = [
   { name: 'Text documents', extensions: ['txt', 'md', 'markdown', 'log', 'ini', 'cfg', 'json', 'csv'] },
+  { name: 'All files', extensions: ['*'] },
+];
+const OPEN_FILTERS = [
+  { name: 'All supported files', extensions: FILE_TYPES.map((e) => e.slice(1)) },
+  { name: 'Text and Markdown', extensions: ['txt', 'md', 'markdown', 'log', 'ini', 'cfg', 'conf', 'toml'] },
+  { name: 'Data (CSV, JSON, YAML, XML)', extensions: ['csv', 'tsv', 'json', 'yaml', 'yml', 'xml'] },
+  { name: 'Spreadsheets', extensions: ['xlsx', 'xls', 'ods'] },
+  { name: 'Documents (HTML, PDF, Word)', extensions: ['html', 'htm', 'pdf', 'docx'] },
+  { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'] },
   { name: 'All files', extensions: ['*'] },
 ];
 
@@ -34,12 +44,20 @@ export function createTauriPlatform(): Platform {
       invoke<number>('write_file', bytes, { headers: { 'x-path': encodeURIComponent(path) } }),
     stat: (path) => invoke<FileStat>('file_stat', { path }),
     renameFile: (from, to) => invoke<void>('rename_file', { from, to }),
+    pathKind: (path) => invoke<'file' | 'dir' | 'missing'>('path_kind', { path }),
+    openFolder: (path) => invoke<void>('open_folder', { path }),
+    openDefault: (path) => invoke<void>('open_default', { path }),
+    readSheet: (path) => invoke('read_sheet', { path }),
+    async pickPath(kind) {
+      const r = await openDlg({ multiple: false, directory: kind === 'folder' });
+      return typeof r === 'string' ? r : null;
+    },
     async openImageDialog() {
       const r = await openDlg({ multiple: false, filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'] }] });
       return typeof r === 'string' ? r : null;
     },
     async openDialog() {
-      const r = await openDlg({ multiple: true, filters: TEXT_FILTERS });
+      const r = await openDlg({ multiple: true, filters: OPEN_FILTERS });
       if (!r) return [];
       return Array.isArray(r) ? r : [r];
     },

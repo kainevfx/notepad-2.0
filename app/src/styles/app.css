@@ -154,7 +154,10 @@ kbd { border: 1px solid var(--stroke-strong); border-bottom-width: 2px; border-r
   --lvl: 0;
   position: relative;
   height: calc(34px - var(--lvl) * 5px);
-  width: 170px;
+  /* Sized to the title (badge at the end), so short names don't waste room and long ones show more. */
+  width: auto;
+  min-width: 110px;
+  max-width: 260px;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -393,10 +396,12 @@ html.dark .side-group-body { border-left-color: var(--g-dark); }
   align-items: center;
   gap: 8px;
   min-height: 38px;
-  padding: 3px 4px 3px 8px;
+  padding: 3px 4px 3px 10px;
   border-radius: 4px;
   font-size: 13px;
 }
+/* The type badge sits at the end of the title line, so the title starts at the left edge. */
+.side-note > .type-badge { align-self: flex-start; margin-top: 5px; }
 .side-note:hover { background: var(--bg-hover); }
 .side-note.active { background: var(--bg-press); }
 .side-note.active::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 2px; background: var(--accent); }
@@ -646,3 +651,62 @@ button.sb-item:hover { background: var(--bg-hover); }
 .guide-count { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; }
 .guide-actions { display: flex; align-items: center; gap: 8px; }
 .guide-flex { flex: 1; }
+
+/* Log files: level colours and dimmed timestamps (editor/log-lang.ts). */
+.cm-line.log-error { color: #e5484d; }
+.cm-line.log-warn { color: #c9921a; }
+html.dark .cm-line.log-warn { color: #f0b429; }
+.cm-line.log-info, .cm-line.log-debug { color: var(--text-2); }
+.log-time { color: var(--text-3); }
+
+/* File viewers (ui/ViewerPane.tsx and ui/viewers/). */
+.viewer { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--bg-editor); color: var(--text); overflow: hidden; zoom: var(--ui-zoom, 1); }
+.viewer-loading { flex: 1; display: grid; place-items: center; color: var(--text-3); background: var(--bg-editor); }
+.viewer-notice { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; background: var(--bg-editor); color: var(--text-2); text-align: center; }
+.viewer-notice-text { margin: 0; font-size: 15px; color: var(--text); }
+.viewer-notice-detail { margin: 0; font-size: 12px; max-width: 560px; word-break: break-word; }
+.viewer-toolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-bottom: 1px solid var(--stroke); font-size: 12px; color: var(--text-2); }
+.viewer-toolbar .btn { height: 26px; padding: 0 10px; }
+.viewer-toolbar .viewer-info { margin-left: auto; color: var(--text-3); }
+
+/* Data grid (CSV / TSV / spreadsheets). */
+.grid-wrap { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.grid { border-collapse: separate; border-spacing: 0; font: 13px/1.2 var(--ui-font); color: var(--text); }
+.grid th, .grid td { height: 28px; box-sizing: border-box; padding: 0 10px; border-right: 1px solid var(--stroke); border-bottom: 1px solid var(--stroke); white-space: pre; max-width: 420px; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.grid thead th { position: sticky; top: 0; z-index: 2; background: var(--bg-2, var(--bg-hover)); font-weight: 600; cursor: pointer; user-select: none; }
+.grid thead th:hover { background: var(--bg-hover); }
+.grid .grid-rownum { position: sticky; left: 0; z-index: 1; min-width: 44px; text-align: right; color: var(--text-3); background: var(--bg-editor); font-variant-numeric: tabular-nums; }
+.grid thead .grid-rownum { z-index: 3; background: var(--bg-2, var(--bg-hover)); }
+.grid tbody tr:hover td { background: var(--bg-hover); }
+.grid-sort { color: var(--accent-text); }
+.grid-note, .grid-empty { padding: 10px 14px; color: var(--text-3); font-size: 12px; }
+
+/* Tree viewer (JSON / YAML / XML). */
+.tv-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 8px 0 40px; font: 13px/1.5 Consolas, "Cascadia Mono", monospace; }
+.tv-row { display: flex; align-items: baseline; gap: 2px; padding: 0 12px 0 calc(12px + var(--d) * 18px); white-space: pre; }
+.tv-row:hover { background: var(--bg-hover); }
+.tv-chev { width: 16px; flex: 0 0 16px; padding: 0; border: 0; background: none; color: var(--text-3); cursor: pointer; font-size: 11px; }
+.tv-key { color: var(--syn-fn); }
+.tv-colon { color: var(--text-3); }
+.tv-str { color: var(--syn-string); }
+.tv-num { color: var(--syn-number); }
+.tv-count { color: var(--text-3); margin-left: 6px; }
+.tv-el { color: var(--syn-keyword); }
+.tv-attr { color: var(--syn-fn); }
+.tv-text { color: var(--text); }
+.tv-error { margin: 12px; }
+
+/* HTML viewer: pages expect a white page. */
+.html-frame { flex: 1 1 auto; width: 100%; min-height: 0; border: 0; background: #fff; }
+
+/* Image and PDF viewers. */
+.img-stage { flex: 1 1 auto; min-height: 0; overflow: auto; display: grid; place-items: center; padding: 16px; background: repeating-conic-gradient(#8882 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
+.img-stage img { display: block; max-width: none; image-rendering: auto; box-shadow: 0 1px 6px #0003; }
+.pdf-frame { flex: 1 1 auto; width: 100%; min-height: 0; border: 0; background: var(--bg-editor); }
+.viewer-toolbar .btn.pressed { background: var(--bg-press); }
+
+/* Sheet tabs under a spreadsheet. */
+.sheet-tabs { flex: 0 0 auto; display: flex; gap: 2px; padding: 0 8px; border-top: 1px solid var(--stroke); background: var(--bg-2, var(--bg-hover)); overflow-x: auto; }
+.sheet-tab { height: 30px; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--text-2); font: 12px var(--ui-font); cursor: pointer; white-space: nowrap; }
+.sheet-tab:hover { color: var(--text); background: var(--bg-hover); }
+.sheet-tab.on { color: var(--text); border-bottom-color: var(--accent); background: var(--bg-editor); }

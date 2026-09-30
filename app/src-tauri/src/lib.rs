@@ -3,6 +3,7 @@
 
 pub mod files;
 pub mod integration;
+pub mod sheets;
 pub mod windows;
 
 use serde::Serialize;
@@ -182,6 +183,28 @@ fn rename_file(from: String, to: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn path_kind(path: String) -> &'static str {
+    files::path_kind(std::path::Path::new(&path))
+}
+
+/// Every sheet of a workbook as cell text (at most 200,000 cells per sheet).
+#[tauri::command]
+async fn read_sheet(path: String) -> Result<sheets::Workbook, String> {
+    sheets::read_sheet(std::path::Path::new(&path), 200_000)
+}
+
+#[tauri::command]
+fn open_folder(path: String) -> Result<(), String> {
+    integration::open_folder(&path)
+}
+
+/// A file in its default Windows app (e.g. a workbook too large to preview).
+#[tauri::command]
+fn open_default(path: String) -> Result<(), String> {
+    integration::shell_open(&path)
+}
+
+#[tauri::command]
 fn reveal_in_explorer(path: String) -> Result<(), String> {
     integration::reveal(&path)
 }
@@ -346,6 +369,10 @@ pub fn run() {
             quit_app,
             open_url,
             reveal_in_explorer,
+            path_kind,
+            open_folder,
+            open_default,
+            read_sheet,
             rename_file,
             start_voice_typing,
             store_claim,

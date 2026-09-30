@@ -104,6 +104,16 @@ export interface Platform {
   closeWindow(): Promise<void>;
   /** Start Windows voice typing (Win+H) in the focused window. */
   startVoiceTyping(): Promise<void>;
+  /** Is this path a file, a folder, or nothing? */
+  pathKind(path: string): Promise<'file' | 'dir' | 'missing'>;
+  /** File Explorer at a folder. */
+  openFolder(path: string): Promise<void>;
+  /** A file in its default Windows app. */
+  openDefault(path: string): Promise<void>;
+  /** Every sheet of a spreadsheet (.xlsx, .xls, .ods) as cell text. */
+  readSheet(path: string): Promise<Workbook>;
+  /** Pick a file or a folder (the link dialog's Browse). */
+  pickPath(kind: 'file' | 'folder'): Promise<string | null>;
   /** Events sent to every window. */
   listen<T>(event: string, cb: (payload: T) => void): Promise<Unlisten>;
   /** Events sent to this window only (emitTo this window's label). */
@@ -125,4 +135,11 @@ export interface Platform {
   openAliasSettings(): Promise<void>;
 }
 
-export const FILE_TYPES = ['.txt', '.md', '.markdown', '.log', '.ini', '.cfg', '.json', '.csv'];
+/** Every type Notepad 2.0 opens (same list as KNOWN_EXTS in src-tauri/src/integration.rs). */
+export const FILE_TYPES = [
+  '.txt', '.md', '.markdown', '.log', '.ini', '.cfg', '.conf', '.toml', '.json', '.yaml', '.yml', '.xml', '.csv', '.tsv', '.html', '.htm', '.xlsx', '.xls', '.ods', '.docx', '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico',
+];
+
+export interface Workbook {
+  sheets: { name: string; rows: string[][]; truncated: boolean }[];
+}

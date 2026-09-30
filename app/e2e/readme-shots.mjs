@@ -114,6 +114,31 @@ await page.locator('button', { hasText: /^Table/ }).last().click().catch(() => c
 await shot('11-table-editing');
 await page.keyboard.press('Escape');
 
+// 12–16. File viewers (the demo's "Production files" group)
+async function openFile(title) {
+  const note = page.locator('.side-note', { hasText: title }).first();
+  if (!(await note.isVisible().catch(() => false))) {
+    await page.locator('.side-group-head', { hasText: 'Production files' }).first().click();
+    await page.waitForTimeout(300);
+  }
+  await note.click();
+  await page.waitForTimeout(1500);
+}
+await setup({ tabsMode: 'left' });
+await openFile('Cast.csv');
+await page.locator('.grid thead th', { hasText: 'Fee' }).click();
+await shot('12-csv-grid');
+await openFile('Budget.xlsx');
+await shot('13-spreadsheet');
+await openFile('config.json');
+await view('Split');
+await shot('14-json-tree-split');
+await view('View');
+await openFile('Brief.html');
+await shot('15-html-view');
+await openFile('Production Brief.docx');
+await shot('16-word-document');
+
 // 10. Quick Note bubble
 const qn = await ctx.newPage();
 await qn.setViewportSize({ width: 420, height: 520 });

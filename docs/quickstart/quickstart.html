@@ -69,7 +69,7 @@
 <section class="page cover">
   <div class="brand"><div class="logo">N2</div> Quickstart guide</div>
   <h1>Notepad <span>2.0</span></h1>
-  <p class="sub">The Windows 11 Notepad you know, with file groups, a Markdown editor you type straight into, several windows, paper styles and a Quick Note one keypress away.</p>
+  <p class="sub">The Windows 11 Notepad you know, with file groups, a Markdown editor you type straight into, viewers for spreadsheets, data, PDFs and Word, several windows and a Quick Note one keypress away.</p>
   <div class="hero"><img src="../screenshots/01-hero-visual-dark.png" alt=""></div>
   <div class="foot"><span>Version 0.1 · Windows 10 and 11</span><span>github.com/kainevfx/notepad-2.0</span></div>
 </section>
@@ -264,7 +264,35 @@
   <div class="folio"><span>Notepad 2.0 Quickstart</span><span>7</span></div>
 </section>
 
-<!-- 8. Shortcuts -->
+<!-- 8. Open anything -->
+<section class="page">
+  <div class="kicker">Open anything</div>
+  <h2>Spreadsheets, data, pages, PDFs and more</h2>
+  <p class="lede">Open a file and Notepad 2.0 picks the right viewer. Text files keep a <b>View / Source / Split</b> switch, so you can read them formatted and still edit the raw text.</p>
+  <table style="margin-bottom: 4mm;">
+    <tr><th>Files</th><th>Shown as</th></tr>
+    <tr><td><b>CSV, TSV</b></td><td>A grid with a sticky header; click a column to sort. Edit in Source.</td></tr>
+    <tr><td><b>XLSX, XLS, ODS</b></td><td>A grid per sheet with sheet tabs; values as Excel shows them. <i>File → Save sheet as CSV…</i></td></tr>
+    <tr><td><b>JSON, YAML, XML</b></td><td>A collapsible tree. A file with a mistake opens beside its source with the error line.</td></tr>
+    <tr><td><b>TOML, INI, logs</b></td><td>Highlighted text; ERROR lines red, WARN amber.</td></tr>
+    <tr><td><b>HTML</b></td><td>The page with its own styling. Scripts never run.</td></tr>
+    <tr><td><b>Images, PDF, Word</b></td><td>Zoomable images; Edge's PDF viewer; Word as formatted text with <i>Open in Word</i>.</td></tr>
+  </table>
+  <div class="cols">
+    <div>
+      <div class="zoom" style="height: 52mm;"><img src="../screenshots/12-csv-grid.png" alt="" style="width: 170%; left: -34%; top: -6%;"></div>
+      <div class="caption">A CSV as a sortable grid</div>
+    </div>
+    <div>
+      <div class="zoom" style="height: 52mm;"><img src="../screenshots/14-json-tree-split.png" alt="" style="width: 170%; left: -34%; top: -6%;"></div>
+      <div class="caption">JSON: source and tree side by side</div>
+    </div>
+  </div>
+  <div class="tip"><b>Links go where they point.</b> In your notes, a link to a file opens it in a tab and a link to a <b>folder</b> opens File Explorer there, e.g. <code>[Art](../Art%20Refs/)</code>. In the Visual editor, <kbd>Ctrl</kbd>+click to follow a link. <i>Insert → Link</i> has <b>File…</b> and <b>Folder…</b> buttons.</div>
+  <div class="folio"><span>Notepad 2.0 Quickstart</span><span>8</span></div>
+</section>
+
+<!-- 9. Shortcuts -->
 <section class="page">
   <div class="kicker">Reference</div>
   <h2>Keyboard shortcuts</h2>
@@ -293,6 +321,7 @@
       <tr><td><kbd>F3</kbd> / <kbd>Shift</kbd>+<kbd>F3</kbd></td><td>Find next / previous</td></tr>
       <tr><td><kbd>F5</kbd></td><td>Insert date and time</td></tr>
       <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Insert link</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+click</td><td>Follow a link (Visual)</td></tr>
       <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd></td><td>Visual → Source → Split</td></tr>
       <tr><td><kbd>Ctrl</kbd>+<kbd>]</kbd> / <kbd>[</kbd></td><td>Indent / outdent a list item</td></tr>
       <tr><td><kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>−</kbd> / <kbd>0</kbd></td><td>Text zoom in / out / reset</td></tr>
@@ -308,7 +337,7 @@
   </ul>
   <img class="shot" src="../screenshots/08-settings.png" alt="" style="margin-top: 4mm; height: 58mm; object-fit: cover; object-position: top center;">
   <div class="caption">Settings: interface size, theme, font, tabs and groups, saving, Quick Note and Windows integration.</div>
-  <div class="folio"><span>Notepad 2.0 Quickstart</span><span>8</span></div>
+  <div class="folio"><span>Notepad 2.0 Quickstart</span><span>9</span></div>
 </section>
 
 </body>
