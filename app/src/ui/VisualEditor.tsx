@@ -7,6 +7,9 @@ import { activeDoc, activeId, editTick, getView, textOf, setMdView } from '../st
 import { mountVisualEditor, loadIntoEditor, editorToMarkdown } from '../editor/visual/extensions';
 import { createVisualSync, visualApi, visualEpoch } from '../editor/visual/sync';
 import { followLink } from '../state/links';
+import { effectivePaper } from '../state/app';
+import { settings } from '../state/settings';
+import { visualPaper } from '../editor/visual/paper';
 
 export function VisualEditor() {
   const host = useRef<HTMLDivElement>(null);
@@ -87,5 +90,6 @@ export function VisualEditor() {
     sync.loaded(text);
   });
 
-  return <div class="visual-editor" ref={host} />;
+  const paper = visualPaper(effectivePaper(activeDoc.value), settings.value);
+  return <div class={`visual-editor ${paper.cls}`} style={paper.vars} ref={host} />;
 }
