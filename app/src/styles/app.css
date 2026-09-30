@@ -701,3 +701,9 @@ html.dark .cm-line.log-warn { color: #f0b429; }
 .img-stage img { display: block; max-width: none; image-rendering: auto; box-shadow: 0 1px 6px #0003; }
 .pdf-frame { flex: 1 1 auto; width: 100%; min-height: 0; border: 0; background: var(--bg-editor); }
 .viewer-toolbar .btn.pressed { background: var(--bg-press); }
+
+/* Sheet tabs under a spreadsheet. */
+.sheet-tabs { flex: 0 0 auto; display: flex; gap: 2px; padding: 0 8px; border-top: 1px solid var(--stroke); background: var(--bg-2, var(--bg-hover)); overflow-x: auto; }
+.sheet-tab { height: 30px; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--text-2); font: 12px var(--ui-font); cursor: pointer; white-space: nowrap; }
+.sheet-tab:hover { color: var(--text); background: var(--bg-hover); }
+.sheet-tab.on { color: var(--text); border-bottom-color: var(--accent); background: var(--bg-editor); }

@@ -110,6 +110,8 @@ export interface Platform {
   openFolder(path: string): Promise<void>;
   /** A file in its default Windows app. */
   openDefault(path: string): Promise<void>;
+  /** Every sheet of a spreadsheet (.xlsx, .xls, .ods) as cell text. */
+  readSheet(path: string): Promise<Workbook>;
   /** Pick a file or a folder (the link dialog's Browse). */
   pickPath(kind: 'file' | 'folder'): Promise<string | null>;
   /** Events sent to every window. */
@@ -134,3 +136,7 @@ export interface Platform {
 }
 
 export const FILE_TYPES = ['.txt', '.md', '.markdown', '.log', '.ini', '.cfg', '.json', '.csv'];
+
+export interface Workbook {
+  sheets: { name: string; rows: string[][]; truncated: boolean }[];
+}

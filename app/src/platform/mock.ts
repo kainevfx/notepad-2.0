@@ -138,6 +138,27 @@ export function createMockPlatform(label: string): Platform {
       return Object.keys(fs).some((k) => k.startsWith(dir)) ? 'dir' : 'missing';
     },
     async openFolder() {},
+    // The browser build has no spreadsheet reader: a fixed two-sheet workbook for screenshots.
+    async readSheet() {
+      return {
+        sheets: [
+          {
+            name: 'Budget',
+            truncated: false,
+            rows: [
+              ['Item', 'Category', 'Qty', 'Unit cost', 'Total', 'Due'],
+              ['LED panels (P2.6)', 'Hardware', '12', '£420.00', '£5,040.00', '14/10/2026'],
+              ['Media server licence', 'Software', '1', '£1,150.00', '£1,150.00', '02/10/2026'],
+              ['Halloween loop pack', 'Content', '1', '£29.00', '£29.00', '30/09/2026'],
+              ['Rigging crew (day)', 'Labour', '3', '£260.00', '£780.00', '31/10/2026'],
+              ['Haze fluid', 'Consumables', '6', '£18.50', '£111.00', '28/10/2026'],
+              ['', '', '', 'Total', '£7,110.00', ''],
+            ],
+          },
+          { name: 'Schedule', truncated: false, rows: [['Day', 'Task'], ['Mon', 'Load-in'], ['Tue', 'Programming'], ['Wed', 'Show']] },
+        ],
+      };
+    },
     async openDefault() {},
     async pickPath() {
       return prompt('Path');

@@ -32,6 +32,7 @@ import { LanguageDescription } from '@codemirror/language';
 import { languages } from '@codemirror/language-data';
 import { codeHighlight, cSyntax } from '../editor/setup';
 import { logHighlighter } from '../editor/log-lang';
+import { toCsv } from '../lib/csv';
 
 /** True when the active tab is showing the Visual (WYSIWYG) editor. */
 export function inVisual(): boolean {
@@ -813,6 +814,24 @@ export function cycleMdView() {
   }
   if (d.language !== 'markdown') return setMdView(d.id, 'visual');
   setMdView(d.id, order[(order.indexOf(d.mdView) + 1) % 3]);
+}
+
+/** Set by the sheet viewer: the sheet on screen, for Save sheet as CSV. */
+export const sheetExport: { current: null | (() => { name: string; rows: string[][] }) } = { current: null };
+
+/** Save the spreadsheet sheet on screen as a CSV file (UTF-8 with BOM so Excel reads accents). */
+export async function saveSheetCsv(id: string) {
+  const d = docs.value[id];
+  const s = sheetExport.current?.();
+  if (!d?.path || !s) return;
+  const path = await platform.saveDialog(`${basename(d.path).replace(/\.[^.]+$/, '')} - ${s.name}.csv`, false);
+  if (!path) return;
+  try {
+    await platform.writeFile(path, encodeText(toCsv(s.rows), 'utf-8', true, 'crlf'));
+    showToast(`Saved ${basename(path)}`);
+  } catch (e) {
+    await alertMsg('Notepad 2.0', `Couldn't save ${path}\n\n${String(e)}`);
+  }
 }
 
 export function setPaper(mode: PaperMode) {

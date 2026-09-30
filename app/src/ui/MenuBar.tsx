@@ -4,7 +4,7 @@ import { settingsOpen, paperPopoverOpen, closedNotesOpen } from '../state/ui';
 import { settings, updateSettings, isDark } from '../state/settings';
 import {
   activeDoc, activeId, newNote, openWithDialog, saveDoc, saveDocAs, saveAll, closeDoc, cmd, recentFiles, openFiles, hideToTray,
-  quitApp, setMdView, setLanguage, cycleMdView, effectivePaper, refreshView, newGroupFrom, closedNotes, setPaper,
+  quitApp, setMdView, setLanguage, cycleMdView, effectivePaper, refreshView, newGroupFrom, closedNotes, setPaper, saveSheetCsv,
 } from '../state/app';
 import { platform } from '../platform';
 import { MenuList } from './MenuList';
@@ -38,6 +38,7 @@ function fileMenu(): MenuItem[] {
     { label: 'Save', shortcut: 'Ctrl+S', action: () => d && saveDoc(d.id), disabled: !d },
     { label: 'Save as', shortcut: 'Ctrl+Shift+S', action: () => d && saveDocAs(d.id), disabled: !d },
     { label: 'Save all', shortcut: 'Ctrl+Alt+S', action: () => saveAll() },
+    ...(d?.viewer === 'sheet' ? [{ label: 'Save sheet as CSV…', action: () => saveSheetCsv(d.id) }] : []),
     { separator: true },
     { label: 'Print', shortcut: 'Ctrl+P', action: () => cmd.print() },
     { separator: true },

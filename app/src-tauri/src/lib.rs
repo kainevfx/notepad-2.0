@@ -3,6 +3,7 @@
 
 pub mod files;
 pub mod integration;
+pub mod sheets;
 pub mod windows;
 
 use serde::Serialize;
@@ -186,6 +187,12 @@ fn path_kind(path: String) -> &'static str {
     files::path_kind(std::path::Path::new(&path))
 }
 
+/// Every sheet of a workbook as cell text (at most 200,000 cells per sheet).
+#[tauri::command]
+async fn read_sheet(path: String) -> Result<sheets::Workbook, String> {
+    sheets::read_sheet(std::path::Path::new(&path), 200_000)
+}
+
 #[tauri::command]
 fn open_folder(path: String) -> Result<(), String> {
     integration::open_folder(&path)
@@ -365,6 +372,7 @@ pub fn run() {
             path_kind,
             open_folder,
             open_default,
+            read_sheet,
             rename_file,
             start_voice_typing,
             store_claim,

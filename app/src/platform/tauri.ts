@@ -37,6 +37,7 @@ export function createTauriPlatform(): Platform {
     pathKind: (path) => invoke<'file' | 'dir' | 'missing'>('path_kind', { path }),
     openFolder: (path) => invoke<void>('open_folder', { path }),
     openDefault: (path) => invoke<void>('open_default', { path }),
+    readSheet: (path) => invoke('read_sheet', { path }),
     async pickPath(kind) {
       const r = await openDlg({ multiple: false, directory: kind === 'folder' });
       return typeof r === 'string' ? r : null;
