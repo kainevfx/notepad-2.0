@@ -4,6 +4,7 @@
 pub mod files;
 pub mod integration;
 pub mod sheets;
+pub mod speech;
 pub mod windows;
 
 use serde::Serialize;
@@ -359,6 +360,7 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            speech::kokoro_speech,
             get_launch_args,
             read_file,
             file_stat,

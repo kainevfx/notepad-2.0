@@ -52,6 +52,9 @@ export interface Settings {
   mdDefaultView: MdView;
   mdForTxt: boolean;
   blockRemoteImages: boolean;
+  kokoroEndpoint: string;
+  kokoroVoice: string;
+  readAloudRate: number;
 
   /** X button sends the app to the tray (Kaine's choice) instead of quitting. */
   closeToTray: boolean;
@@ -91,6 +94,9 @@ export const DEFAULT_SETTINGS: Settings = {
   mdDefaultView: 'visual',
   mdForTxt: false,
   blockRemoteImages: false,
+  kokoroEndpoint: 'http://127.0.0.1:8880',
+  kokoroVoice: 'bf_emma',
+  readAloudRate: 1,
 
   closeToTray: true,
   autosaveFiles: false,

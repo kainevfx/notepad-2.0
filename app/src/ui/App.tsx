@@ -9,6 +9,7 @@ import { FormatBar } from './FormatBar';
 import { TabStrip } from './TabStrip';
 import { Sidebar, Rail, CompactRail } from './Sidebar';
 import { EditorArea } from './EditorPane';
+import { ReadAloudBar } from './ReadAloud';
 import { StatusBar } from './StatusBar';
 import { Settings } from './Settings';
 import { ContextMenuHost } from './MenuList';
@@ -44,6 +45,7 @@ export function App() {
         {mode === 'compact' && <CompactRail />}
         <div class="main-col">
           <EditorArea />
+          <ReadAloudBar />
           {settingsOpen.value && <Settings />}
         </div>
       </div>

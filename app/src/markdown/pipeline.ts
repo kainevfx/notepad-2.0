@@ -66,7 +66,9 @@ function rehypeDriveImages(opts: RenderOptions) {
     if (!opts.resolveUrl) return;
     visit(tree, 'element', (node: any) => {
       const src = node.tagName === 'img' ? node.properties?.src : null;
-      if (typeof src === 'string' && /^[a-zA-Z]:[\\/]/.test(decodeURIComponent(src.replace(/%(?![0-9a-f]{2})/gi, '%25')))) {
+      let decoded = src;
+      try { decoded = typeof src === 'string' ? decodeURIComponent(src) : src; } catch { /* Keep malformed escapes literal. */ }
+      if (typeof decoded === 'string' && /^(?:[a-zA-Z]:[\\/]|file:|\\\\)/i.test(decoded)) {
         node.properties.src = opts.resolveUrl!(src);
       }
     });
@@ -146,6 +148,7 @@ function rehypeCleanStyles() {
 
 const schema = {
   ...defaultSchema,
+  protocols: { ...defaultSchema.protocols, src: [...(defaultSchema.protocols?.src ?? []), 'asset', 'data', 'blob'] },
   // Keep GitHub's id prefixing for headings/footnotes but allow our extra attributes.
   attributes: {
     ...defaultSchema.attributes,
@@ -193,11 +196,11 @@ function buildProcessor(opts: RenderOptions) {
     .use(rehypeStringify);
 }
 
-let cached: { key: string; proc: ReturnType<typeof buildProcessor> } | null = null;
+let cached: { resolve?: RenderOptions['resolveUrl']; block?: boolean; proc: ReturnType<typeof buildProcessor> } | null = null;
 
 export function renderMarkdown(source: string, opts: RenderOptions = {}): string {
-  const key = `${opts.blockRemoteImages ? 1 : 0}|${opts.resolveUrl ? opts.resolveUrl('') : ''}`;
-  if (!cached || cached.key !== key) cached = { key, proc: buildProcessor(opts) };
+  if (!cached || cached.resolve !== opts.resolveUrl || cached.block !== opts.blockRemoteImages)
+    cached = { resolve: opts.resolveUrl, block: opts.blockRemoteImages, proc: buildProcessor(opts) };
   try {
     return String(cached.proc.processSync(source));
   } catch (e) {

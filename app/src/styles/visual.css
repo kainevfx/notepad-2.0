@@ -17,6 +17,7 @@
 .visual-editor td > p, .visual-editor th > p { margin: 0; }
 .visual-editor .selectedCell { background: color-mix(in srgb, var(--accent) 18%, transparent); }
 .visual-editor a { cursor: text; }
+.visual-editor .locked-inline:has(img) { padding: 0; background: transparent; font: inherit; }
 
 /* Tables: resizable columns (drag a column border) and rows (drag a row's bottom border) */
 .visual-editor .tableWrapper { overflow-x: auto; margin: 0 0 16px; }

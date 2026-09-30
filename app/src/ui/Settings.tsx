@@ -6,6 +6,7 @@ import { platform, FILE_TYPES, type IntegrationState } from '../platform';
 import { IcChevronLeft } from './icons';
 import { ScaleSlider } from './ScaleSlider';
 import { MarginControl } from './MarginControl';
+import { VoiceSelect } from './ReadAloud';
 
 function Toggle({ on, onChange, disabled }: { on: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
@@ -242,6 +243,16 @@ export function Settings() {
           </Row>
           <Row title="Treat new notes and .txt files as Markdown">{bool('mdForTxt')}</Row>
           <Row title="Block remote images in previews">{bool('blockRemoteImages')}</Row>
+        </div>
+
+        <h2>Read aloud · Kokoro</h2>
+        <div class="card">
+          <Row title="Voice" desc="Applies the next time you start reading."><VoiceSelect /></Row>
+          <Row title="Kokoro server" desc="Local default: http://127.0.0.1:8880. Text is sent only to this server.">
+            <input class="input" aria-label="Kokoro server" type="url" value={settings.value.kokoroEndpoint}
+              onChange={e => updateSettings({ kokoroEndpoint: e.currentTarget.value.trim() })} />
+          </Row>
+          <Row title="Read any text or Markdown page" desc="Right-click the page or a selection. Code blocks and front matter are skipped. Kokoro must be running; a local server works offline once its model is downloaded." />
         </div>
 
         <h2>Saving</h2>

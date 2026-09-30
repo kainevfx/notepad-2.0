@@ -1,4 +1,5 @@
 // Text the Insert menu puts into a document (pure helpers; the menu wires them to the editors).
+import { resolveLinkTarget } from '../lib/link-target';
 
 export type SnippetKind = 'pageBreak' | 'lineBreak';
 
@@ -17,32 +18,14 @@ const parts = (p: string) => p.replace(/\\/g, '/').split('/').filter(Boolean);
 /** Escape only what breaks a Markdown link: spaces, brackets, #, ?, % and angle brackets. */
 const encode = (p: string) => p.replace(/[%\s()<>#?]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
 
-function safeDecode(u: string): string {
-  try {
-    return decodeURIComponent(u);
-  } catch {
-    return u;
-  }
-}
-
-function joinWin(dir: string, rel: string): string {
-  const out: string[] = [];
-  for (const part of (dir + '\\' + rel).replace(/\//g, '\\').split('\\')) {
-    if (part === '..') out.pop();
-    else if (part && part !== '.') out.push(part);
-  }
-  return out.join('\\');
-}
-
 /**
  * Where the preview should load an image from: drive paths directly, relative paths from the
  * document's folder (`docDir`), web and data URLs unchanged.
  */
 export function resolveImageUrl(docDir: string | null, url: string, asset: (path: string) => string): string {
   if (!url || /^(https?:|data:|blob:|asset:)/i.test(url)) return url;
-  const decoded = safeDecode(url);
-  if (isAbsolutePath(decoded)) return asset(decoded.replace(/\//g, '\\'));
-  return docDir ? asset(joinWin(docDir, decoded)) : url;
+  const target = resolveLinkTarget(url, docDir ? docDir + '/_document.md' : null);
+  return target.kind === 'path' ? asset(target.path) : url;
 }
 
 /**

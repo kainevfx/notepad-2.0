@@ -19,6 +19,7 @@ import { ViewerPane } from './ViewerPane';
 import { ViewSwitch, showsViewSwitch } from './ViewSwitch';
 import { isBinaryKind, hasViewPane } from '../lib/view-kind';
 import { viewFor, type PaneId } from '../lib/panes';
+import { readAloudMenu } from './ReadAloud';
 
 function Banner({ d }: { d: DocMeta | null }) {
   const b = d?.banner;
@@ -177,6 +178,7 @@ function Pane({ pane }: { pane: PaneId }) {
       onPointerDownCapture={() => focusPane(pane)}
       // Lower-case names: Preact passes them straight through as the real event names
       // (Chromium has no onfocusin property, so onFocusIn would listen for 'FocusIn').
+      onContextMenu={(e) => readAloudMenu(e as MouseEvent)}
       {...({ ondragenter: () => focusPane(pane), onfocusin: () => focusPane(pane) } as any)}
     >
       <Banner d={d} />

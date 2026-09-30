@@ -5,7 +5,10 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { useSignalEffect } from '@preact/signals';
 import type { Editor } from '@tiptap/core';
-import { docs, activeId, editTick, getView, textOf, setPaneView, panes, effectivePaper } from '../state/app';
+import { docs, activeId, editTick, getView, textOf, setPaneView, panes, effectivePaper, dirname } from '../state/app';
+import { platform } from '../platform';
+import { resolveImageUrl } from '../editor/insert';
+import { createRenderContext } from '../editor/visual/render-context';
 import { mountVisualEditor, loadIntoEditor, editorToMarkdown } from '../editor/visual/extensions';
 import { createVisualSync, visualApi, visualEpoch } from '../editor/visual/sync';
 import { followLink } from '../state/links';
@@ -19,6 +22,15 @@ export function VisualEditor({ pane = 'a' }: { pane?: PaneId }) {
   const host = useRef<HTMLDivElement>(null);
   const edRef = useRef<Editor | null>(null);
   const docId = useRef<string | null>(null);
+  const context = useRef(createRenderContext(() => {
+    const id = panes.peek().docs[pane] ?? activeId.peek();
+    const path = id ? docs.peek()[id]?.path : null;
+    const base = path ? dirname(path) : null;
+    return {
+      blockRemoteImages: settings.peek().blockRemoteImages,
+      resolveUrl: (u: string) => u ? resolveImageUrl(base, u, platform.assetUrl) : base ?? '',
+    };
+  })).current;
   const timer = useRef<ReturnType<typeof setTimeout>>();
   const reloadTimer = useRef<ReturnType<typeof setTimeout>>();
   const sync = useRef(
@@ -43,7 +55,7 @@ export function VisualEditor({ pane = 'a' }: { pane?: PaneId }) {
       sync.edited();
       clearTimeout(timer.current);
       timer.current = setTimeout(flush, 150);
-    });
+    }, context);
     const onDbl = (e: MouseEvent) => {
       const locked = (e.target as HTMLElement).closest('[data-locked]');
       const id = docId.current;
@@ -94,6 +106,14 @@ export function VisualEditor({ pane = 'a' }: { pane?: PaneId }) {
       visualApi.undo = visualApi.redo = () => false;
       visualEpoch.value++;
     }
+  });
+
+  // Images and other rendered blocks resolve against this pane's document folder.
+  useSignalEffect(() => {
+    const id = panes.value.docs[pane] ?? activeId.value;
+    if (id) docs.value[id]?.path;
+    settings.value.blockRemoteImages;
+    context.refresh();
   });
 
   // Load this pane's document, and re-load when its text changed elsewhere (Source, the other
