@@ -23,6 +23,15 @@ pub fn mtime_ms(meta: &fs::Metadata) -> f64 {
         .unwrap_or(0.0)
 }
 
+/// "file", "dir" or "missing" (a clicked link opens a tab or File Explorer).
+pub fn path_kind(path: &Path) -> &'static str {
+    match std::fs::metadata(path) {
+        Ok(m) if m.is_dir() => "dir",
+        Ok(_) => "file",
+        Err(_) => "missing",
+    }
+}
+
 pub fn stat(path: &Path) -> FileStat {
     match fs::metadata(path) {
         Ok(m) => FileStat { exists: true, mtime: mtime_ms(&m), size: m.len(), readonly: m.permissions().readonly() },
@@ -144,6 +153,18 @@ pub fn store_list(root: &Path, dir: &str) -> Result<Vec<String>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn path_kind_tells_files_folders_and_missing() {
+        let dir = std::env::temp_dir().join(format!("np2-pk-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let f = dir.join("a.txt");
+        std::fs::write(&f, "x").unwrap();
+        assert_eq!(path_kind(&dir), "dir");
+        assert_eq!(path_kind(&f), "file");
+        assert_eq!(path_kind(&dir.join("nope")), "missing");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 
     fn tmpdir(tag: &str) -> PathBuf {
         let d = std::env::temp_dir().join(format!("np2-test-{tag}-{}", std::process::id()));

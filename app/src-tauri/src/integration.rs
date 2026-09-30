@@ -88,6 +88,11 @@ mod imp {
         if (r as isize) > 32 { Ok(()) } else { Err(format!("Windows could not open {target}")) }
     }
 
+    /// File Explorer at a folder.
+    pub fn open_folder(path: &str) -> Result<(), String> {
+        Command::new("explorer.exe").arg(path).spawn().map(|_| ()).map_err(|e| e.to_string())
+    }
+
     pub fn reveal(path: &str) -> Result<(), String> {
         Command::new("explorer.exe")
             .raw_arg(format!("/select,\"{path}\""))
@@ -335,6 +340,9 @@ mod imp {
     const NO: &str = "Windows integration is only available on Windows.";
     pub fn shell_open(target: &str) -> Result<(), String> {
         std::process::Command::new("xdg-open").arg(target).spawn().map(|_| ()).map_err(|e| e.to_string())
+    }
+    pub fn open_folder(path: &str) -> Result<(), String> {
+        shell_open(path)
     }
     pub fn reveal(path: &str) -> Result<(), String> {
         let dir = std::path::Path::new(path).parent().map(|p| p.to_string_lossy().into_owned()).unwrap_or_default();

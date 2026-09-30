@@ -131,6 +131,17 @@ export function createMockPlatform(label: string): Platform {
     },
     async closeWindow() {},
     async startVoiceTyping() {},
+    async pathKind(path) {
+      const fs = loadFs();
+      if (fs[path]) return 'file';
+      const dir = path.replace(/[\\/]+$/, '') + '\\';
+      return Object.keys(fs).some((k) => k.startsWith(dir)) ? 'dir' : 'missing';
+    },
+    async openFolder() {},
+    async openDefault() {},
+    async pickPath() {
+      return prompt('Path');
+    },
     async openImageDialog() {
       const w = window as any;
       const next = w.__np2NextImage ?? null;

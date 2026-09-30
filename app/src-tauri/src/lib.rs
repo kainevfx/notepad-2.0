@@ -182,6 +182,22 @@ fn rename_file(from: String, to: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn path_kind(path: String) -> &'static str {
+    files::path_kind(std::path::Path::new(&path))
+}
+
+#[tauri::command]
+fn open_folder(path: String) -> Result<(), String> {
+    integration::open_folder(&path)
+}
+
+/// A file in its default Windows app (e.g. a workbook too large to preview).
+#[tauri::command]
+fn open_default(path: String) -> Result<(), String> {
+    integration::shell_open(&path)
+}
+
+#[tauri::command]
 fn reveal_in_explorer(path: String) -> Result<(), String> {
     integration::reveal(&path)
 }
@@ -346,6 +362,9 @@ pub fn run() {
             quit_app,
             open_url,
             reveal_in_explorer,
+            path_kind,
+            open_folder,
+            open_default,
             rename_file,
             start_voice_typing,
             store_claim,

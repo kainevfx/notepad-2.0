@@ -104,6 +104,14 @@ export interface Platform {
   closeWindow(): Promise<void>;
   /** Start Windows voice typing (Win+H) in the focused window. */
   startVoiceTyping(): Promise<void>;
+  /** Is this path a file, a folder, or nothing? */
+  pathKind(path: string): Promise<'file' | 'dir' | 'missing'>;
+  /** File Explorer at a folder. */
+  openFolder(path: string): Promise<void>;
+  /** A file in its default Windows app. */
+  openDefault(path: string): Promise<void>;
+  /** Pick a file or a folder (the link dialog's Browse). */
+  pickPath(kind: 'file' | 'folder'): Promise<string | null>;
   /** Events sent to every window. */
   listen<T>(event: string, cb: (payload: T) => void): Promise<Unlisten>;
   /** Events sent to this window only (emitTo this window's label). */

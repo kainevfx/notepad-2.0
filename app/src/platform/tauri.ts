@@ -34,6 +34,13 @@ export function createTauriPlatform(): Platform {
       invoke<number>('write_file', bytes, { headers: { 'x-path': encodeURIComponent(path) } }),
     stat: (path) => invoke<FileStat>('file_stat', { path }),
     renameFile: (from, to) => invoke<void>('rename_file', { from, to }),
+    pathKind: (path) => invoke<'file' | 'dir' | 'missing'>('path_kind', { path }),
+    openFolder: (path) => invoke<void>('open_folder', { path }),
+    openDefault: (path) => invoke<void>('open_default', { path }),
+    async pickPath(kind) {
+      const r = await openDlg({ multiple: false, directory: kind === 'folder' });
+      return typeof r === 'string' ? r : null;
+    },
     async openImageDialog() {
       const r = await openDlg({ multiple: false, filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'] }] });
       return typeof r === 'string' ? r : null;
