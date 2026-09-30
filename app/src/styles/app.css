@@ -752,3 +752,5 @@ html.dark .crail-item { background: color-mix(in srgb, var(--g-dark, var(--strok
 .editor-pane.in-split::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: transparent; z-index: 6; pointer-events: none; }
 .editor-pane.pane-active::before { background: var(--accent); }
 .tab.also-shown, .side-note.also-shown { box-shadow: inset 0 0 0 1px var(--accent); }
+/* Data viewers start below the floating view switch so it never covers a header row. */
+.editor-split:has(> .view-switch) > .viewer { padding-top: 46px; }
