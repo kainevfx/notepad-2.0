@@ -741,3 +741,14 @@ html.dark .crail-item { background: color-mix(in srgb, var(--g-dark, var(--strok
 .crail-label { writing-mode: vertical-rl; transform: rotate(180deg); max-height: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .crail-count { font-size: 10px; color: var(--text-3); }
 .crail-peek { left: 38px; }
+
+/* Split view: two panes side by side; the active one has an accent line along its top. */
+.editor-area { flex: 1 1 auto; display: flex; min-height: 0; min-width: 0; }
+.pane-slot { display: flex; min-width: 0; min-height: 0; }
+.pane-slot > .editor-pane { flex: 1 1 auto; min-width: 0; }
+.pane-divider { flex: 0 0 6px; cursor: col-resize; background: var(--bg-chrome); border-left: 1px solid var(--stroke); border-right: 1px solid var(--stroke); }
+.pane-divider:hover { background: var(--accent); }
+.editor-pane.in-split { position: relative; }
+.editor-pane.in-split::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: transparent; z-index: 6; pointer-events: none; }
+.editor-pane.pane-active::before { background: var(--accent); }
+.tab.also-shown, .side-note.also-shown { box-shadow: inset 0 0 0 1px var(--accent); }

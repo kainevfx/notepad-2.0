@@ -2,7 +2,7 @@
 import { useRef, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
 import type { TreeNode, GroupNode } from '../lib/tree-ops';
-import { tree, docs, activeId, activate, closeDoc, newNote, displayTitle, toggleGroup, newGroupFrom, renameDoc, renameGroupTo } from '../state/app';
+import { tree, docs, activeId, activate, closeDoc, newNote, displayTitle, toggleGroup, newGroupFrom, renameDoc, renameGroupTo , panes } from '../state/app';
 import { settings, updateSettings } from '../state/settings';
 import { PaperButton } from './PaperButton';
 import { openContextMenu, railPeek, closedNotesOpen, renamingId } from '../state/ui';
@@ -44,7 +44,7 @@ function NoteRow({ id, depth }: { id: string; depth: number }) {
   const b = fileBadge(d);
   return (
     <div
-      class={`side-note${activeId.value === id ? ' active' : ''}${d.color ? ' colored' : ''}${dropClass(id)}`}
+      class={`side-note${activeId.value === id ? ' active' : panes.value.on && (panes.value.docs.a === id || panes.value.docs.b === id) ? ' also-shown' : ''}${d.color ? ' colored' : ''}${dropClass(id)}`}
       style={{ '--depth': depth, ...docColorVars(d.color) } as any}
       data-drop-id={id}
       data-drop-kind="note"

@@ -1,9 +1,11 @@
+// The document area: one pane, or two side by side (split view). Each pane has its own editor,
+// Visual view, preview and viewer; only the active pane edits (state/app.ts routes commands).
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { useSignalEffect } from '@preact/signals';
 import { EditorView } from '@codemirror/view';
 import {
-  attachView, activeDoc, editTick, textOf, reloadDoc, keepMine, dismissBanner, discardRestored, saveDocAs, refreshView,
-  dirname, getView, setMdView,
+  attachPaneView, docs, editTick, textOf, reloadDoc, keepMine, dismissBanner, discardRestored, saveDocAs, refreshView,
+  dirname, getView, panes, focusPane, setPaneView, setSplitRatio, type DocMeta,
 } from '../state/app';
 import { settings } from '../state/settings';
 import { platform } from '../platform';
@@ -16,9 +18,9 @@ import { followLink } from '../state/links';
 import { ViewerPane } from './ViewerPane';
 import { ViewSwitch, showsViewSwitch } from './ViewSwitch';
 import { isBinaryKind, hasViewPane } from '../lib/view-kind';
+import { viewFor, type PaneId } from '../lib/panes';
 
-function Banner() {
-  const d = activeDoc.value;
+function Banner({ d }: { d: DocMeta | null }) {
   const b = d?.banner;
   if (!d || !b) return null;
   return (
@@ -44,17 +46,17 @@ function Banner() {
   );
 }
 
-export function Preview({ syncRef }: { syncRef: { current: ((line: number, frac: number) => void) | null } }) {
+export function Preview({ docId, syncRef }: { docId: string; syncRef: { current: ((line: number, frac: number) => void) | null } }) {
   const ref = useRef<HTMLDivElement>(null);
   const [html, setHtml] = useState('');
-  const d = activeDoc.value;
+  const d = docs.value[docId] ?? null;
   const dark = document.documentElement.classList.contains('dark');
 
   useSignalEffect(() => {
     editTick.value;
-    const doc = activeDoc.value;
+    const doc = docs.value[docId];
     const s = settings.value;
-    if (!doc || doc.language !== 'markdown' || doc.mdView !== 'split') return;
+    if (!doc || doc.language !== 'markdown') return;
     const id = doc.id;
     const path = doc.path;
     const t = setTimeout(() => {
@@ -119,22 +121,27 @@ export function Preview({ syncRef }: { syncRef: { current: ((line: number, frac:
   );
 }
 
-export function EditorPane() {
+/** One document pane. */
+function Pane({ pane }: { pane: PaneId }) {
   const host = useRef<HTMLDivElement>(null);
   const syncRef = useRef<((line: number, frac: number) => void) | null>(null);
   const [split, setSplit] = useState(0.5);
-  const d = activeDoc.value;
+  const s = panes.value;
+  const id = s.docs[pane];
+  const d = id ? docs.value[id] ?? null : null;
   const kind = d?.viewer;
   const binary = isBinaryKind(kind);
   const dataView = hasViewPane(kind);
-  const view = binary ? 'viewer' : dataView ? d!.mdView : d?.language === 'markdown' ? d.mdView : 'edit';
+  const mode = d ? viewFor(s, pane, d.mdView) : 'edit';
+  const view = binary ? 'viewer' : dataView ? mode : d?.language === 'markdown' ? mode : 'edit';
+  const active = !s.on || s.active === pane;
 
   useEffect(() => {
     const v = new EditorView({
       parent: host.current!,
       state: createEditorState('', false, false, { paper: 'none', settings: settings.value }),
     });
-    attachView(v);
+    attachPaneView(pane, v);
     const onScroll = () => {
       const sync = syncRef.current;
       if (!sync) return;
@@ -145,16 +152,10 @@ export function EditorPane() {
     };
     v.scrollDOM.addEventListener('scroll', onScroll, { passive: true });
     return () => {
-      attachView(null);
+      attachPaneView(pane, null);
       v.destroy();
     };
   }, []);
-
-  // Settings changes (font, zoom, wrap, paper) apply to the visible editor right away.
-  useSignalEffect(() => {
-    settings.value;
-    queueMicrotask(refreshView);
-  });
 
   const onDivider = (e: PointerEvent) => {
     e.preventDefault();
@@ -170,20 +171,62 @@ export function EditorPane() {
   };
 
   return (
-    <section class={`editor-pane view-${view}`} style={{ '--page-margin': `${settings.value.pageMargin}px` } as any}>
-      <Banner />
+    <section
+      class={`editor-pane view-${view}${s.on ? ' in-split' : ''}${active && s.on ? ' pane-active' : ''}`}
+      style={{ '--page-margin': `${settings.value.pageMargin}px` } as any}
+      onPointerDownCapture={() => focusPane(pane)}
+    >
+      <Banner d={d} />
       <div class="editor-split">
-        {d && showsViewSwitch(d) && <ViewSwitch doc={d} view={d.mdView} onSet={(v) => setMdView(d.id, v)} />}
+        {d && showsViewSwitch(d) && <ViewSwitch doc={d} view={mode} onSet={(v) => setPaneView(pane, v)} />}
         <div
           class="editor-host"
           ref={host}
           style={view === 'split' ? { flex: `0 0 ${split * 100}%` } : view === 'visual' || view === 'viewer' ? { display: 'none' } : undefined}
         />
         {view === 'split' && <div class="split-divider" onPointerDown={(e) => onDivider(e as PointerEvent)} />}
-        {view === 'split' && !dataView && <Preview syncRef={syncRef} />}
-        {view === 'visual' && !dataView && <VisualEditor />}
+        {view === 'split' && !dataView && d && <Preview docId={d.id} syncRef={syncRef} />}
+        {view === 'visual' && !dataView && d && <VisualEditor pane={pane} />}
         {d && (binary || (dataView && view !== 'edit')) && <ViewerPane key={d.id} doc={d} />}
       </div>
     </section>
+  );
+}
+
+/** The document area: one pane, or two with a draggable divider. */
+export function EditorArea() {
+  const s = panes.value;
+  const box = useRef<HTMLDivElement>(null);
+
+  // Settings changes (font, zoom, wrap, paper) apply to the visible editors right away.
+  useSignalEffect(() => {
+    settings.value;
+    queueMicrotask(refreshView);
+  });
+
+  const onDivider = (e: PointerEvent) => {
+    e.preventDefault();
+    const r = box.current!.getBoundingClientRect();
+    const move = (ev: PointerEvent) => setSplitRatio((ev.clientX - r.left) / r.width);
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      getView()?.requestMeasure();
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  if (!s.on) return <Pane key="a" pane="a" />;
+  return (
+    <div class="editor-area split-on" ref={box}>
+      <div class="pane-slot" style={{ flex: `0 0 ${s.ratio * 100}%` }}>
+        <Pane key="a" pane="a" />
+      </div>
+      <div class="pane-divider" onPointerDown={(e) => onDivider(e as PointerEvent)} />
+      <div class="pane-slot" style={{ flex: '1 1 0' }}>
+        <Pane key="b" pane="b" />
+      </div>
+    </div>
   );
 }

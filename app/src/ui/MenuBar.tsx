@@ -4,11 +4,11 @@ import { settingsOpen, paperPopoverOpen, closedNotesOpen, openContextMenu } from
 import { settings, updateSettings, isDark } from '../state/settings';
 import {
   activeDoc, activeId, newNote, openWithDialog, saveDoc, saveDocAs, saveAll, closeDoc, cmd, recentFiles, openFiles, hideToTray,
-  quitApp, setMdView, setLanguage, cycleMdView, effectivePaper, refreshView, newGroupFrom, closedNotes, setPaper, saveSheetCsv,
+  quitApp, setMdView, setLanguage, cycleMdView, effectivePaper, refreshView, newGroupFrom, closedNotes, setPaper, saveSheetCsv, panes, toggleSplit,
 } from '../state/app';
 import { platform } from '../platform';
 import { MenuList } from './MenuList';
-import { IcSidebar, IcTabsTop } from './icons';
+import { IcSidebar, IcTabsTop, IcSplit } from './icons';
 import { insertMenu, helpMenu } from './insert-actions';
 import { TABS_MODES, tabsModeLabel } from '../lib/tabs-modes';
 
@@ -92,6 +92,7 @@ function viewMenu(): MenuItem[] {
         refreshView();
       },
     },
+    { label: 'Split view', shortcut: 'Ctrl+\\', checked: panes.value.on, action: () => toggleSplit() },
     { separator: true },
     {
       label: 'Tabs',
@@ -205,6 +206,15 @@ export function MenuBar() {
       >
         {s.tabsMode === 'top' ? <IcTabsTop /> : <IcSidebar />}
         <span>{tabsModeLabel(s.tabsMode)}</span>
+      </button>
+      <button
+        class={`icon-btn labeled${panes.value.on ? ' pressed' : ''}`}
+        title="Split view: two documents side by side (Ctrl+\\)"
+        aria-pressed={panes.value.on}
+        onClick={() => toggleSplit()}
+      >
+        <IcSplit />
+        <span>Split</span>
       </button>
     </div>
   );

@@ -28,7 +28,7 @@ vi.mock('./ui', async (orig) => ({
 }));
 
 import { EditorView } from '@codemirror/view';
-import { docs, tree, activeId, importDocs, duplicateDoc, openFiles, textOf, attachView, cmd, sheetExport, saveSheetCsv, type DocMeta } from './app';
+import { docs, tree, activeId, importDocs, duplicateDoc, openFiles, textOf, attachPaneView, cmd, sheetExport, saveSheetCsv, type DocMeta } from './app';
 import { createEditorState } from '../editor/setup';
 
 const enc = (s: string) => new TextEncoder().encode(s);
@@ -84,7 +84,7 @@ describe('Commands never edit a hidden source', () => {
     P.files['C:\\d\\cast.csv'] = { bytes: enc('a,b\n1,2') };
     const id = (await openFiles(['C:\\d\\cast.csv']))!;
     const v = new EditorView({ parent: document.body, state: createEditorState('', false, false, { paper: 'none', settings: {} as any }) });
-    attachView(v);
+    attachPaneView('a', v);
     activeId.value = null;
     const { activate } = await import('./app');
     activate(id);
@@ -94,7 +94,7 @@ describe('Commands never edit a hidden source', () => {
     cmd.paste();
     expect(textOf(id)).toBe('a,b\n1,2');
     expect(docs.value[id].dirty).toBe(false);
-    attachView(null);
+    attachPaneView('a', null);
     v.destroy();
   });
 });

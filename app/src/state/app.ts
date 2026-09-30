@@ -34,11 +34,14 @@ import { codeHighlight, cSyntax } from '../editor/setup';
 import { logHighlighter } from '../editor/log-lang';
 import { toCsv } from '../lib/csv';
 import { nextTabsMode } from '../lib/tabs-modes';
+import * as P from '../lib/panes';
+import type { PaneId, PaneState } from '../lib/panes';
+import { Transaction } from '@codemirror/state';
 
 /** True when the active tab is showing the Visual (WYSIWYG) editor. */
 export function inVisual(): boolean {
   const d = activeDoc.value;
-  return !!d && !d.viewer && d.language === 'markdown' && d.mdView === 'visual' && !!visualApi.editor;
+  return !!d && !d.viewer && d.language === 'markdown' && activeView(d) === 'visual' && !!visualApi.editor;
 }
 
 export type Banner = { kind: 'external' | 'restored' | 'missing' | 'error' | 'mixed-eol' | 'readonly'; text: string };
@@ -88,6 +91,8 @@ interface SessionFile {
   docs: DocMeta[];
   closedNotes: ClosedNote[];
   recentFiles: string[];
+  /** Split view: on/off, divider, each pane's document (per window). */
+  split?: PaneState;
 }
 
 export const QUICK_GROUP_ID = 'grp-quick-notes';
@@ -108,6 +113,20 @@ const states = new Map<string, EditorState>();
 /** Highlighting for data files, kept so a reload or tab switch keeps it. */
 const syntaxes = new Map<string, Extension>();
 let view: EditorView | null = null;
+
+// ---------------------------------------------------------------- split view
+// `view` is always the active pane's editor, so every command acts on the active pane. The other
+// pane has its own editor that only ever shows text: edits to a document shown on both sides are
+// forwarded to it (not added to its undo history).
+
+/** Which document each pane shows, which pane is active, the divider position. */
+export const panes = signal<PaneState>(P.SINGLE);
+const paneViews: Record<PaneId, EditorView | null> = { a: null, b: null };
+
+/** The view mode the active pane shows for `d` (a pane's own override when both sides show `d`). */
+export function activeView(d: DocMeta): MdView {
+  return P.viewFor(panes.value, panes.value.active, d.mdView);
+}
 
 /** Highlighting for a data file's source: logs get level colours, others their language. */
 async function syntaxFor(path: string, viewer: ViewerKind | undefined): Promise<Extension> {
@@ -162,10 +181,86 @@ function addDoc(d: DocMeta, text: string, syntax?: Extension) {
 
 // ---------------------------------------------------------------- editor binding
 
-export function attachView(v: EditorView | null) {
-  view = v;
-  if (v && activeId.value) showInView(activeId.value);
+/** A pane's editor mounted (or unmounted, with null). */
+export function attachPaneView(pane: PaneId, v: EditorView | null) {
+  paneViews[pane] = v;
+  if (pane === panes.value.active) {
+    view = v;
+    if (v && activeId.value) showInView(activeId.value);
+  } else if (v) showInOtherPane();
 }
+
+/** The inactive pane shows its document (a separate copy of the text when it is the active one). */
+function showInOtherPane() {
+  const s = panes.value;
+  if (!s.on) return;
+  const p = P.other(s.active);
+  const v = paneViews[p];
+  let id = s.docs[p];
+  if (!id || !docs.value[id]) {
+    id = activeId.value;
+    if (!id) return;
+    panes.value = { ...panes.value, docs: { ...panes.value.docs, [p]: id } };
+  }
+  if (!v) return;
+  const d = docs.value[id];
+  const st = id === activeId.value && view ? createEditorState(view.state.doc.toString(), d.language === 'markdown', d.readonly, viewConfig(d), syntaxes.get(id)) : states.get(id);
+  if (!st) return;
+  v.setState(st);
+  v.dispatch({ effects: reconfigureEffects(viewConfig(d), d.language === 'markdown', d.readonly) });
+}
+
+/** Make `pane` the active one: commands, the toolbar and tab clicks now go to it. */
+export function focusPane(pane: PaneId) {
+  const s = panes.value;
+  if (!s.on || s.active === pane) return;
+  stashActive();
+  panes.value = P.focus(s, pane);
+  view = paneViews[pane];
+  const id = panes.value.docs[pane];
+  activeId.value = id && docs.value[id] ? id : null;
+  updateCursorInfo();
+  editTick.value++;
+  updateWindowTitle();
+  scheduleSession();
+}
+
+/** Split view on or off (Ctrl+\). */
+export function toggleSplit() {
+  stashActive();
+  const next = P.toggle(panes.value, orderedIds.value);
+  panes.value = next;
+  if (!next.on) {
+    view = paneViews.a;
+    const id = next.docs.a;
+    if (id && docs.value[id]) {
+      activeId.value = id;
+      showInView(id);
+    }
+  } else showInOtherPane();
+  editTick.value++;
+  scheduleSession();
+}
+
+export function setSplitRatio(r: number) {
+  panes.value = P.setRatio(panes.value, r);
+  scheduleSession();
+}
+
+/** A view change made from a pane's view switch. */
+export function setPaneView(pane: PaneId, v: MdView) {
+  focusPane(pane);
+  const s = panes.value;
+  const id = s.docs[pane];
+  if (!id) return;
+  if (P.setView(s, pane) === 'override') {
+    visualApi.flush();
+    panes.value = { ...s, override: { ...s.override, [pane]: v } };
+    editTick.value++;
+    scheduleSession();
+  } else setMdView(id, v);
+}
+
 
 export function getView() {
   return view;
@@ -199,6 +294,10 @@ function showInView(id: string) {
 export function refreshView() {
   const d = activeDoc.value;
   if (view && d) view.dispatch({ effects: reconfigureEffects(viewConfig(d), d.language === 'markdown', d.readonly) });
+  const s = panes.value;
+  const ov = s.on ? paneViews[P.other(s.active)] : null;
+  const od = s.on ? docs.value[s.docs[P.other(s.active)] ?? ''] : null;
+  if (ov && od) ov.dispatch({ effects: reconfigureEffects(viewConfig(od), od.language === 'markdown', od.readonly) });
 }
 
 function updateCursorInfo() {
@@ -212,6 +311,15 @@ function updateCursorInfo() {
 }
 
 setUpdateHandler((u: ViewUpdate) => {
+  // Only the active pane edits; the other pane's editor just follows.
+  if (u.view !== view) return;
+  if (u.docChanged) {
+    const s = panes.value;
+    const ov = s.on ? paneViews[P.other(s.active)] : null;
+    if (ov && s.docs[P.other(s.active)] === activeId.value) {
+      for (const tr of u.transactions) if (tr.docChanged) ov.dispatch({ changes: tr.changes, annotations: Transaction.addToHistory.of(false) });
+    }
+  }
   if (u.selectionSet || u.docChanged) updateCursorInfo();
   if (u.docChanged && activeId.value) {
     onEdited(activeId.value);
@@ -234,6 +342,7 @@ export function activate(id: string) {
   batch(() => {
     tree.value = t;
     activeId.value = id;
+    panes.value = P.loadInto(panes.value, id);
     settingsOpen.value = false;
   });
   showInView(id);
@@ -470,6 +579,7 @@ async function saveSession() {
     docs: Object.values(docs.value).map(sessionDoc),
     closedNotes: closedNotes.value,
     recentFiles: recentFiles.value,
+    split: panes.value,
   };
   await platform.storeWrite(sessionKey(platform.windowLabel), JSON.stringify(s));
 }
@@ -638,10 +748,14 @@ export async function closeDoc(id: string, opts: { skipPrompt?: boolean } = {}):
   });
   states.delete(id);
   syntaxes.delete(id);
+  const nextOk = next && rest[next] ? next : null;
+  if (panes.value.on) panes.value = P.onRemoved(panes.value, [id], () => nextOk);
   if (activeId.value === null) {
-    if (next && rest[next]) activate(next);
+    const want = panes.value.on ? panes.value.docs[panes.value.active] : nextOk;
+    if (want && rest[want]) activate(want);
     else newNote();
   }
+  if (panes.value.on) showInOtherPane();
   scheduleSession();
   return true;
 }
@@ -730,6 +844,7 @@ export async function reloadDoc(id: string, silent = false) {
     updateCursorInfo();
     editTick.value++;
   }
+  if (panes.value.on && panes.value.docs[P.other(panes.value.active)] === id) showInOtherPane();
   updateWindowTitle();
   if (!silent) showToast('Reloaded from disk');
 }
@@ -1101,7 +1216,7 @@ export function withView(fn: (v: EditorView) => void) {
 /** The tab shows a viewer, not its text (a data file in View, or a spreadsheet / image / PDF / Word). */
 function sourceHidden(): boolean {
   const d = activeDoc.value;
-  return !!d && (isBinaryKind(d.viewer) || (hasViewPane(d.viewer) && d.mdView === 'visual'));
+  return !!d && (isBinaryKind(d.viewer) || (hasViewPane(d.viewer) && activeView(d) === 'visual'));
 }
 
 /**
@@ -1112,8 +1227,8 @@ function sourceHidden(): boolean {
 function leaveVisual(then: () => void): boolean {
   const d = activeDoc.value;
   if (d && isBinaryKind(d.viewer)) return true;
-  if (d && hasViewPane(d.viewer) && d.mdView === 'visual') {
-    setMdView(d.id, 'split');
+  if (d && hasViewPane(d.viewer) && activeView(d) === 'visual') {
+    setPaneView(panes.value.active, 'split');
     queueMicrotask(then);
     return true;
   }
@@ -1309,6 +1424,25 @@ export function removeDocs(ids: string[]) {
     fileTimers.delete(id);
   }
   docs.value = Object.fromEntries(Object.entries(docs.value).filter(([id]) => !drop.has(id)));
+  const left = orderedIds.value.find((id) => !drop.has(id)) ?? null;
+  if (panes.value.on) {
+    panes.value = P.onRemoved(panes.value, ids, () => left);
+    if (!activeId.value) {
+      const a = panes.value.docs[panes.value.active];
+      if (a && docs.value[a]) activate(a);
+    }
+    showInOtherPane();
+  }
+}
+
+/** For the session file and tests: what this window saves about split view. */
+export function sessionSnapshot(): { split: PaneState } {
+  return { split: panes.value };
+}
+
+/** Restore split view from a session (missing documents fall back to `fallback`). */
+export function applySessionSplit(raw: unknown, keep: Set<string>, fallback: string | null) {
+  panes.value = P.restore(raw, (id) => keep.has(id), fallback);
 }
 
 export async function handleLaunch(argv: string[], cwd: string | null) {
@@ -1392,7 +1526,9 @@ async function restoreSession(): Promise<boolean> {
   // Anything in the tree's docs but missing from the tree (older sessions): append.
   const inTree = new Set(T.flattenNotes(tree.value));
   for (const id of keep) if (!inTree.has(id)) tree.value = [...tree.value, { id, kind: 'note' }];
-  const act = s.activeId && keep.has(s.activeId) ? s.activeId : T.flattenNotes(tree.value)[0] ?? null;
+  let act = s.activeId && keep.has(s.activeId) ? s.activeId : T.flattenNotes(tree.value)[0] ?? null;
+  applySessionSplit(s.split, keep, act);
+  act = panes.value.docs[panes.value.active] ?? act;
   activeId.value = null;
   if (act) {
     activeId.value = act;

@@ -8,7 +8,7 @@ import { MenuBar } from './MenuBar';
 import { FormatBar } from './FormatBar';
 import { TabStrip } from './TabStrip';
 import { Sidebar, Rail, CompactRail } from './Sidebar';
-import { EditorPane } from './EditorPane';
+import { EditorArea } from './EditorPane';
 import { StatusBar } from './StatusBar';
 import { Settings } from './Settings';
 import { ContextMenuHost } from './MenuList';
@@ -43,7 +43,7 @@ export function App() {
         {mode === 'rail' && <Rail />}
         {mode === 'compact' && <CompactRail />}
         <div class="main-col">
-          <EditorPane />
+          <EditorArea />
           {settingsOpen.value && <Settings />}
         </div>
       </div>

@@ -3,7 +3,7 @@ import { useEffect } from 'preact/hooks';
 // collapse its tabs. Tabs and chips are draggable.
 import type { JSX } from 'preact';
 import type { TreeNode, GroupNode } from '../lib/tree-ops';
-import { tree, docs, activeId, activate, closeDoc, newNote, displayTitle, toggleGroup, renameDoc, renameGroupTo } from '../state/app';
+import { tree, docs, activeId, activate, closeDoc, newNote, displayTitle, toggleGroup, renameDoc, renameGroupTo , panes } from '../state/app';
 import { openContextMenu, renamingId } from '../state/ui';
 import { InlineRename } from './InlineRename';
 import { IcPlus, IcClose, IcNewMd } from './icons';
@@ -17,11 +17,13 @@ function Tab({ id, group, lvl }: { id: string; group: GroupNode | null; lvl: num
   const d = docs.value[id];
   if (!d) return null;
   const active = activeId.value === id;
+  const p = panes.value;
+  const alsoShown = p.on && !active && (p.docs.a === id || p.docs.b === id);
   const title = displayTitle(d);
   const b = fileBadge(d);
   return (
     <div
-      class={`tab${active ? ' active' : ''}${group ? ' grouped' : ''}${d.color ? ' colored' : ''}${dropClass(id)}`}
+      class={`tab${active ? ' active' : ''}${alsoShown ? ' also-shown' : ''}${group ? ' grouped' : ''}${d.color ? ' colored' : ''}${dropClass(id)}`}
       style={{ ...(group ? groupVars(group.color) : {}), ...docColorVars(d.color), '--lvl': lvl } as any}
       data-drop-id={id}
       data-drop-kind="note"
