@@ -13,9 +13,9 @@ describe('panes', () => {
     expect(loadInto(two('x', 'y', 'b'), 'z').docs).toEqual({ a: 'x', b: 'z' });
     expect(loadInto({ ...SINGLE, docs: { a: 'x', b: null } }, 'z').docs.a).toBe('z');
   });
-  it("loading clears that pane's own view override", () => {
+  it("loading clears that pane's own view override (and the other's, once the sides differ)", () => {
     const s = { ...two('x', 'x'), override: { a: 'edit' as const, b: 'visual' as const } };
-    expect(loadInto(s, 'z').override).toEqual({ a: null, b: 'visual' });
+    expect(loadInto(s, 'z').override).toEqual({ a: null, b: null });
   });
 
   it('focus', () => expect(focus(two('x', 'y'), 'b').active).toBe('b'));
@@ -72,5 +72,20 @@ describe('panes', () => {
   it('restore of garbage is a single pane', () => {
     expect(restore(null, () => true, 'x')).toEqual({ ...SINGLE, docs: { a: 'x', b: null } });
     expect(restore({ on: 'yes', ratio: 'wide', active: 'c' }, () => true, 'x')).toEqual({ ...SINGLE, docs: { a: 'x', b: null } });
+  });
+});
+
+describe('stale view overrides', () => {
+  it('loading a different document into the other pane clears both overrides', () => {
+    const s = { ...two('x', 'x', 'b'), override: { a: 'edit' as const, b: 'visual' as const } };
+    expect(loadInto(s, 'y').override).toEqual({ a: null, b: null });
+  });
+  it('removing a document clears overrides once the sides differ, and never carries them to a new shared doc', () => {
+    const s = { ...two('x', 'x'), override: { a: 'edit' as const, b: null } };
+    expect(onRemoved(s, ['x'], () => 'z').override).toEqual({ a: null, b: null });
+  });
+  it('overrides stay while both sides still show the same document', () => {
+    const s = { ...two('x', 'x'), override: { a: 'edit' as const, b: null } };
+    expect(focus(s, 'b').override).toEqual({ a: 'edit', b: null });
   });
 });

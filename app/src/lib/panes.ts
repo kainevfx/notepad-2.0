@@ -19,7 +19,12 @@ export const other = (p: PaneId): PaneId => (p === 'a' ? 'b' : 'a');
 
 /** The active pane shows `id` (its own view override no longer applies). */
 export function loadInto(s: PaneState, id: string): PaneState {
-  return { ...s, docs: { ...s.docs, [s.active]: id }, override: { ...s.override, [s.active]: null } };
+  return tidy({ ...s, docs: { ...s.docs, [s.active]: id }, override: { ...s.override, [s.active]: null } });
+}
+
+/** A pane's own view only means something while both sides show one document: drop it otherwise. */
+function tidy(s: PaneState): PaneState {
+  return same(s) || (!s.override.a && !s.override.b) ? s : { ...s, override: { a: null, b: null } };
 }
 
 export function focus(s: PaneState, p: PaneId): PaneState {
@@ -47,10 +52,13 @@ export function onRemoved(s: PaneState, ids: string[], next: (removed: string) =
     if (id && gone.has(id)) docs[p] = next(id);
   }
   for (const p of ['a', 'b'] as const) if (!docs[p] && s.on) docs[p] = docs[other(p)];
-  return { ...s, docs };
+  const moved = docs.a !== s.docs.a || docs.b !== s.docs.b;
+  return tidy({ ...s, docs, override: moved ? { a: null, b: null } : s.override });
 }
 
-const same = (s: PaneState) => s.on && !!s.docs.a && s.docs.a === s.docs.b;
+function same(s: PaneState): boolean {
+  return s.on && !!s.docs.a && s.docs.a === s.docs.b;
+}
 
 /** The view pane `p` shows: its own override when both sides show one document, else the document's. */
 export function viewFor(s: PaneState, p: PaneId, docView: MdView): MdView {
