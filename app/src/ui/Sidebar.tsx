@@ -194,7 +194,7 @@ function SortButton({ mode }: { mode: SortMode }) {
   );
 }
 
-/** "Create new: Markdown | Text | Sheet": one wide outlined button in three parts. */
+/** "Create new: Markdown | Text": one wide outlined button in two parts. */
 function CreateNew({ onMeasure }: { onMeasure: (w: number) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -216,10 +216,6 @@ function CreateNew({ onMeasure }: { onMeasure: (w: number) => void }) {
       <span class="cn-sep" />
       <button class="cn-part" title="New text file (Ctrl+N)" onClick={() => newNote({ language: 'plain', groupId: null })}>
         Text
-      </button>
-      <span class="cn-sep" />
-      <button class="cn-part" disabled title="New spreadsheet: arrives with the sheet editor">
-        Sheet
       </button>
     </div>
   );

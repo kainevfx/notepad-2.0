@@ -63,9 +63,10 @@ Tabs, File / Edit / View menus, Find and Replace, Go to line, Print, Date/time w
 
 - **Groups** are coloured containers for related files. Groups can sit inside groups. Click a group to fold it away.
 - **Four layouts** (the **Tabs** menu, top right): tabs along the top (joined to the page), a resizable **sidebar** on the left, a slim **rail**, or the **compact** rail with each group's name running vertically.
-- The sidebar has **Search** at the top with **Sort** under it, and **New text file · New MD file · New group · Paper** below.
+- The sidebar has **Search** at the top, the **Manual sorting** dropdown and **Paper** under it, and **Create new: Markdown | Text**. **+ New group** sits at the end of the list, **TrayNotes** at the bottom, and **Collapse sidebar** in the footer.
+- **Select several files** with Ctrl+click or Shift+click; drag them together, or right-click → **Add to new group**, Move, Colour, Save, Close.
 - Menus, toolbars, tabs and the sidebar are a shade darker than the page, so the document stands out. **Settings** sits in the menu bar: File · Edit · Insert · View · Settings · Help.
-- Every tab shows its type (**TXT**, **MD**, **CSV**, **XLSX**, **PDF**…) at the end of the title, and when you last edited it. Right-click → **Colour** tints one tab.
+- Under every file name: its type and when it was created (`.md file · created yesterday 22:09`), and on the right **Saved 19:38 ●** (green) or **Unsaved ●** (amber). Right-click → **Colour** tints one tab.
 - **Sort** the sidebar by Manual, Date modified, Date created, Name A–Z or File type. Sorting is a view: your own order is kept.
 - **Rename in place:** double-click, F2 or right-click → Rename. Saved files are renamed on disk and never over an existing file.
 - **Duplicate, Copy and Paste** files into another group. Copies are named `Name (2).ext`, and nothing is ever overwritten.
@@ -170,7 +171,7 @@ Two voices, chosen in **Settings → Read aloud → Voice engine**:
 
 ### Saving: nothing is ever lost
 
-- Untitled notes and TrayNotes **autosave continuously**.
+- Untitled notes and TrayNotes **autosave continuously**, as real files in your **save folder** (Settings → Saving; `Documents\Notepad 2.0` to start), named after their first line.
 - Opened files work like Notepad: you save with **Ctrl+S**. But unsaved edits survive a crash, a reboot or a power cut, and come back with a banner.
 - Autosave for opened files can be switched on in Settings, globally or per group.
 
