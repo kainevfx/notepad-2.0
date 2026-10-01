@@ -758,3 +758,10 @@ html.dark .crail-item { background: color-mix(in srgb, var(--g-dark, var(--strok
 /* (Source: the room is added to the page margin, and the paper rules move with it.) */
 .editor-split:has(> .view-switch) { --switch-room: 34px; }
 .editor-split:has(> .view-switch) > .md-preview .markdown-body { padding-top: calc(46px + var(--page-margin, 16px)); }
+
+/* Sideways scrollbar pinned to the bottom of the view for wide tables (lib/float-hscroll.ts) */
+.float-hscroll { position: sticky; bottom: 0; z-index: 5; height: 14px; margin-top: -14px; overflow-x: auto; overflow-y: hidden; background: color-mix(in srgb, var(--bg-editor) 85%, transparent); }
+.float-hscroll > div { height: 1px; }
+.fb-menu-sep { height: 1px; margin: 4px 6px; background: var(--stroke); }
+.float-hscroll::-webkit-scrollbar, .visual-editor .tableWrapper::-webkit-scrollbar, .markdown-body > table::-webkit-scrollbar { height: 12px; }
+.float-hscroll::-webkit-scrollbar-thumb, .visual-editor .tableWrapper::-webkit-scrollbar-thumb, .markdown-body > table::-webkit-scrollbar-thumb { background: var(--stroke-strong); border-radius: 6px; border: 3px solid var(--bg-editor); }

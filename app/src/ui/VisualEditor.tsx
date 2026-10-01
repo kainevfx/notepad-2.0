@@ -13,6 +13,7 @@ import { createVisualSync, visualApi, visualEpoch } from '../editor/visual/sync'
 import { followLink } from '../state/links';
 import { settings } from '../state/settings';
 import { visualPaper } from '../editor/visual/paper';
+import { floatingHScroll } from '../lib/float-hscroll';
 import type { PaneId } from '../lib/panes';
 
 const isActivePane = (pane: PaneId) => !panes.value.on || panes.value.active === pane;
@@ -74,7 +75,9 @@ export function VisualEditor({ pane = 'a' }: { pane?: PaneId }) {
     };
     ed.view.dom.addEventListener('click', onClick);
     edRef.current = ed;
+    const stopHScroll = floatingHScroll(host.current!, '.tableWrapper');
     return () => {
+      stopHScroll();
       flush();
       ed.view.dom.removeEventListener('dblclick', onDbl);
       ed.view.dom.removeEventListener('click', onClick);

@@ -19,6 +19,7 @@ import { ViewSwitch, showsViewSwitch } from './ViewSwitch';
 import { isBinaryKind, hasViewPane } from '../lib/view-kind';
 import { viewFor, type PaneId } from '../lib/panes';
 import { readAloudMenu } from './ReadAloud';
+import { floatingHScroll } from '../lib/float-hscroll';
 
 function Banner({ d }: { d: DocMeta | null }) {
   const b = d?.banner;
@@ -113,6 +114,11 @@ export function Preview({ docId, syncRef }: { docId: string; syncRef: { current:
       ref.current?.querySelector(`[id="${CSS.escape('user-content-' + id)}"], [id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'start' }),
     );
   };
+
+  useEffect(() => {
+    const scroller = ref.current?.parentElement;
+    return scroller ? floatingHScroll(scroller, '.markdown-body > table') : undefined;
+  }, []);
 
   return (
     <div class="md-preview">

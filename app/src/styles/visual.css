@@ -53,3 +53,6 @@
   background-size: 100% 100%, 100% var(--vlh);
   background-position: 0 0, 0 var(--vtop);
 }
+
+/* Table menu > Fit columns to data width measures cells without wrapping (editor/visual/table-fit.ts) */
+.visual-editor .np2-measure td, .visual-editor .np2-measure th, .visual-editor .np2-measure td *, .visual-editor .np2-measure th * { white-space: nowrap !important; }
