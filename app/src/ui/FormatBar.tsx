@@ -6,6 +6,7 @@ import { activeDoc, editTick, convertToMarkdown } from '../state/app';
 import { settings } from '../state/settings';
 import { targetFor, type FormatCommand } from '../editor/format';
 import { visualApi, visualEpoch } from '../editor/visual/sync';
+import { fitColumnsToData, fitRowsToData, fitTableToPage } from '../editor/visual/table-fit';
 import * as I from './icons';
 
 const SWATCHES = ['#000000', '#5f6368', '#d93025', '#e37400', '#f9ab00', '#188038', '#1a73e8', '#9334e6', '#d01884', '#007b83'];
@@ -32,6 +33,13 @@ const TABLE_TOOLS: { label: string; run: (c: any) => any; danger?: boolean }[] =
   { label: 'Header row on / off', run: (c) => c.toggleHeaderRow() },
   { label: 'Merge or split cells', run: (c) => c.mergeOrSplit() },
   { label: 'Delete table', run: (c) => c.deleteTable(), danger: true },
+];
+
+/** Size the table to its contents (editor/visual/table-fit.ts). */
+const TABLE_FIT: { label: string; title: string; act: (e: any) => boolean }[] = [
+  { label: 'Fit columns to data width', title: 'Widen each column to its longest entry, so rows fit on one line', act: fitColumnsToData },
+  { label: 'Fit rows to data height', title: 'Make every row as tall as its content (undo dragged row heights)', act: fitRowsToData },
+  { label: 'Fit table to page width', title: 'Let the columns share the page width again', act: fitTableToPage },
 ];
 
 const ALIGN: { c: FormatCommand; label: string; Icon: (p: { size?: number }) => JSX.Element }[] = [
@@ -243,6 +251,12 @@ export function FormatBar() {
             <div class="fb-pop fb-menu" role="menu" onMouseDown={keep}>
               {TABLE_TOOLS.map((tool) => (
                 <button class={`fb-menu-item${tool.danger ? ' danger' : ''}`} role="menuitem" onClick={() => (tool.run(editor.chain().focus()).run(), setPop(null))}>
+                  <span>{tool.label}</span>
+                </button>
+              ))}
+              <div class="fb-menu-sep" role="separator" />
+              {TABLE_FIT.map((tool) => (
+                <button class="fb-menu-item" role="menuitem" title={tool.title} onClick={() => (tool.act(editor), setPop(null))}>
                   <span>{tool.label}</span>
                 </button>
               ))}
