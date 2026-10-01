@@ -112,7 +112,7 @@ const SHORTCUTS: [string, string][] = [
   ['Interface size', 'Shift + / Shift − (outside the text), Ctrl+Shift + / −'],
   ['Tabs on top / on the left', 'Ctrl+Shift+,'],
   ['New file group from this file', 'Ctrl+Shift+G'],
-  ['Quick Note', 'Win+Alt+N'],
+  ['TrayNote', 'Win+Alt+N'],
   ['Time / date', 'F5'],
 ];
 

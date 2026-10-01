@@ -65,6 +65,12 @@ export interface Settings {
   autosaveFiles: boolean;
   autosaveDelayMs: number;
   deleteEmptyNotesOnClose: boolean;
+  /** Where new notes, TrayNotes and new files are saved ('' = Documents\Notepad 2.0). */
+  saveFolder: string;
+  /** Notes kept inside the app before the save folder existed have been copied there. */
+  notesCopiedToFolder: boolean;
+  /** Version of the file-type icons last written to Windows (re-registered once when it changes). */
+  fileIconsVersion: number;
 
   quickNoteSize: 'eighth' | 'quarter';
   quickNoteHideOnBlur: boolean;
@@ -86,7 +92,7 @@ export const DEFAULT_SETTINGS: Settings = {
   spellcheck: false,
 
   tabsMode: 'top',
-  sidebarWidth: 260,
+  sidebarWidth: 300,
   sidebarSort: 'manual',
 
   paper: 'none',
@@ -108,6 +114,9 @@ export const DEFAULT_SETTINGS: Settings = {
   autosaveFiles: false,
   autosaveDelayMs: 1000,
   deleteEmptyNotesOnClose: true,
+  saveFolder: '',
+  notesCopiedToFolder: false,
+  fileIconsVersion: 0,
 
   quickNoteSize: 'eighth',
   quickNoteHideOnBlur: true,

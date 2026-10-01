@@ -34,7 +34,7 @@ export function extractItems(tree: TreeNode[], ids: string[]): { nodes: TreeNode
  * to Ungrouped.
  */
 export function importItems(tree: TreeNode[], nodes: TreeNode[], drop: { groupId: string | null; beforeId?: string | null }): TreeNode[] {
-  // A group this tree already has (e.g. the Quick Notes group) is merged, never added twice.
+  // A group this tree already has (e.g. the TrayNotes group) is merged, never added twice.
   const fresh: TreeNode[] = [];
   for (const node of nodes) {
     if (node.kind === 'group' && T.find(tree, node.id)?.node.kind === 'group') {

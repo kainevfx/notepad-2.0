@@ -1,5 +1,5 @@
 // Browser build only: a first-run workspace that mirrors Kaine's mockups, so screenshots
-// show groups, nested subgroups and quick notes. The Windows app starts with one empty tab.
+// show groups, nested subgroups and TrayNotes. The Windows app starts with one empty tab.
 import * as T from '../lib/tree-ops';
 import { DEMO_DIR } from '../platform/mock-samples';
 import { platform } from '../platform';
@@ -13,7 +13,7 @@ export async function seedDemo() {
     g('g-dev', 'Development', 'purple'),
     g('g-meet', 'Meeting Notes', 'orange'),
     g('g-ideas', 'Ideas', 'green', true),
-    { ...g(QUICK_GROUP_ID, 'Quick Notes', 'yellow', true), system: 'quick-notes' },
+    { ...g(QUICK_GROUP_ID, 'TrayNotes', 'yellow', true), system: 'quick-notes' },
   ];
   await openFiles([D + 'Business strategy discussion record.md'], { groupId: 'g-alpha' });
   const monitor = newNote({ text: 'Monitor\n\nLED wall: 5x3 panels, 2.6mm pitch\nProcessor: Novastar, 3840x1152 canvas\n', groupId: 'g-alpha', activate: false });

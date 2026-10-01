@@ -1,6 +1,6 @@
 # Notepad 2.0
 
-**A Windows 11 Notepad that grew up.** It looks and behaves like the Notepad you know (same menus, same shortcuts, same instant start), and adds file groups, a real Markdown editor you can type straight into, viewers for spreadsheets, CSV, JSON, HTML, PDF, Word and images, several windows, paper styles and a Quick Note that is always one keypress away.
+**A Windows 11 Notepad that grew up.** It looks and behaves like the Notepad you know (same menus, same shortcuts, same instant start), and adds file groups, a real Markdown editor you can type straight into, viewers for spreadsheets, CSV, JSON, HTML, PDF, Word and images, several windows, paper styles and a TrayNote that is always one keypress away.
 
 ![Notepad 2.0: file groups in the sidebar and a Markdown document in the Visual editor](docs/screenshots/01-hero-visual-dark.png)
 
@@ -43,7 +43,7 @@ Want it to open your `.txt` and `.md` files, or to replace `notepad.exe` complet
 | 5 | Click **Paper** (next to New group, or at the end of the tab strip) | Pick Code (line numbers), Lines or Grid paper, and a page margin. They show in the Visual view too. |
 | 6 | Click **Split** (top right) or press **Ctrl+\\** | Two documents side by side. Click a side, then a tab, to load it there. |
 | 7 | Drag a tab **outside the window** | It opens in a new Notepad 2.0 window. Drag it back to move it again. |
-| 8 | Press **Win+Alt+N** anywhere | A Quick Note bubble pops up above the tray. Type, click away, it's saved. |
+| 8 | Press **Win+Alt+N** anywhere | A TrayNote bubble pops up above the tray. Type, click away, it's saved. |
 
 Everything is also in **Help → Startup guide**, a 13-step spotlight tour you can run any time.
 
@@ -137,13 +137,13 @@ Click **Split** (top right), press **Ctrl+\\** or use View → Split view. The w
 - When you restart, **all your windows come back** where they were, and the last one you used is in front.
 - Opening a file that's already open in another window brings that window forward instead of opening it twice.
 
-### Quick Note and dictation
+### TrayNote and dictation
 
-Press **Win+Alt+N** from anywhere (or click the tray icon) and a small always-on-top note pops up above the tray. It saves as you type and shows up in a **Quick Notes** group in the main window.
+Press **Win+Alt+N** from anywhere (or click the tray icon) and a small always-on-top note pops up above the tray. It saves as you type and shows up in a **TrayNotes** group in the main window.
 
 Click the **microphone** button to dictate with Windows voice typing (the same as pressing Win+H). Speak and your words appear in the note.
 
-![The Quick Note bubble](docs/screenshots/10-quick-note.png)
+![The TrayNote bubble](docs/screenshots/10-quick-note.png)
 
 ### Read aloud
 
@@ -170,7 +170,7 @@ Two voices, chosen in **Settings → Read aloud → Voice engine**:
 
 ### Saving: nothing is ever lost
 
-- Untitled notes and Quick Notes **autosave continuously**.
+- Untitled notes and TrayNotes **autosave continuously**.
 - Opened files work like Notepad: you save with **Ctrl+S**. But unsaved edits survive a crash, a reboot or a power cut, and come back with a banner.
 - Autosave for opened files can be switched on in Settings, globally or per group.
 
@@ -241,7 +241,7 @@ Read-only files are never autosaved or changed, and they refresh when the file c
 | Ctrl+Plus / Ctrl+Minus / Ctrl+0 | Text zoom in / out / reset |
 | Shift + / − (outside the text) | Nudge interface size |
 | Ctrl+P | Print |
-| Win+Alt+N | Quick Note, from anywhere |
+| Win+Alt+N | TrayNote, from anywhere |
 | Win+H | Dictate (Windows voice typing) |
 
 ---
@@ -249,7 +249,7 @@ Read-only files are never autosaved or changed, and they refresh when the file c
 ## Where your notes are kept
 
 - Files you open or save live **wherever you put them**, as ordinary `.txt` / `.md` files.
-- Untitled notes, Quick Notes, groups, window layout and settings live in `%APPDATA%\Notepad2\` (paste that into the File Explorer address bar to open it).
+- Untitled notes, TrayNotes, groups, window layout and settings live in `%APPDATA%\Notepad2\` (paste that into the File Explorer address bar to open it).
 
 ---
 

@@ -26,6 +26,10 @@ export const IcGear = (p: P) =>
     p,
   );
 export const IcTray = (p: P) => S(<><path d="M2.5 9.5h3l1 1.5h3l1-1.5h3" /><path d="M2.5 9.5v3a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-3l-1.8-5.2a1 1 0 0 0-.9-.8H5.2a1 1 0 0 0-.9.8z" /><path d="M8 3.5v4M6.3 5.9 8 7.6l1.7-1.7" /></>, p);
+/** Collapse the sidebar: a panel with its side bar and an arrow pointing into it. */
+export const IcPanelCollapse = (p: P) => S(<><rect x="1.5" y="2.5" width="13" height="11" rx="1.5" /><path d="M6 2.5v11M11.5 6 9.5 8l2 2" /></>, p);
+/** Expand the sidebar: the same panel, arrow pointing out. */
+export const IcPanelExpand = (p: P) => S(<><rect x="1.5" y="2.5" width="13" height="11" rx="1.5" /><path d="M6 2.5v11M9.5 6l2 2-2 2" /></>, p);
 export const IcSidebar = (p: P) => S(<><rect x="2" y="3" width="12" height="10" rx="1.5" /><path d="M6 3v10" /></>, p);
 export const IcTabsTop = (p: P) => S(<><rect x="2" y="3" width="12" height="10" rx="1.5" /><path d="M2 6.5h12M6 3v3.5" /></>, p);
 export const IcDoc = (p: P) => S(<><path d="M4.5 2h5l3 3v8.5a.5.5 0 0 1-.5.5H4.5a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5z" /><path d="M9.5 2v3h3M6 8h4.5M6 10.5h4.5" /></>, p);
@@ -71,19 +75,14 @@ export const IcRule = (p: P) => S(<path d="M2 8h12M4 4.5h8M4 11.5h8" />, p);
 export const IcWrap = (p: P) => S(<path d="M2.5 4h11M2.5 8h9a2 2 0 0 1 0 4H8.5M10 10.5 8.5 12l1.5 1.5M2.5 12h3.5" />, p);
 export const IcConvert = (p: P) => S(<path d="M3 5.5h9l-2.5-2.5M13 10.5H4l2.5 2.5" />, p);
 
-/** App icon: a notepad page with a folded corner and a "2" badge. Our own artwork. */
+/** App icon: the tray icon's sheet of yellow writing paper (assets/icon/tray-icon.svg), the master icon for the whole app. */
 export const AppIcon = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-    <defs>
-      <linearGradient id="np2g" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#5ec8ff" />
-        <stop offset="1" stop-color="#2a6fdb" />
-      </linearGradient>
-    </defs>
-    <path d="M7 3h13l6 6v18a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" fill="#fdfdfd" stroke="#8aa4c2" stroke-width="1" />
-    <path d="M20 3v6h6" fill="#dfe9f5" stroke="#8aa4c2" stroke-width="1" stroke-linejoin="round" />
-    <path d="M9 13h11M9 17h11M9 21h7" stroke="#9fb3c8" stroke-width="1.4" stroke-linecap="round" />
-    <circle cx="23.5" cy="23.5" r="7" fill="url(#np2g)" />
-    <path d="M20.9 21.6c.3-1.3 1.3-2 2.6-2 1.5 0 2.5.9 2.5 2.1 0 1-.6 1.6-1.6 2.4l-2.8 2.2h4.6" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="6" y="2.5" width="20" height="27" rx="1.5" fill="#F7D774" stroke="#B8901F" stroke-width="1" />
+    <line x1="11" y1="3" x2="11" y2="29" stroke="#D9534F" stroke-width="1" />
+    <line x1="7.5" y1="10" x2="24.5" y2="10" stroke="#6E8FB8" stroke-width="1.2" />
+    <line x1="7.5" y1="15" x2="24.5" y2="15" stroke="#6E8FB8" stroke-width="1.2" />
+    <line x1="7.5" y1="20" x2="24.5" y2="20" stroke="#6E8FB8" stroke-width="1.2" />
+    <line x1="7.5" y1="25" x2="24.5" y2="25" stroke="#6E8FB8" stroke-width="1.2" />
   </svg>
 );

@@ -6,6 +6,8 @@ export interface FileRead {
   bytes: Uint8Array;
   mtime: number;
   readonly: boolean;
+  /** When the file was created (ms; 0 when unknown). */
+  created?: number;
 }
 
 export interface FileStat {
@@ -13,6 +15,8 @@ export interface FileStat {
   mtime: number;
   size: number;
   readonly: boolean;
+  /** When the file was created (ms; 0 when unknown). */
+  created?: number;
 }
 
 export interface IntegrationState {
@@ -47,6 +51,10 @@ export interface Platform {
   /** Atomic: temp file in the same folder, flush, replace. Returns the new mtime. */
   writeFile(path: string, bytes: Uint8Array): Promise<number>;
   stat(path: string): Promise<FileStat>;
+  /** Delete a file only if it is empty (a cleared note's copy in the save folder). */
+  deleteIfEmpty(path: string): Promise<void>;
+  /** The user's Documents folder (the default save folder lives inside it). */
+  documentsDir(): Promise<string>;
   /** Rename a file; rejects if the new name already exists. */
   renameFile(from: string, to: string): Promise<void>;
   openDialog(): Promise<string[]>;
@@ -71,7 +79,7 @@ export interface Platform {
   onCloseRequested(cb: () => void): Promise<Unlisten>;
   onFocus(cb: () => void): Promise<Unlisten>;
   setAlwaysOnTop(on: boolean): Promise<void>;
-  /** Quick Note window: size and anchor bottom-right above the taskbar. */
+  /** TrayNote window: size and anchor bottom-right above the taskbar. */
   placeQuickNote(fraction: number): Promise<void>;
   showQuickNote(): Promise<void>;
   hideQuickNote(): Promise<void>;

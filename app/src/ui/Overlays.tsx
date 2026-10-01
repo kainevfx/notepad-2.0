@@ -77,7 +77,7 @@ export function ClosedNotesDialog() {
                 >
                   <span>{n.title}</span>
                   <small>
-                    {n.quick ? 'Quick note · ' : ''}
+                    {n.quick ? 'TrayNote · ' : ''}
                     {new Date(n.modified).toLocaleString()}
                   </small>
                 </button>

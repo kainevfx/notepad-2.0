@@ -139,7 +139,7 @@ await page.waitForTimeout(250);
 await shot('13-save-prompt');
 await page.locator('.modal .btn', { hasText: 'Cancel' }).click();
 
-// 14. Quick Note window
+// 14. TrayNote window
 const qn = await ctx.newPage();
 qn.on('pageerror', (e) => errors.push('qn: ' + String(e)));
 await qn.setViewportSize({ width: 440, height: 560 });
@@ -152,12 +152,12 @@ await qn.waitForTimeout(700);
 await qn.screenshot({ path: `${OUT}14-quick-note.png` });
 console.log('shot 14-quick-note');
 
-// Quick note reached the main window's Quick Notes group?
+// Quick note reached the main window's TrayNotes group?
 await page.waitForTimeout(400);
 await setup({ theme: 'dark', tabsMode: 'left' });
-await page.locator('.side-group-head', { hasText: 'Quick Notes' }).click();
+await page.locator('.side-group-head', { hasText: 'TrayNotes' }).click();
 await page.waitForTimeout(200);
-const qnText = await page.locator('.side-group', { hasText: 'Quick Notes' }).first().textContent();
+const qnText = await page.locator('.side-group', { hasText: 'TrayNotes' }).first().textContent();
 console.log('quick notes group:', qnText.slice(0, 120));
 await shot('15-quick-notes-group');
 

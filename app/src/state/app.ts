@@ -1,7 +1,9 @@
 // Main-window controller: documents, tab/group tree, session restore and the save model.
 //
-// Save rules (sub-plan 05):
-//   note (untitled or quick)  -> autosaved to the app store 500 ms after typing stops, never dirty
+// Save rules (sub-plan 05, save folder 2026-10-01):
+//   note (untitled or TrayNote) -> autosaved to the app store 500 ms after typing stops, never dirty,
+//                                and copied to a real file in the default save folder
+//                                (Settings > Saving; Documents\Notepad 2.0) named after its title
 //   file on disk              -> NOT autosaved by default. Dirty dot, Ctrl+S writes. Unsaved edits
 //                                are mirrored to recovery/<id>.json so a crash loses nothing.
 //   file, autosave on         -> global setting or per-group override, atomic write after the delay
@@ -12,7 +14,7 @@ import type { EditorState } from '@codemirror/state';
 import type { EditorView, ViewUpdate } from '@codemirror/view';
 import { openSearchPanel, closeSearchPanel, searchPanelOpen, findNext, findPrevious } from '@codemirror/search';
 import { undo, redo, selectAll } from '@codemirror/commands';
-import { platform } from '../platform';
+import { platform, FILE_TYPES } from '../platform';
 import { decodeBytes, encodeText, fitsAnsi, type Encoding, type Eol } from '../lib/encoding';
 import { parseLaunchArgs } from '../lib/notepad-args';
 import { noteTitle } from '../lib/note-title';
@@ -75,6 +77,10 @@ export interface DocMeta {
   size?: number;
   /** Bumped when a binary file changes on disk, so its viewer reloads. */
   rev?: number;
+  /** When it was last written to disk (a file's save, or a note's copy in the save folder). */
+  savedAt?: number;
+  /** A note's file in the default save folder (kept up to date as you type). */
+  savedPath?: string;
 }
 
 export interface ClosedNote {
@@ -82,6 +88,7 @@ export interface ClosedNote {
   title: string;
   modified: number;
   quick?: boolean;
+  savedPath?: string;
 }
 
 interface SessionFile {
@@ -96,6 +103,7 @@ interface SessionFile {
 }
 
 export const QUICK_GROUP_ID = 'grp-quick-notes';
+export const TRAY_GROUP_NAME = 'TrayNotes';
 
 export const docs = signal<Record<string, DocMeta>>({});
 export const tree = signal<TreeNode[]>([]);
@@ -105,6 +113,23 @@ export const recentFiles = signal<string[]>([]);
 export const ready = signal(false);
 /** Bumps on every edit or tab switch; the preview re-renders from it. */
 export const editTick = signal(0);
+
+/** Notes with typing not yet written (amber dot). */
+export const pendingNotes = signal<ReadonlySet<string>>(new Set());
+function markPending(id: string, on: boolean) {
+  const cur = pendingNotes.value;
+  if (cur.has(id) === on) return;
+  const next = new Set(cur);
+  if (on) next.add(id);
+  else next.delete(id);
+  pendingNotes.value = next;
+}
+
+/** Green (everything written to disk) or amber (edits not saved yet), and when it was last saved. */
+export function saveState(d: DocMeta): { saved: boolean; at: number | null } {
+  if (d.kind === 'note') return { saved: !pendingNotes.value.has(d.id) && (!!d.savedPath || !textOf(d.id).trim()), at: d.savedAt ?? null };
+  return { saved: !d.dirty, at: d.savedAt ?? (d.mtime || null) };
+}
 
 export const activeDoc = computed(() => (activeId.value ? docs.value[activeId.value] ?? null : null));
 export const orderedIds = computed(() => T.flattenNotes(tree.value).filter((id) => docs.value[id]));
@@ -463,7 +488,7 @@ export async function openFiles(paths: string[], opts: { groupId?: string } = {}
           addDoc(
             {
               id, kind: 'file', path, title: basename(path), encoding: 'utf-8', bom: false, eol: 'crlf', language: 'plain', mdView: 'visual',
-              dirty: false, mtime: st.mtime, readonly: true, created: Date.now(), modified: st.mtime, size: st.size, banner: null, viewer,
+              dirty: false, mtime: st.mtime, readonly: true, created: st.created || st.mtime, modified: st.mtime, size: st.size, banner: null, viewer,
             },
             '',
           );
@@ -484,7 +509,7 @@ export async function openFiles(paths: string[], opts: { groupId?: string } = {}
         {
           id, kind: 'file', path, title: basename(path), encoding: dec.encoding, bom: dec.bom, eol: dec.eol,
           language: md ? 'markdown' : 'plain', mdView: hasViewPane(viewer) ? 'visual' : md && !big ? settings.value.mdDefaultView : 'edit', dirty: false,
-          mtime: f.mtime, readonly: f.readonly, created: now, modified: now, viewer: viewer === 'text' ? undefined : viewer,
+          mtime: f.mtime, readonly: f.readonly, created: f.created || now, modified: now, viewer: viewer === 'text' ? undefined : viewer,
           banner: dec.mixedEol
             ? { kind: 'mixed-eol', text: `This file mixes line endings. Saving will use ${dec.eol.toUpperCase()} throughout.` }
             : f.readonly
@@ -526,6 +551,7 @@ function onEdited(id: string) {
     if (title !== d.title) patchDoc(id, { title, modified: now });
     else patchDoc(id, { modified: now });
     clearTimeout(noteTimers.get(id));
+    markPending(id, true);
     noteTimers.set(id, setTimeout(() => persistNote(id), 500));
   } else {
     if (!d.dirty) {
@@ -547,8 +573,131 @@ async function persistNote(id: string) {
   const d = docs.value[id];
   if (!d || d.kind !== 'note') return;
   const text = textOf(id);
+  markPending(id, true);
   await platform.storeWrite(`notes/${id}.md`, text);
   if (d.quick) platform.emit('note-updated', { id, text, from: platform.windowLabel }).catch(() => {});
+  await mirrorNote(id, text);
+  if (!noteTimers.has(id)) markPending(id, false);
+}
+
+// ---------------------------------------------------------------- the default save folder
+
+/** Documents\Notepad 2.0 unless Settings > Saving picks another folder. */
+export async function saveFolderPath(): Promise<string> {
+  const s = settings.value.saveFolder.trim();
+  if (s) return s.replace(/[\\/]+$/, '');
+  const docsDir = (await platform.documentsDir().catch(() => '')).replace(/[\\/]+$/, '');
+  const sep = docsDir.includes('/') && !docsDir.includes('\\') ? '/' : '\\';
+  return docsDir ? `${docsDir}${sep}Notepad 2.0` : 'Notepad 2.0';
+}
+
+/** A note title as a file name stem: no characters Windows refuses, at most 60 characters. */
+export function fileStem(title: string): string {
+  let s = title.replace(/[\\/:*?"<>|…\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60).replace(/[. ]+$/, '');
+  if (/^(con|prn|aux|nul|com\d|lpt\d)$/i.test(s)) s = `_${s}`;
+  return s || 'Untitled';
+}
+
+const joinPath = (folder: string, name: string) => folder + (folder.includes('/') && !folder.includes('\\') ? '/' : '\\') + name;
+const samePath = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+
+/** `name` in `folder`, or "Name (2).ext" etc. when taken (by a file on disk or another note). */
+async function freePath(folder: string, name: string, own: string | null): Promise<string> {
+  const claimed = new Set(Object.values(docs.value).map((x) => x.savedPath?.toLowerCase()).filter(Boolean));
+  const taken = async (n: string) => {
+    const p = joinPath(folder, n);
+    if (own && samePath(p, own)) return false;
+    return claimed.has(p.toLowerCase()) || (await platform.stat(p)).exists;
+  };
+  if (!(await taken(name))) return joinPath(folder, name);
+  const dot = name.lastIndexOf('.');
+  const stem = dot > 0 ? name.slice(0, dot) : name;
+  const ext = dot > 0 ? name.slice(dot) : '';
+  for (let n = 2; ; n++) {
+    const c = `${stem} (${n})${ext}`;
+    if (!(await taken(c))) return joinPath(folder, c);
+  }
+}
+
+const mirrorQueue = new Map<string, Promise<void>>();
+/** Write a note's copy in the save folder (one write at a time per note). */
+function mirrorNote(id: string, text: string): Promise<void> {
+  const job = (mirrorQueue.get(id) ?? Promise.resolve()).then(() => writeMirror(id, text)).catch((e) => {
+    patchDoc(id, { banner: { kind: 'error', text: `Couldn't save to the save folder: ${String(e)}` } });
+  });
+  mirrorQueue.set(id, job);
+  return job;
+}
+
+async function writeMirror(id: string, text: string) {
+  const d = docs.value[id];
+  if (!d || d.kind !== 'note') return;
+  if (!text.trim() && !d.savedPath) return; // nothing worth a file yet
+  const folder = await saveFolderPath();
+  const want = `${fileStem(displayTitle(d))}.${d.language === 'markdown' ? 'md' : 'txt'}`;
+  let path = d.savedPath && samePath(dirname(d.savedPath), folder) ? d.savedPath : null;
+  // The title changed: rename the file to match (never over another file).
+  if (path && text.trim() && !samePath(basename(path), want) && !basename(path).toLowerCase().startsWith(want.replace(/\.[^.]+$/, '').toLowerCase() + ' (')) {
+    const target = await freePath(folder, want, path);
+    if (!samePath(target, path)) {
+      try {
+        await platform.renameFile(path, target);
+        path = target;
+      } catch {
+        /* keep the old name */
+      }
+    }
+  }
+  if (!path) path = await freePath(folder, want, null);
+  await platform.writeFile(path, encodeText(text, 'utf-8', false, d.eol));
+  const at = Date.now();
+  patchDoc(id, { savedPath: path, savedAt: at, ...(d.banner?.kind === 'error' ? { banner: null } : {}) });
+  platform.emit('note-saved', { id, path, at }).catch(() => {});
+  scheduleSession();
+}
+
+/** One-time: notes kept inside the app get their copy in the save folder (the originals stay). */
+async function copyNotesToFolder() {
+  if (settings.value.notesCopiedToFolder) return;
+  let n = 0;
+  for (const d of Object.values(docs.value)) {
+    if (d.kind !== 'note' || d.savedPath) continue;
+    const text = textOf(d.id);
+    if (!text.trim()) continue;
+    await mirrorNote(d.id, text);
+    if (docs.value[d.id]?.savedPath) n++;
+  }
+  updateSettings({ notesCopiedToFolder: true });
+  if (n) showToast(`Copied ${n} note${n === 1 ? '' : 's'} to ${await saveFolderPath()}`);
+}
+
+/** The badged file-type icons (TXT / MD / CSV / SHEET) arrived 2026-10-01: if Notepad 2.0 is
+ * already registered with Windows, register once more so Explorer picks them up. */
+const FILE_ICONS_VERSION = 1;
+async function refreshFileIcons() {
+  if (platform.kind !== 'tauri' || platform.windowLabel !== 'main' || settings.value.fileIconsVersion >= FILE_ICONS_VERSION) return;
+  try {
+    const st = await platform.integrationState();
+    if (st.supported && st.registered) await platform.registerFileTypes(FILE_TYPES);
+    updateSettings({ fileIconsVersion: FILE_ICONS_VERSION });
+  } catch {
+    /* try again next start */
+  }
+}
+
+/** Folders your open files live in, with how many files each holds (Settings > Saving). */
+export function fileLocations(): { folder: string; count: number }[] {
+  const by = new Map<string, { folder: string; count: number }>();
+  for (const d of Object.values(docs.value)) {
+    const p = d.kind === 'file' ? d.path : d.savedPath;
+    if (!p) continue;
+    const f = dirname(p);
+    const k = f.toLowerCase();
+    const e = by.get(k) ?? { folder: f, count: 0 };
+    e.count++;
+    by.set(k, e);
+  }
+  return [...by.values()].sort((a, b) => b.count - a.count || a.folder.localeCompare(b.folder));
 }
 
 async function persistRecovery(id: string) {
@@ -658,7 +807,7 @@ export async function saveDoc(id: string, opts: { silent?: boolean } = {}): Prom
     const mtime = await platform.writeFile(cur.path!, encodeText(text, cur.encoding, cur.bom, cur.eol));
     // Only clear dirty if nothing was typed while writing.
     const still = textOf(id) === text;
-    patchDoc(id, { mtime, dirty: !still, banner: cur.banner?.kind === 'readonly' ? cur.banner : null });
+    patchDoc(id, { mtime, dirty: !still, savedAt: Date.now(), banner: cur.banner?.kind === 'readonly' ? cur.banner : null });
     if (still) await platform.storeDelete(`recovery/${id}.json`);
     updateWindowTitle();
     scheduleSession();
@@ -696,8 +845,9 @@ export async function saveDocAs(id: string): Promise<boolean> {
     const becomesMd = isMarkdownPath(path);
     patchDoc(id, {
       kind: 'file', quick: false, path, title: basename(path), customTitle: undefined, mtime, dirty: false, readonly: false,
-      banner: null, language: becomesMd ? 'markdown' : d.language,
+      banner: null, language: becomesMd ? 'markdown' : d.language, savedAt: Date.now(), savedPath: undefined,
     });
+    markPending(id, false);
     if (wasNote) await platform.storeDelete(`notes/${id}.md`);
     await platform.storeDelete(`recovery/${id}.json`);
     addRecent(path);
@@ -747,10 +897,19 @@ export async function closeDoc(id: string, opts: { skipPrompt?: boolean } = {}):
   if (d.kind === 'note') {
     clearTimeout(noteTimers.get(id));
     noteTimers.delete(id);
-    if (!text.trim() && settings.value.deleteEmptyNotesOnClose) await platform.storeDelete(`notes/${id}.md`);
-    else {
+    markPending(id, false);
+    if (!text.trim() && settings.value.deleteEmptyNotesOnClose) {
+      await platform.storeDelete(`notes/${id}.md`);
+      // Its copy in the save folder: emptied, then removed (only ever an empty file is deleted).
+      if (d.savedPath) {
+        await mirrorQueue.get(id);
+        await platform.writeFile(d.savedPath, new Uint8Array()).then(() => platform.deleteIfEmpty(d.savedPath!)).catch(() => {});
+      }
+    } else {
       await platform.storeWrite(`notes/${id}.md`, text);
-      closedNotes.value = [{ id, title: displayTitle(d), modified: d.modified, quick: d.quick }, ...closedNotes.value.filter((c) => c.id !== id)];
+      await mirrorNote(id, text);
+      const saved = docs.value[id]?.savedPath ?? d.savedPath;
+      closedNotes.value = [{ id, title: displayTitle(d), modified: d.modified, quick: d.quick, savedPath: saved }, ...closedNotes.value.filter((c) => c.id !== id)];
     }
   } else {
     await platform.storeDelete(`recovery/${id}.json`);
@@ -801,7 +960,7 @@ export async function reopenNote(id: string) {
     {
       id, kind: 'note', quick: c?.quick, path: null, title: noteTitle(text), customTitle: c?.title !== noteTitle(text) ? c?.title : undefined,
       encoding: 'utf-8', bom: false, eol: 'crlf', language: 'plain', mdView: 'edit', dirty: false, mtime: 0, readonly: false,
-      created: now, modified: c?.modified ?? now,
+      created: now, modified: c?.modified ?? now, savedPath: c?.savedPath, savedAt: c?.savedPath ? c.modified : undefined,
     },
     text,
   );
@@ -1190,9 +1349,19 @@ export function moveNodeToRoot(id: string) {
   return commitTree(T.moveToRoot(tree.value, id));
 }
 
+/** Sessions saved before the rename still call the group "Quick Notes". */
+function ensureQuickGroupName() {
+  if (T.find(tree.value, QUICK_GROUP_ID)) ensureQuickGroup();
+}
+
 export function ensureQuickGroup() {
-  if (T.find(tree.value, QUICK_GROUP_ID)) return;
-  tree.value = [...tree.value, { id: QUICK_GROUP_ID, kind: 'group', name: 'Quick Notes', color: 'yellow', collapsed: false, system: 'quick-notes', children: [] }];
+  const loc = T.find(tree.value, QUICK_GROUP_ID);
+  if (loc) {
+    // Renamed from "Quick Notes" (2026-10-01).
+    if (loc.node.kind === 'group' && loc.node.name !== TRAY_GROUP_NAME) tree.value = T.update(tree.value, QUICK_GROUP_ID, { name: TRAY_GROUP_NAME });
+    return;
+  }
+  tree.value = [...tree.value, { id: QUICK_GROUP_ID, kind: 'group', name: TRAY_GROUP_NAME, color: 'yellow', collapsed: false, system: 'quick-notes', children: [] }];
 }
 
 // ---------------------------------------------------------------- quick notes (from the bubble window)
@@ -1213,10 +1382,14 @@ export function onQuickNoteUpdated(p: { id: string; text: string; from: string; 
     );
     ensureQuickGroup();
     tree.value = T.insert(tree.value, { id: p.id, kind: 'note' }, QUICK_GROUP_ID, 0);
+    void mirrorNote(p.id, p.text);
     scheduleSession();
     return;
   }
-  if (textOf(p.id) === p.text) return;
+  if (textOf(p.id) === p.text) {
+    if (!docs.value[p.id]?.savedPath) void mirrorNote(p.id, p.text);
+    return;
+  }
   const st = createEditorState(p.text, d.language === 'markdown', d.readonly, viewConfig(d));
   states.set(p.id, st);
   patchDoc(p.id, { title: noteTitle(p.text), modified: now });
@@ -1227,6 +1400,7 @@ export function onQuickNoteUpdated(p: { id: string; text: string; from: string; 
     editTick.value++;
   }
   if (otherDoc() === p.id) showInOtherPane();
+  void mirrorNote(p.id, p.text);
 }
 
 // ---------------------------------------------------------------- commands used by menus & keys
@@ -1611,7 +1785,10 @@ export async function init() {
     await seedDemo();
   }
   await adoptOrphanNotes();
+  ensureQuickGroupName();
   ready.value = true;
+  void copyNotesToFolder();
+  void refreshFileIcons();
   const { initWindows } = await import('./windows');
   await initWindows();
 

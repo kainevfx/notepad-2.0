@@ -3,6 +3,7 @@ import { emit, emitTo, listen } from '@tauri-apps/api/event';
 import { getCurrentWindow, Window, primaryMonitor, LogicalPosition, LogicalSize, cursorPosition } from '@tauri-apps/api/window';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { open as openDlg, save as saveDlg } from '@tauri-apps/plugin-dialog';
+import { documentDir } from '@tauri-apps/api/path';
 import type { FileRead, FileStat, IntegrationState, LaunchArgs, Platform, Unlisten } from './types';
 import { FILE_TYPES } from './types';
 
@@ -38,12 +39,14 @@ export function createTauriPlatform(): Platform {
         invoke<ArrayBuffer>('read_file', { path }),
         invoke<FileStat>('file_stat', { path }),
       ]);
-      return { bytes: new Uint8Array(bytes), mtime: st.mtime, readonly: st.readonly } as FileRead;
+      return { bytes: new Uint8Array(bytes), mtime: st.mtime, readonly: st.readonly, created: st.created } as FileRead;
     },
     writeFile: (path, bytes) =>
       invoke<number>('write_file', bytes, { headers: { 'x-path': encodeURIComponent(path) } }),
     stat: (path) => invoke<FileStat>('file_stat', { path }),
     renameFile: (from, to) => invoke<void>('rename_file', { from, to }),
+    deleteIfEmpty: (path) => invoke<void>('delete_if_empty', { path }),
+    documentsDir: () => documentDir(),
     pathKind: (path) => invoke<'file' | 'dir' | 'missing'>('path_kind', { path }),
     openFolder: (path) => invoke<void>('open_folder', { path }),
     openDefault: (path) => invoke<void>('open_default', { path }),

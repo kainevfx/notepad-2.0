@@ -10,6 +10,15 @@ use serde::Serialize;
 pub const APP_KEY: &str = "Notepad2";
 pub const PROGID_TXT: &str = "Notepad2.txt";
 pub const PROGID_MD: &str = "Notepad2.md";
+pub const PROGID_CSV: &str = "Notepad2.csv";
+pub const PROGID_SHEET: &str = "Notepad2.sheet";
+/// Our file types: ProgId, Explorer's type name, and the badged icon (filetypes\<name>.ico next to the exe).
+pub const PROGIDS: &[(&str, &str, &str)] = &[
+    (PROGID_TXT, "Text Document (Notepad 2.0)", "txt"),
+    (PROGID_MD, "Markdown Document (Notepad 2.0)", "md"),
+    (PROGID_CSV, "CSV Data (Notepad 2.0)", "csv"),
+    (PROGID_SHEET, "Spreadsheet (Notepad 2.0)", "sheet"),
+];
 /// Every type Notepad 2.0 opens: offered in Open with (never made the default by itself).
 pub const KNOWN_EXTS: &[&str] = &[
     ".txt", ".md", ".markdown", ".log", ".ini", ".cfg", ".conf", ".toml", ".json", ".yaml", ".yml", ".xml", ".csv", ".tsv", ".html", ".htm", ".xlsx", ".xls", ".ods", ".docx", ".pdf", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".ico",
@@ -32,6 +41,8 @@ pub struct IntegrationState {
 pub fn progid_for(ext: &str) -> &'static str {
     match ext.to_ascii_lowercase().as_str() {
         ".md" | ".markdown" | ".mdown" | ".mkd" => PROGID_MD,
+        ".csv" | ".tsv" => PROGID_CSV,
+        ".xlsx" | ".xls" | ".ods" => PROGID_SHEET,
         _ => PROGID_TXT,
     }
 }
@@ -60,6 +71,16 @@ pub fn is_our_progid(progid: &str) -> bool {
 
 fn exe_path() -> String {
     std::env::current_exe().map(|p| p.to_string_lossy().into_owned()).unwrap_or_default()
+}
+
+/// The badged icon for a file type (installed as filetypes\<name>.ico beside the exe); the app's
+/// own icon when it isn't there.
+pub fn type_icon(exe: &str, name: &str) -> String {
+    let ico = std::path::Path::new(exe).parent().map(|d| d.join("filetypes").join(format!("{name}.ico")));
+    match ico {
+        Some(p) if p.exists() => format!("\"{}\"", p.display()),
+        _ => format!("\"{exe}\",0"),
+    }
 }
 
 // ------------------------------------------------------------------ Windows implementation
@@ -109,12 +130,12 @@ mod imp {
         unsafe { SHChangeNotify(SHCNE_ASSOCCHANGED as _, SHCNF_IDLIST, std::ptr::null(), std::ptr::null()) };
     }
 
-    fn write_progid(classes: &RegKey, progid: &str, label: &str, exe: &str) -> std::io::Result<()> {
+    fn write_progid(classes: &RegKey, progid: &str, label: &str, exe: &str, icon_name: &str) -> std::io::Result<()> {
         let (k, _) = classes.create_subkey(progid)?;
         k.set_value("", &label)?;
         k.set_value("FriendlyTypeName", &label)?;
         let (icon, _) = k.create_subkey("DefaultIcon")?;
-        icon.set_value("", &format!("\"{exe}\",0"))?;
+        icon.set_value("", &type_icon(exe, icon_name))?;
         let (cmd, _) = k.create_subkey(r"shell\open\command")?;
         cmd.set_value("", &open_command(exe))?;
         Ok(())
@@ -125,8 +146,9 @@ mod imp {
         let exts: Vec<String> = exts.iter().map(|e| e.to_ascii_lowercase()).filter(|e| valid_ext(e)).collect();
         let run = || -> std::io::Result<()> {
             let (classes, _) = hkcu().create_subkey(r"Software\Classes")?;
-            write_progid(&classes, PROGID_TXT, "Text Document (Notepad 2.0)", &exe)?;
-            write_progid(&classes, PROGID_MD, "Markdown Document (Notepad 2.0)", &exe)?;
+            for (pid, label, icon) in PROGIDS {
+                write_progid(&classes, pid, label, &exe, icon)?;
+            }
 
             // "Open with" list entry for the exe itself.
             let (app, _) = classes.create_subkey(r"Applications\notepad2.exe")?;
@@ -137,7 +159,7 @@ mod imp {
 
             let (caps, _) = hkcu().create_subkey(format!(r"Software\{APP_KEY}\Capabilities"))?;
             caps.set_value("ApplicationName", &"Notepad 2.0")?;
-            caps.set_value("ApplicationDescription", &"Notepad with grouped vertical tabs, Markdown, paper modes and a tray Quick Note.")?;
+            caps.set_value("ApplicationDescription", &"Notepad with grouped vertical tabs, Markdown, sheets, paper modes and TrayNotes.")?;
             caps.set_value("ApplicationIcon", &format!("\"{exe}\",0"))?;
             let _ = caps.delete_subkey_all("FileAssociations");
             let (fa, _) = caps.create_subkey("FileAssociations")?;
@@ -173,12 +195,14 @@ mod imp {
         if let Ok(classes) = cu.open_subkey_with_flags(r"Software\Classes", KEY_ALL_ACCESS) {
             for ext in exts.iter().filter(|e| valid_ext(e)) {
                 if let Ok(owp) = classes.open_subkey_with_flags(format!(r"{ext}\OpenWithProgids"), KEY_ALL_ACCESS) {
-                    let _ = owp.delete_value(PROGID_TXT);
-                    let _ = owp.delete_value(PROGID_MD);
+                    for (pid, _, _) in PROGIDS {
+                        let _ = owp.delete_value(pid);
+                    }
                 }
             }
-            let _ = classes.delete_subkey_all(PROGID_TXT);
-            let _ = classes.delete_subkey_all(PROGID_MD);
+            for (pid, _, _) in PROGIDS {
+                let _ = classes.delete_subkey_all(pid);
+            }
             let _ = classes.delete_subkey_all(r"Applications\notepad2.exe");
         }
         if let Ok(ra) = cu.open_subkey_with_flags(r"Software\RegisteredApplications", KEY_ALL_ACCESS) {
@@ -388,6 +412,10 @@ mod tests {
         assert_eq!(progid_for(".MARKDOWN"), PROGID_MD);
         assert_eq!(progid_for(".txt"), PROGID_TXT);
         assert_eq!(progid_for(".log"), PROGID_TXT);
+        assert_eq!(progid_for(".csv"), PROGID_CSV);
+        assert_eq!(progid_for(".XLSX"), PROGID_SHEET);
+        assert_eq!(progid_for(".ods"), PROGID_SHEET);
+        assert!(is_our_progid(PROGID_SHEET));
     }
 
     #[test]

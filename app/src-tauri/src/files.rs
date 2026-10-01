@@ -13,6 +13,8 @@ pub struct FileStat {
     pub mtime: f64,
     pub size: u64,
     pub readonly: bool,
+    /// When the file was created (ms since the Unix epoch; 0 when Windows can't say).
+    pub created: f64,
 }
 
 pub fn mtime_ms(meta: &fs::Metadata) -> f64 {
@@ -21,6 +23,23 @@ pub fn mtime_ms(meta: &fs::Metadata) -> f64 {
         .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
         .map(|d| d.as_millis() as f64)
         .unwrap_or(0.0)
+}
+
+pub fn created_ms(meta: &fs::Metadata) -> f64 {
+    meta.created()
+        .ok()
+        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+        .map(|d| d.as_millis() as f64)
+        .unwrap_or(0.0)
+}
+
+/// Delete a file only when it is empty (a note's copy in the save folder whose note was cleared
+/// and closed). Anything with content is left alone.
+pub fn delete_if_empty(path: &Path) -> Result<(), String> {
+    match fs::metadata(path) {
+        Ok(m) if m.is_file() && m.len() == 0 => fs::remove_file(path).map_err(|e| e.to_string()),
+        _ => Ok(()),
+    }
 }
 
 /// "file", "dir" or "missing" (a clicked link opens a tab or File Explorer).
@@ -34,8 +53,8 @@ pub fn path_kind(path: &Path) -> &'static str {
 
 pub fn stat(path: &Path) -> FileStat {
     match fs::metadata(path) {
-        Ok(m) => FileStat { exists: true, mtime: mtime_ms(&m), size: m.len(), readonly: m.permissions().readonly() },
-        Err(_) => FileStat { exists: false, mtime: 0.0, size: 0, readonly: false },
+        Ok(m) => FileStat { exists: true, mtime: mtime_ms(&m), size: m.len(), readonly: m.permissions().readonly(), created: created_ms(&m) },
+        Err(_) => FileStat { exists: false, mtime: 0.0, size: 0, readonly: false, created: 0.0 },
     }
 }
 
@@ -48,6 +67,10 @@ pub fn write_atomic(path: &Path, bytes: &[u8]) -> Result<f64, String> {
         if m.permissions().readonly() {
             return Err(format!("{name} is read-only."));
         }
+    }
+    // The default save folder (Documents\Notepad 2.0) may not exist yet.
+    if !dir.exists() {
+        fs::create_dir_all(dir).map_err(|e| format!("Could not create {}: {e}", dir.display()))?;
     }
     let tmp = dir.join(format!(".{name}.{}.np2tmp", std::process::id()));
     let result = (|| -> std::io::Result<()> {
@@ -246,6 +269,27 @@ mod tests {
         assert_eq!(store_list(&d, "notes").unwrap(), vec!["y.md"]);
         assert_eq!(store_list(&d, "missing").unwrap(), Vec::<String>::new());
         fs::remove_dir_all(d).unwrap();
+    }
+
+    #[test]
+    fn delete_if_empty_keeps_files_with_content() {
+        let d = tmpdir("delempty");
+        let empty = d.join("e.md");
+        let full = d.join("f.md");
+        fs::write(&empty, b"").unwrap();
+        fs::write(&full, b"x").unwrap();
+        delete_if_empty(&empty).unwrap();
+        delete_if_empty(&full).unwrap();
+        assert!(!empty.exists());
+        assert!(full.exists());
+    }
+
+    #[test]
+    fn atomic_write_creates_the_folder() {
+        let d = tmpdir("mkdir").join("sub").join("deeper");
+        let f = d.join("a.txt");
+        write_atomic(&f, b"hi").unwrap();
+        assert_eq!(fs::read(&f).unwrap(), b"hi");
     }
 
     #[test]

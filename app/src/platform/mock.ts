@@ -7,7 +7,7 @@ import { SAMPLE_BINARY } from './mock-binary';
 const FS_KEY = 'np2.mockfs';
 const STORE_PREFIX = 'np2.store:';
 
-type MockFs = Record<string, { b64: string; mtime: number; readonly?: boolean }>;
+type MockFs = Record<string, { b64: string; mtime: number; readonly?: boolean; created?: number }>;
 
 function b64encode(bytes: Uint8Array): string {
   let s = '';
@@ -74,7 +74,17 @@ export function createMockPlatform(label: string): Platform {
     async readFile(path) {
       const f = loadFs()[path];
       if (!f) throw new Error(`The system cannot find the file specified: ${path}`);
-      return { bytes: b64decode(f.b64), mtime: f.mtime, readonly: !!f.readonly };
+      return { bytes: b64decode(f.b64), mtime: f.mtime, readonly: !!f.readonly, created: f.created ?? f.mtime };
+    },
+    async deleteIfEmpty(path) {
+      const fs = loadFs();
+      if (fs[path] && !atob(fs[path].b64).length) {
+        delete fs[path];
+        saveFs(fs);
+      }
+    },
+    async documentsDir() {
+      return 'C:\\Users\\Kaine\\Documents';
     },
     async renameFile(from, to) {
       const fs = loadFs();
@@ -88,14 +98,14 @@ export function createMockPlatform(label: string): Platform {
       const fs = loadFs();
       if (fs[path]?.readonly) throw new Error('Access is denied.');
       const mtime = Date.now();
-      fs[path] = { b64: b64encode(bytes), mtime };
+      fs[path] = { b64: b64encode(bytes), mtime, created: fs[path]?.created ?? mtime };
       saveFs(fs);
       return mtime;
     },
     async stat(path): Promise<FileStat> {
       const f = loadFs()[path];
       if (!f) return { exists: false, mtime: 0, size: 0, readonly: false };
-      return { exists: true, mtime: f.mtime, size: atob(f.b64).length, readonly: !!f.readonly };
+      return { exists: true, mtime: f.mtime, size: atob(f.b64).length, readonly: !!f.readonly, created: f.created ?? f.mtime };
     },
     // The browser build is a single window.
     async emitTo() {},

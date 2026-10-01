@@ -7,6 +7,7 @@ import { IcChevronLeft } from './icons';
 import { ScaleSlider } from './ScaleSlider';
 import { MarginControl } from './MarginControl';
 import { ReadAloudSettings } from './ReadAloud';
+import { saveFolderPath, fileLocations } from '../state/app';
 
 function Toggle({ on, onChange, disabled }: { on: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
@@ -51,6 +52,60 @@ function Select<K extends keyof S>({ k, options }: { k: K; options: [S[K], strin
 const bool = (k: keyof S) => (
   <Toggle on={settings.value[k] as boolean} onChange={(v) => updateSettings({ [k]: v } as Partial<S>)} />
 );
+
+/** Settings > Saving: the one default save folder, and where your open files are saved. */
+function SaveFolder() {
+  const [folder, setFolder] = useState('');
+  const custom = settings.value.saveFolder;
+  useEffect(() => {
+    void saveFolderPath().then(setFolder);
+  }, [custom]);
+  const locations = fileLocations();
+  const choose = async () => {
+    const p = await platform.pickPath('folder');
+    if (p) updateSettings({ saveFolder: p });
+  };
+  return (
+    <>
+      <Row
+        title="Default save folder"
+        desc={
+          <>
+            New Markdown and text files, notes and TrayNotes are saved here automatically. One folder for every kind of document.
+            <div class="set-path" title={folder}>{folder || '…'}</div>
+          </>
+        }
+      >
+        <div class="set-buttons">
+          <button class="btn" onClick={choose}>Change…</button>
+          {custom && (
+            <button class="btn" title="Back to Documents\Notepad 2.0" onClick={() => updateSettings({ saveFolder: '' })}>
+              Reset
+            </button>
+          )}
+          <button class="btn" disabled={!folder || platform.kind !== 'tauri'} onClick={() => platform.openFolder(folder)}>
+            Open
+          </button>
+        </div>
+      </Row>
+      <Row title="Where your open files are saved" desc="Files you opened always save back to their own file, in their own folder.">
+        <span />
+      </Row>
+      <div class="set-locations">
+        {locations.length === 0 && <div class="set-desc">Nothing saved on disk yet.</div>}
+        {locations.map((l) => (
+          <div class="set-location" key={l.folder}>
+            <span class="set-path" title={l.folder}>{l.folder}</span>
+            <span class="set-count">{l.count} file{l.count === 1 ? '' : 's'}</span>
+            <button class="btn small" disabled={platform.kind !== 'tauri'} onClick={() => platform.openFolder(l.folder)}>
+              Open folder
+            </button>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
 
 function Integration() {
   const [st, setSt] = useState<IntegrationState | null>(null);
@@ -152,7 +207,7 @@ function Integration() {
       <Row title='"Edit with Notepad 2.0" in the right-click menu' desc="Adds the entry for every file type in File Explorer.">
         <Toggle on={st.contextMenu} disabled={busy} onChange={(on) => run(() => platform.setContextMenu(on))} />
       </Row>
-      <Row title="Start with Windows (in the tray)" desc="Keeps the tray icon and the Quick Note hotkey ready after you sign in.">
+      <Row title="Start with Windows (in the tray)" desc="Keeps the tray icon and the TrayNote hotkey ready after you sign in.">
         <Toggle on={st.startWithWindows} disabled={busy} onChange={(on) => run(() => platform.setStartWithWindows(on))} />
       </Row>
       <Row title="Remove all Windows registrations" desc="Takes Notepad 2.0 out of Default apps, Open with, the right-click menu and notepad.exe. The uninstaller does this too.">
@@ -252,7 +307,8 @@ export function Settings() {
 
         <h2>Saving</h2>
         <div class="card">
-          <Row title="New notes and quick notes" desc="Always saved automatically as you type, inside Notepad 2.0. Save as turns one into a file.">
+          <SaveFolder />
+          <Row title="New notes and TrayNotes" desc="Always saved automatically as you type, as files in the save folder above (named after their first line). Save as puts one somewhere else.">
             <span class="set-fixed">Always on</span>
           </Row>
           <Row title="Autosave files you opened" desc="Off: files only change when you press Ctrl+S, like Notepad. Unsaved edits still survive a crash. Groups can override this (right-click a group).">
@@ -264,17 +320,17 @@ export function Settings() {
           <Row title="Delete empty notes when their tab closes">{bool('deleteEmptyNotesOnClose')}</Row>
         </div>
 
-        <h2>Tray and Quick Note</h2>
+        <h2>Tray and TrayNote</h2>
         <div class="card">
           <Row title="Close button (X)" desc="Right-click the tray icon and choose Quit to fully exit.">
             <Select k="closeToTray" options={[[true, 'Go to the tray'], [false, 'Quit']]} />
           </Row>
-          <Row title="Quick Note size">
+          <Row title="TrayNote size">
             <Select k="quickNoteSize" options={[['eighth', '1/8 of the screen'], ['quarter', '1/4 of the screen']]} />
           </Row>
-          <Row title="Hide Quick Note when you click away">{bool('quickNoteHideOnBlur')}</Row>
-          <Row title="Keep Quick Note on top">{bool('quickNotePinned')}</Row>
-          <Row title="Quick Note shortcut" desc="Works anywhere in Windows.">
+          <Row title="Hide TrayNote when you click away">{bool('quickNoteHideOnBlur')}</Row>
+          <Row title="Keep TrayNote on top">{bool('quickNotePinned')}</Row>
+          <Row title="TrayNote shortcut" desc="Works anywhere in Windows.">
             <kbd>Win</kbd> + <kbd>Alt</kbd> + <kbd>N</kbd>
           </Row>
         </div>

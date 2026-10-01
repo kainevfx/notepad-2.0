@@ -53,8 +53,9 @@
     "targets": ["nsis", "msi"],
     "publisher": "GodMode",
     "category": "Productivity",
-    "shortDescription": "Notepad with grouped vertical tabs, Markdown and a tray Quick Note",
+    "shortDescription": "Notepad with grouped vertical tabs, Markdown and TrayNotes",
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "resources": { "filetypes/": "filetypes/" },
     "windows": {
       "webviewInstallMode": { "type": "downloadBootstrapper" },
       "nsis": {

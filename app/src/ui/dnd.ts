@@ -5,6 +5,7 @@ import { signal } from '@preact/signals';
 import { canMove, type DropPosition } from '../lib/tree-ops';
 import { tree, moveNode, moveNodeToRoot } from '../state/app';
 import { platform } from '../platform';
+import { targetsFor } from '../state/selection';
 
 export const drag = signal<{ id: string; label: string; x: number; y: number } | null>(null);
 export const dropTarget = signal<{ id: string; pos: DropPosition | 'root' } | null>(null);
@@ -56,11 +57,14 @@ export function startDrag(e: PointerEvent, id: string, label: string) {
     /* capture is best-effort */
   }
   let outside = false;
+  // Dragging one of several selected files drags them all.
+  const ids = targetsFor(id);
+  const shown = ids.length > 1 ? `${ids.length} files` : label;
   const move = (ev: PointerEvent) => {
     outside = ev.clientX < 0 || ev.clientY < 0 || ev.clientX > window.innerWidth || ev.clientY > window.innerHeight;
     if (!active && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 5) return;
     active = true;
-    drag.value = { id, label, x: ev.clientX, y: ev.clientY };
+    drag.value = { id, label: shown, x: ev.clientX, y: ev.clientY };
     dropTarget.value = hitTest(ev.clientX, ev.clientY, id);
   };
   const up = (ev?: PointerEvent) => {
@@ -73,8 +77,8 @@ export function startDrag(e: PointerEvent, id: string, label: string) {
       const t = dropTarget.value;
       if (outside && ev && platform.kind === 'tauri') {
         // Loaded lazily: state/windows imports state/app.
-        void import('../state/windows').then((m) => m.sendItems([id]));
-      } else if (t) t.pos === 'root' ? moveNodeToRoot(id) : moveNode(id, t.id, t.pos);
+        void import('../state/windows').then((m) => m.sendItems(ids));
+      } else if (t) dropAll(ids, t);
     }
     drag.value = null;
     dropTarget.value = null;
@@ -89,6 +93,16 @@ export function startDrag(e: PointerEvent, id: string, label: string) {
   window.addEventListener('pointermove', move);
   window.addEventListener('pointerup', up as (ev: PointerEvent) => void);
   window.addEventListener('keydown', esc);
+}
+
+/** Drop several files in their shown order (dropping onto one of them drops the rest beside it). */
+function dropAll(ids: string[], t: { id: string; pos: DropPosition | 'root' }) {
+  if (t.pos === 'root') return ids.forEach((x) => moveNodeToRoot(x));
+  const rest = ids.filter((x) => x !== t.id);
+  if (t.pos === 'after') {
+    // Each one goes right after the target, so insert in reverse to keep their order.
+    for (const x of [...rest].reverse()) moveNode(x, t.id, 'after');
+  } else for (const x of rest) moveNode(x, t.id, t.pos);
 }
 
 export function dropClass(id: string): string {

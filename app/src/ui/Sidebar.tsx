@@ -1,20 +1,21 @@
 // Vertical tabs (screenshots 1 to 3) and the collapsed rail (screenshot 4).
-import { useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
 import type { TreeNode, GroupNode } from '../lib/tree-ops';
-import { tree, docs, activeId, activate, closeDoc, newNote, displayTitle, toggleGroup, newGroupFrom, renameDoc, renameGroupTo , panes } from '../state/app';
+import { tree, docs, activeId, activate, closeDoc, newNote, displayTitle, toggleGroup, newGroupFrom, renameDoc, renameGroupTo, panes, saveState, QUICK_GROUP_ID } from '../state/app';
 import { settings, updateSettings } from '../state/settings';
 import { PaperButton } from './PaperButton';
-import { openContextMenu, railPeek, closedNotesOpen, renamingId } from '../state/ui';
+import { openContextMenu, railPeek, closedNotesOpen, renamingId, contextMenu, type MenuItem } from '../state/ui';
 import { InlineRename } from './InlineRename';
-import { IcChevronDown, IcChevronUp, IcChevronLeft, IcChevronRight, IcClose, IcFolderPlus, IcSearch, IcNewText, IcNewMd } from './icons';
+import { IcChevronDown, IcChevronUp, IcClose, IcPlus, IcSearch, IcPanelCollapse, IcPanelExpand } from './icons';
 import { startDrag, consumeDragClick, dropClass, drag } from './dnd';
-import { noteMenu, groupMenu, ungroupedMenu } from './menus';
+import { noteMenu, notesMenu, groupMenu, ungroupedMenu } from './menus';
+import { clickFile, targetsFor, isSelected, selection, visibleOrder, clearSelection } from '../state/selection';
 import { groupVars, docColorVars } from './colors';
-import { fileBadge } from '../lib/file-badge';
-import { sortNodes, relativeTime, SORT_LABELS, type SortMode, type SortDoc } from '../lib/sort';
+import { sortNodes, SORT_LABELS, type SortMode, type SortDoc } from '../lib/sort';
+import { dayTime, shortWhen, typeLabel } from '../lib/when';
 
-/** Ticks every 30 s so "5 min ago" labels stay current. */
+/** Ticks every 30 s so "today 19:38" labels roll over to "yesterday". */
 const clock = signal(Date.now());
 setInterval(() => (clock.value = Date.now()), 30_000);
 
@@ -37,35 +38,77 @@ function anyMatch(n: TreeNode, q: string): boolean {
   return n.name.toLowerCase().includes(q.toLowerCase()) || n.children.some((c) => anyMatch(c, q));
 }
 
+/** The sort dropdown's own wording ("Manual sorting", "Sorted by name A–Z"…). */
+export const SORT_BUTTON: Record<SortMode, string> = {
+  manual: 'Manual sorting',
+  modified: 'Sorted by date modified',
+  created: 'Sorted by date created',
+  name: 'Sorted by name A–Z',
+  type: 'Sorted by file type',
+};
+
+export const TRAY_TOOLTIP = 'TrayNotes: notes you started from the tray icon (or Win+Alt+N). They save automatically to your save folder. Click to expand or collapse; right-click for options.';
+
+/** Small print under a file name: ".md file · created yesterday 22:09" and, on the right, the save state. */
+function NoteMeta({ id }: { id: string }) {
+  const d = docs.value[id];
+  const now = clock.value;
+  const st = saveState(d);
+  const created = `${typeLabel(d)} · created ${dayTime(d.created, now)}`;
+  const right = !st.saved ? 'Unsaved' : st.at ? `Saved ${shortWhen(st.at, now)}` : 'Empty';
+  const where = d.kind === 'file' ? d.path : d.savedPath;
+  const tip = [
+    `Created ${new Date(d.created).toLocaleString()}`,
+    `Modified ${new Date(d.modified).toLocaleString()}`,
+    st.at ? `Last saved ${new Date(st.at).toLocaleString()}` : 'Not saved to disk yet',
+    where ?? '',
+  ].filter(Boolean).join('\n');
+  return (
+    <span class="side-note-meta" title={tip}>
+      <span class="side-note-type">{created}</span>
+      <span class={`side-save ${st.saved ? 'saved' : 'unsaved'}`}>
+        {right}
+        <span class="save-dot" aria-label={st.saved ? 'Saved' : 'Unsaved changes'} />
+      </span>
+    </span>
+  );
+}
+
 function NoteRow({ id, depth }: { id: string; depth: number }) {
   const d = docs.value[id];
   if (!d) return null;
   const title = displayTitle(d);
-  const b = fileBadge(d);
+  const active = activeId.value === id;
+  const shown = panes.value.on && (panes.value.docs.a === id || panes.value.docs.b === id);
   return (
     <div
-      class={`side-note${activeId.value === id ? ' active' : panes.value.on && (panes.value.docs.a === id || panes.value.docs.b === id) ? ' also-shown' : ''}${d.color ? ' colored' : ''}${dropClass(id)}`}
+      class={`side-note${active ? ' active' : shown ? ' also-shown' : ''}${isSelected(id) ? ' selected' : ''}${d.color ? ' colored' : ''}${dropClass(id)}`}
       style={{ '--depth': depth, ...docColorVars(d.color) } as any}
       data-drop-id={id}
       data-drop-kind="note"
-      title={d.path ?? title}
       onPointerDown={(e) => startDrag(e as PointerEvent, id, title)}
-      onClick={() => !consumeDragClick() && activate(id)}
+      onClick={(e) => {
+        if (consumeDragClick()) return;
+        if (clickFile(id, e as MouseEvent, activeId.value)) activate(id);
+      }}
       onAuxClick={(e) => e.button === 1 && closeDoc(id)}
       onDblClick={() => (renamingId.value = id)}
-      onContextMenu={(e) => openContextMenu(e as MouseEvent, noteMenu(id))}
+      onContextMenu={(e) => {
+        const ids = targetsFor(id);
+        if (ids.length < 2) clearSelection();
+        openContextMenu(e as MouseEvent, ids.length > 1 ? notesMenu(ids) : noteMenu(id));
+      }}
     >
       <span class="side-note-text">
         {renamingId.value === id ? (
           <InlineRename value={title} onCommit={(v) => void renameDoc(id, v)} />
         ) : (
-          <span class="side-note-title">{title}</span>
+          <span class="side-note-title" title={d.path ?? d.savedPath ?? title}>{title}</span>
         )}
-        <span class="side-note-time" title={new Date(d.modified).toLocaleString()}>{relativeTime(d.modified, clock.value)}</span>
+        <NoteMeta id={id} />
       </span>
-      <span class={`type-badge type-${b.kind}`}>{b.label}</span>
       <button
-        class={`side-close${d.dirty ? ' dirty' : ''}`}
+        class="side-close"
         title="Close"
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => {
@@ -73,7 +116,6 @@ function NoteRow({ id, depth }: { id: string; depth: number }) {
           closeDoc(id);
         }}
       >
-        <span class="dot" />
         <IcClose size={12} />
       </button>
     </div>
@@ -83,8 +125,9 @@ function NoteRow({ id, depth }: { id: string; depth: number }) {
 function GroupBlock({ g, depth, q }: { g: GroupNode; depth: number; q: string }) {
   const open = !g.collapsed || !!q;
   const count = countNotes(g);
+  const tray = g.system === 'quick-notes';
   return (
-    <div class={`side-group depth-${depth}`} style={groupVars(g.color)}>
+    <div class={`side-group depth-${depth}${tray ? ' tray-group' : ''}`} style={groupVars(g.color)}>
       <div
         class={`side-group-head${dropClass(g.id)}`}
         data-drop-id={g.id}
@@ -94,14 +137,14 @@ function GroupBlock({ g, depth, q }: { g: GroupNode; depth: number; q: string })
         onClick={(e) => !consumeDragClick() && toggleGroup(g.id, (e as MouseEvent).altKey)}
         onContextMenu={(e) => openContextMenu(e as MouseEvent, groupMenu(g.id))}
         onDblClick={() => !g.system && (renamingId.value = g.id)}
-        title="Click to expand or collapse. Double-click to rename. Right-click for options."
+        title={tray ? TRAY_TOOLTIP : 'Click to expand or collapse. Double-click to rename. Right-click for options.'}
       >
         {renamingId.value === g.id ? (
           <InlineRename value={g.name} onCommit={(v) => renameGroupTo(g.id, v)} class="on-group" />
         ) : (
           <span class="side-group-name">{g.name}</span>
         )}
-        <span class="side-group-kind">Group</span>
+        <span class="side-group-kind">{tray ? 'Tray' : 'Group'}</span>
         {!open && <span class="side-group-count">{count}</span>}
         <span class="side-group-chev">{open ? <IcChevronUp /> : <IcChevronDown />}</span>
       </div>
@@ -110,7 +153,7 @@ function GroupBlock({ g, depth, q }: { g: GroupNode; depth: number; q: string })
           {g.children.filter((c) => anyMatch(c, q)).map((c) =>
             c.kind === 'note' ? <NoteRow key={c.id} id={c.id} depth={depth} /> : <GroupBlock key={c.id} g={c} depth={depth + 1} q={q} />,
           )}
-          {g.children.length === 0 && <div class="side-empty">Drag files here</div>}
+          {g.children.length === 0 && <div class="side-empty">{tray ? 'Notes from the tray icon appear here' : 'Drag files here'}</div>}
         </div>
       )}
     </div>
@@ -121,18 +164,91 @@ function countNotes(g: GroupNode): number {
   return g.children.reduce((a, c) => a + (c.kind === 'note' ? 1 : countNotes(c)), 0);
 }
 
+/** Files in the order they're shown (collapsed groups' files are hidden, a search opens them). */
+function shownOrder(nodes: TreeNode[], q: string, out: string[] = []): string[] {
+  for (const n of nodes) {
+    if (!anyMatch(n, q)) continue;
+    if (n.kind === 'note') out.push(n.id);
+    else if (!n.collapsed || q) shownOrder(n.children, q, out);
+  }
+  return out;
+}
+
+/** The sort dropdown: one outlined button, chevron inside, a menu of orders. */
+function SortButton({ mode }: { mode: SortMode }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const open = () => {
+    const r = ref.current!.getBoundingClientRect();
+    const items: MenuItem[] = (Object.keys(SORT_LABELS) as SortMode[]).map((m) => ({
+      label: m === 'manual' ? 'Manual (the order you arranged)' : SORT_LABELS[m],
+      checked: m === mode,
+      action: () => updateSettings({ sidebarSort: m }),
+    }));
+    contextMenu.value = { x: r.left, y: r.bottom + 4, items };
+  };
+  return (
+    <button ref={ref} class="side-btn side-sort-btn" title="How files are ordered here. Manual keeps the order you arranged." aria-haspopup="menu" onPointerDown={(e) => e.stopPropagation()} onClick={open}>
+      <span class="side-btn-label">{SORT_BUTTON[mode]}</span>
+      <IcChevronDown size={14} />
+    </button>
+  );
+}
+
+/** "Create new: Markdown | Text | Sheet": one wide outlined button in three parts. */
+function CreateNew({ onMeasure }: { onMeasure: (w: number) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Its natural width decides how narrow the sidebar may get, so it is never cut off.
+    const prev = el.style.width;
+    el.style.width = 'max-content';
+    const w = el.offsetWidth;
+    el.style.width = prev;
+    onMeasure(w);
+  }, [settings.value.uiScale]);
+  return (
+    <div class="create-new" ref={ref} role="group" aria-label="Create new">
+      <span class="cn-label">Create new:</span>
+      <button class="cn-part" title="New Markdown file (Ctrl+Alt+N)" onClick={() => newNote({ language: 'markdown', groupId: null })}>
+        Markdown
+      </button>
+      <span class="cn-sep" />
+      <button class="cn-part" title="New text file (Ctrl+N)" onClick={() => newNote({ language: 'plain', groupId: null })}>
+        Text
+      </button>
+      <span class="cn-sep" />
+      <button class="cn-part" disabled title="New spreadsheet: arrives with the sheet editor">
+        Sheet
+      </button>
+    </div>
+  );
+}
+
+/** Narrowest the sidebar may be: the Create new button plus the header's padding. */
+const sideMin = signal(300);
+
 export function Sidebar() {
   const [q, setQ] = useState('');
-  const resizing = useRef(false);
   const s = settings.value;
-  const nodes = sortNodes(tree.value, s.sidebarSort, sortDocs());
+  const all = sortNodes(tree.value, s.sidebarSort, sortDocs());
+  const tray = all.find((n): n is GroupNode => n.kind === 'group' && n.id === QUICK_GROUP_ID);
+  const nodes = all.filter((n) => n !== tray);
+  visibleOrder.ids = shownOrder(tray ? [...nodes, tray] : nodes, q);
+  selection.value; // re-render when the selection changes
+  const width = Math.max(sideMin.value, s.sidebarWidth);
+
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && selection.value.length && clearSelection();
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, []);
 
   const onResize = (e: PointerEvent) => {
     e.preventDefault();
-    resizing.current = true;
     const startX = e.clientX;
-    const startW = s.sidebarWidth;
-    const move = (ev: PointerEvent) => updateSettings({ sidebarWidth: Math.max(120, Math.min(720, startW + ev.clientX - startX)) });
+    const startW = width;
+    const move = (ev: PointerEvent) => updateSettings({ sidebarWidth: Math.max(sideMin.value, Math.min(720, startW + ev.clientX - startX)) });
     const up = () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
@@ -142,46 +258,25 @@ export function Sidebar() {
   };
 
   return (
-    <aside class="sidebar" style={{ width: s.sidebarWidth + 'px' }}>
+    <aside class="sidebar" style={{ width: width + 'px', minWidth: sideMin.value + 'px' }}>
       <div class="side-tools">
         <div class="side-head">
           <div class="side-search">
             <IcSearch size={14} />
             <input placeholder="Search tabs" value={q} onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
           </div>
-          <button class="icon-btn side-collapse" title="Collapse sidebar to a rail" onClick={() => updateSettings({ tabsMode: 'rail' })}>
-            <IcChevronLeft />
-          </button>
         </div>
-        <label class="side-sort" title="How files are ordered here. Manual keeps the order you arranged.">
-          <span>Sort</span>
-          <select class="fb-select" value={s.sidebarSort} onChange={(e) => updateSettings({ sidebarSort: (e.target as HTMLSelectElement).value as SortMode })}>
-            {(Object.keys(SORT_LABELS) as SortMode[]).map((m) => (
-              <option value={m}>{SORT_LABELS[m]}</option>
-            ))}
-          </select>
-        </label>
-        <div class="side-actions">
-          <button class="side-action" title="New text file (Ctrl+N)" onClick={() => newNote({ language: 'plain', groupId: null })}>
-            <IcNewText />
-            <span>New text file</span>
-          </button>
-          <button class="side-action" title="New Markdown file (Ctrl+Alt+N)" onClick={() => newNote({ language: 'markdown', groupId: null })}>
-            <IcNewMd />
-            <span>New MD file</span>
-          </button>
-          <button class="side-action" title="New file group (Ctrl+Shift+G)" onClick={() => newGroupFrom([], null)}>
-            <IcFolderPlus />
-            <span>New group</span>
-          </button>
-          <PaperButton />
+        <div class="side-row">
+          <SortButton mode={s.sidebarSort} />
+          <PaperButton cls="side-paper" />
         </div>
+        <CreateNew onMeasure={(w) => (sideMin.value = Math.max(240, Math.ceil(w) + 18))} />
       </div>
       <div
         class="side-scroll"
         onContextMenu={(e) => {
           const t = e.target as HTMLElement;
-          if (t.closest('.side-note, .side-group-head, .side-link')) return;
+          if (t.closest('.side-note, .side-group-head, .side-link, .side-newgroup')) return;
           openContextMenu(e as MouseEvent, ungroupedMenu());
         }}
       >
@@ -191,8 +286,23 @@ export function Sidebar() {
         <div class={`side-root-drop${drag.value ? ' visible' : ''}${dropClass('__root__')}`} data-drop-id="__root__">
           {drag.value ? 'Drop here to take it out of its file group' : ''}
         </div>
+        <button class="side-newgroup" title="New file group (Ctrl+Shift+G)" onClick={() => newGroupFrom([], null)}>
+          <IcPlus size={14} />
+          <span>New group</span>
+        </button>
+      </div>
+      {tray && anyMatch(tray, q) && (
+        <div class="side-dock">
+          <GroupBlock g={tray} depth={1} q={q} />
+        </div>
+      )}
+      <div class="side-foot">
         <button class="side-link" onClick={() => (closedNotesOpen.value = true)}>
           Closed notes…
+        </button>
+        <button class="side-btn side-collapse" title="Collapse the sidebar to a narrow rail (View → Tabs to change)" onClick={() => updateSettings({ tabsMode: 'rail' })}>
+          <IcPanelCollapse />
+          <span>Collapse sidebar</span>
         </button>
       </div>
       <div class="side-resizer" onPointerDown={(e) => onResize(e as PointerEvent)} />
@@ -208,7 +318,7 @@ export function Rail() {
   return (
     <aside class="rail">
       <button class="icon-btn rail-open" title="Expand sidebar" onClick={() => updateSettings({ tabsMode: 'left' })}>
-        <IcChevronRight />
+        <IcPanelExpand />
       </button>
       <PaperButton label={false} cls="rail-paper" />
       <div class="rail-items">
@@ -249,7 +359,7 @@ export function CompactRail() {
   return (
     <aside class="crail">
       <button class="icon-btn crail-open" title="Expand sidebar" onClick={() => updateSettings({ tabsMode: 'left' })}>
-        <IcChevronRight />
+        <IcPanelExpand />
       </button>
       <PaperButton label={false} cls="crail-paper" />
       <div class="crail-items">

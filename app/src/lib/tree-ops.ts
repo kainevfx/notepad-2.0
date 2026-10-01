@@ -13,7 +13,7 @@ export interface GroupNode {
   collapsed: boolean;
   /** Per-group override for "autosave opened files". undefined = follow the global setting. */
   autosave?: boolean;
-  /** Built-in groups (Quick Notes) cannot be deleted or renamed away. */
+  /** Built-in groups (TrayNotes) cannot be deleted or renamed away. */
   system?: 'quick-notes';
   children: TreeNode[];
 }

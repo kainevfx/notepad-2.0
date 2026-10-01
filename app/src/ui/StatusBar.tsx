@@ -16,7 +16,7 @@ export function StatusBar() {
   const saveMode = !d
     ? ''
     : d.kind === 'note'
-      ? d.quick ? 'Quick note · autosaved' : 'Note · autosaved'
+      ? d.savedPath ? `${d.quick ? 'TrayNote' : 'Note'} · saved to ${d.savedPath.replace(/[\\/][^\\/]*$/, '').split(/[\\/]/).slice(-2).join('\\')}` : d.quick ? 'TrayNote · autosaved' : 'Note · autosaved'
       : effectiveAutosave(tree.value, d.id, s.autosaveFiles)
         ? 'File · autosave on'
         : d.dirty ? 'Unsaved changes' : 'Saved';

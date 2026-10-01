@@ -33,7 +33,7 @@ export function TitleBar() {
       </div>
       <div class="tb-drag" data-tauri-drag-region />
       <div class="caption">
-        <button class="cap cap-tray" title="Close to tray (Quick Note stays available)" onClick={() => hideToTray()}>
+        <button class="cap cap-tray" title="Close to tray (TrayNote stays available)" onClick={() => hideToTray()}>
           <IcTray />
         </button>
         <button class="cap" title="Minimize" onClick={() => platform.minimize()}>

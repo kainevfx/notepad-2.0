@@ -598,7 +598,7 @@ button.sb-item:hover { background: var(--bg-hover); }
   #print-root pre { white-space: pre-wrap; font-family: Consolas, monospace; font-size: 11pt; margin: 0; }
 }
 
-/* ---------- Quick Note window ---------- */
+/* ---------- TrayNote window ---------- */
 .qn-body { background: transparent; }
 .qn { animation: qn-slide 0.18s var(--ease); height: 100%; display: flex; flex-direction: column; background: var(--bg-surface); border: 1px solid var(--stroke-strong); border-radius: 8px; overflow: hidden; }
 .qn-head { height: 40px; flex: 0 0 40px; display: flex; align-items: center; gap: 8px; padding-left: 12px; background: var(--bg-title); font-size: 13px; }
@@ -765,3 +765,99 @@ html.dark .crail-item { background: color-mix(in srgb, var(--g-dark, var(--strok
 .fb-menu-sep { height: 1px; margin: 4px 6px; background: var(--stroke); }
 .float-hscroll::-webkit-scrollbar, .visual-editor .tableWrapper::-webkit-scrollbar, .markdown-body > table::-webkit-scrollbar { height: 12px; }
 .float-hscroll::-webkit-scrollbar-thumb, .visual-editor .tableWrapper::-webkit-scrollbar-thumb, .markdown-body > table::-webkit-scrollbar-thumb { background: var(--stroke-strong); border-radius: 6px; border: 3px solid var(--bg-editor); }
+
+/* ---------- sidebar refresh (2026-10-01) ----------
+   Header: search, sort dropdown + Paper, "Create new" button; a divider under it.
+   Edge: a faint line between the sidebar and the editor (the status bar's divider colour), drawn
+   per section as an inset shadow so the active file's row can paint over it and flow into the
+   editor unbroken. */
+.sidebar { border-right: 0; --side-edge: var(--stroke-strong); }
+.side-tools, .side-scroll, .side-dock, .side-foot { box-shadow: inset -1px 0 0 var(--side-edge); }
+.side-tools { gap: 8px; padding: 8px 10px 10px; border-bottom: 1px solid var(--side-edge); }
+.side-row { display: flex; align-items: center; gap: 6px; }
+
+/* Outlined, rounded controls so they read as buttons. */
+.side-btn, .side-tools .side-search, .create-new, .side-tools .paper-anchor > .side-action {
+  border: 1px solid var(--stroke-strong); border-radius: 6px; background: var(--bg-input);
+}
+.side-btn { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; font-size: 12px; color: var(--text); white-space: nowrap; }
+.side-btn:hover, .side-tools .paper-anchor > .side-action:hover { background: var(--bg-hover); border-color: var(--text-3); }
+.side-btn:active { background: var(--bg-press); }
+.side-sort-btn { flex: 1; min-width: 0; justify-content: space-between; }
+.side-btn-label { overflow: hidden; text-overflow: ellipsis; }
+.side-tools .paper-anchor > .side-action { height: 28px; padding: 0 10px; }
+.side-tools .paper-anchor > .side-action.pressed { background: var(--bg-press); }
+.side-tools .side-search { border-radius: 6px; }
+
+/* Create new: Markdown | Text | Sheet */
+.create-new { display: flex; align-items: stretch; height: 30px; overflow: hidden; white-space: nowrap; }
+.cn-label { display: flex; align-items: center; padding: 0 8px 0 10px; font-size: 12px; color: var(--text-2); }
+.cn-part { flex: 1 0 auto; display: flex; align-items: center; justify-content: center; padding: 0 10px; font-size: 12px; font-weight: 600; color: var(--text); }
+.cn-part:hover:not(:disabled) { background: var(--bg-hover); color: var(--accent-text); }
+.cn-part:active:not(:disabled) { background: var(--bg-press); }
+.cn-part:disabled { color: var(--text-3); font-weight: 400; cursor: default; }
+.cn-sep { flex: 0 0 1px; background: var(--stroke-strong); margin: 6px 0; }
+
+/* The list */
+.side-scroll { padding: 6px 0 12px 8px; }
+.side-note { margin-right: 8px; }
+.side-note.selected { background: color-mix(in srgb, var(--accent) 16%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+.side-note.selected:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+/* The open file: the editor's own background, reaching the sidebar's edge (no line between). */
+.side-note.active { background: var(--bg-editor); margin-right: 0; border-radius: 4px 0 0 4px; padding-right: 12px; z-index: 1; }
+.side-note.active.colored { background: color-mix(in srgb, var(--f) 16%, var(--bg-editor)); }
+.side-group-body .side-note.active { margin-right: 0; }
+.side-note-meta { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-3); line-height: 1.35; min-width: 0; }
+.side-note-type { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-save { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.save-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 7px; }
+.side-save.saved .save-dot { background: #3fb950; }
+.side-save.unsaved .save-dot { background: #e3a008; }
+.side-save.unsaved { color: var(--text-2); }
+.side-close { align-self: flex-start; margin-top: 2px; }
+.side-note:not(:hover) .side-close { visibility: hidden; }
+.side-newgroup { display: flex; align-items: center; gap: 6px; margin: 6px 8px 0 2px; height: 28px; padding: 0 8px; border-radius: 6px; font-size: 12px; color: var(--text-2); }
+.side-newgroup:hover { background: var(--bg-hover); color: var(--text); }
+
+/* TrayNotes: docked at the bottom, scrolls on its own */
+.side-dock { flex: 0 1 auto; max-height: 42%; overflow-y: auto; padding: 6px 0 4px 8px; border-top: 1px solid var(--side-edge); }
+.side-dock .side-group { margin: 0; }
+.side-dock .side-group-head { margin-right: 8px; }
+.side-dock::-webkit-scrollbar { width: 6px; }
+.side-dock::-webkit-scrollbar-thumb { background: var(--stroke-strong); border-radius: 3px; }
+
+/* Footer: Closed notes… and the collapse button */
+.side-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; border-top: 1px solid var(--side-edge); }
+.side-foot .side-link { margin: 0; }
+.side-collapse { gap: 6px; }
+.rail-open, .crail-open { border: 1px solid var(--stroke-strong); border-radius: 6px; }
+.side-scroll .side-group-head, .side-scroll .side-empty, .side-scroll .side-root-drop { margin-right: 8px; }
+.side-note.active.selected { background: var(--bg-editor); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent); }
+/* The close button floats over the end of the title line, so the small print gets the full width. */
+.side-note { padding-right: 6px; }
+.side-note .side-close { position: absolute; right: 4px; top: 3px; margin: 0; background: var(--bg-chrome); }
+.side-note.active .side-close { background: var(--bg-editor); right: 10px; }
+.side-note:hover .side-note-title { padding-right: 22px; }
+.side-note .side-close { width: 20px; height: 20px; top: 2px; }
+/* Settings > Saving: the save folder and file locations */
+.set-path { margin-top: 4px; font: 12px Consolas, 'Cascadia Mono', monospace; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.set-buttons { display: flex; gap: 6px; }
+.set-locations { display: flex; flex-direction: column; gap: 4px; padding: 0 16px 14px; }
+.set-location { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border: 1px solid var(--stroke); border-radius: 6px; }
+.set-location .set-path { flex: 1; margin: 0; min-width: 0; }
+.set-count { font-size: 12px; color: var(--text-3); white-space: nowrap; }
+.btn.small { height: 26px; font-size: 12px; padding: 0 10px; }
+.save-dot.saved { background: #3fb950; }
+.save-dot.unsaved { background: #e3a008; }
+
+/* TrayNote window: mini-tabs, the last one always + */
+.qn-tabs { display: flex; align-items: flex-end; gap: 2px; padding: 6px 8px 0; overflow-x: auto; scrollbar-width: thin; border-bottom: 1px solid var(--stroke-strong); background: var(--bg-title); flex: 0 0 auto; }
+.qn-tab { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 28px; max-width: 150px; padding: 0 4px 0 9px; border: 1px solid transparent; border-bottom: 0; border-radius: 6px 6px 0 0; font-size: 12px; color: var(--text-2); cursor: default; }
+.qn-tab:hover { background: var(--bg-hover); color: var(--text); }
+.qn-tab.on { background: var(--bg-surface); border-color: var(--stroke-strong); color: var(--text); margin-bottom: -1px; height: 29px; }
+.qn-tab-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.qn-tab-x { width: 18px; height: 18px; display: grid; place-items: center; border-radius: 4px; color: var(--text-3); flex: 0 0 18px; }
+.qn-tab-x:hover { background: var(--bg-press); color: var(--text); }
+.qn-tab:not(:hover):not(.on) .qn-tab-x { visibility: hidden; }
+.qn-tab-add { padding: 0 9px; color: var(--text); border: 1px solid var(--stroke-strong); border-bottom: 0; }
+.qn-tab-add:hover { color: var(--accent-text); }

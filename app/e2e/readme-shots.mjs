@@ -180,7 +180,7 @@ await page.evaluate(() => document.querySelector('.settings-page')?.scrollBy(0, 
 await shot('21-read-aloud-settings');
 await page.keyboard.press('Escape');
 
-// 10. Quick Note bubble
+// 10. TrayNote bubble
 const qn = await ctx.newPage();
 await qn.setViewportSize({ width: 420, height: 520 });
 await qn.goto(BASE + '/quicknote.html');

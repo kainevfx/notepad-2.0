@@ -1,4 +1,4 @@
-//! Notepad 2.0 native shell: file IO, the app store, tray + Quick Note, single instance,
+//! Notepad 2.0 native shell: file IO, the app store, tray + TrayNote, single instance,
 //! global hotkey and Windows integration. The UI lives in ../src (Preact + CodeMirror).
 
 pub mod files;
@@ -88,7 +88,7 @@ fn store_list(app: AppHandle, dir: String) -> Result<Vec<String>, String> {
 
 // ------------------------------------------------------------------ commands: windows
 
-/// The Notepad 2.0 window used most recently (launches, the tray and Quick Note go there).
+/// The Notepad 2.0 window used most recently (launches, the tray and TrayNote go there).
 fn last_main(app: &AppHandle) -> String {
     let last = app.state::<windows::WinState>().last();
     if app.get_webview_window(&last).is_some() {
@@ -138,10 +138,10 @@ fn show_quicknote(app: AppHandle) {
 /// Start Windows voice typing (the same as pressing Win+H) in the focused window.
 #[tauri::command]
 fn start_voice_typing(app: AppHandle) -> Result<(), String> {
-    // Only ever type Win+H into the Quick Note itself.
+    // Only ever type Win+H into the TrayNote itself.
     let focused = app.get_webview_window("quicknote").map(|w| w.is_focused().unwrap_or(false)).unwrap_or(false);
     if !focused {
-        return Err("Click in the Quick Note first.".into());
+        return Err("Click in the TrayNote first.".into());
     }
     #[cfg(windows)]
     {
@@ -181,6 +181,11 @@ fn open_url(url: String) -> Result<(), String> {
 #[tauri::command]
 fn rename_file(from: String, to: String) -> Result<(), String> {
     files::rename_no_overwrite(std::path::Path::new(&from), std::path::Path::new(&to))
+}
+
+#[tauri::command]
+fn delete_if_empty(path: String) -> Result<(), String> {
+    files::delete_if_empty(std::path::Path::new(&path))
 }
 
 #[tauri::command]
@@ -259,8 +264,8 @@ const TRAY_ICON: &[u8] = include_bytes!("../icons/tray.png");
 
 fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let open = MenuItem::with_id(app, "open", "Open Notepad 2.0", true, None::<&str>)?;
-    let quick = MenuItem::with_id(app, "quick", "Quick Note\tWin+Alt+N", true, None::<&str>)?;
-    let new_quick = MenuItem::with_id(app, "new-quick", "New Quick Note", true, None::<&str>)?;
+    let quick = MenuItem::with_id(app, "quick", "TrayNote\tWin+Alt+N", true, None::<&str>)?;
+    let new_quick = MenuItem::with_id(app, "new-quick", "New TrayNote", true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Exit", true, None::<&str>)?;
     let sep1 = PredefinedMenuItem::separator(app)?;
@@ -269,7 +274,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
 
     TrayIconBuilder::with_id("main-tray")
         .icon(tauri::image::Image::from_bytes(TRAY_ICON)?)
-        .tooltip("Notepad 2.0: click for Quick Note")
+        .tooltip("Notepad 2.0: click for TrayNote")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, e| match e.id.as_ref() {
@@ -339,7 +344,7 @@ pub fn run() {
             build_tray(&handle)?;
             // Another app may already own Win+Alt+N; the tray still works without it.
             if let Err(e) = handle.global_shortcut().register(quick_hotkey) {
-                eprintln!("Quick Note hotkey unavailable: {e}");
+                eprintln!("TrayNote hotkey unavailable: {e}");
             }
             Ok(())
         })
@@ -380,6 +385,7 @@ pub fn run() {
             open_default,
             read_sheet,
             rename_file,
+            delete_if_empty,
             start_voice_typing,
             store_claim,
             launch_hidden,
